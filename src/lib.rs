@@ -20,9 +20,9 @@ pub mod parser;
 pub use interpreter::{DrawEntity, DrawingState, Interpreter};
 pub use parser::Expr;
 
+// Only use fs, Path, and HashMap for non-WASM builds
+#[cfg(not(target_arch = "wasm32"))]
 use std::collections::HashMap;
-
-// Only use fs and Path for non-WASM builds
 #[cfg(not(target_arch = "wasm32"))]
 use std::fs;
 #[cfg(not(target_arch = "wasm32"))]
@@ -101,6 +101,47 @@ impl WasmEngine {
     pub fn clear(&mut self) {
         self.interpreter.drawing.entities.clear();
         self.interpreter.output.clear();
+    }
+
+    /// Benchmark: run code multiple times and return timing stats as JSON
+    /// Returns: { "iterations": n, "total_ms": f, "avg_ms": f, "entities": n, "engine": "rust" }
+    #[wasm_bindgen]
+    pub fn benchmark(&mut self, code: &str, iterations: usize) -> String {
+        use web_sys::window;
+
+        let iterations = iterations.clamp(1, 10000); // Clamp to reasonable range
+
+        // Get performance.now() from browser
+        let start = window()
+            .and_then(|w| w.performance())
+            .map(|p| p.now())
+            .unwrap_or(0.0);
+
+        for _ in 0..iterations {
+            self.interpreter.drawing.entities.clear();
+            self.interpreter.output.clear();
+            let _ = self.interpreter.run(code);
+        }
+
+        let end = window()
+            .and_then(|w| w.performance())
+            .map(|p| p.now())
+            .unwrap_or(0.0);
+
+        let total_ms = end - start;
+        let avg_ms = total_ms / iterations as f64;
+        let entities = self.interpreter.drawing.entities.len();
+
+        format!(
+            r#"{{"iterations":{},"total_ms":{:.3},"avg_ms":{:.6},"entities":{},"engine":"rust"}}"#,
+            iterations, total_ms, avg_ms, entities
+        )
+    }
+
+    /// Get engine info
+    #[wasm_bindgen]
+    pub fn engine_info(&self) -> String {
+        r#"{"name":"acadlisp","engine":"rust","version":"0.1.0","features":["autolisp","csv","dxf","svg"]}"#.to_string()
     }
 
     /// Get list of available examples

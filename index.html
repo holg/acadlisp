@@ -71,6 +71,9 @@
     </script>
 
     <link data-trunk rel="rust" data-wasm-opt="z" data-target-name="acadlisp" data-initializer="initializer.js"/>
+    <link data-trunk rel="copy-file" href="noscript.html"/>
+    <link data-trunk rel="copy-file" href="xlisp.js"/>
+    <link data-trunk rel="copy-file" href="xlisp.wasm"/>
 
     <!-- Noscript fallback for crawlers and non-JS browsers -->
     <noscript>
@@ -125,6 +128,102 @@
         }
         .nav button:hover { background: #00ff88; color: #000; }
         .nav .counter { color: #666; padding: 10px; }
+
+        /* Mobile Responsive */
+        @media (max-width: 768px) {
+            .slide { padding: 15px; padding-bottom: 120px; }
+            .slide h1 { font-size: 24px; }
+            .slide h2 { font-size: 20px; }
+            .slide p { font-size: 14px; }
+            .slide .big { font-size: 36px; }
+            .nav {
+                bottom: 0;
+                right: 0;
+                left: 0;
+                padding: 8px;
+                background: rgba(10, 10, 15, 0.98);
+                border-top: 1px solid #333;
+                flex-wrap: wrap;
+                justify-content: center;
+                gap: 5px;
+                max-height: 100px;
+                overflow-y: auto;
+            }
+            .nav button {
+                padding: 6px 10px;
+                font-size: 11px;
+            }
+            .nav .counter { display: none; }
+            .demo-container {
+                flex-direction: column;
+                height: auto;
+                min-height: calc(100vh - 150px);
+                padding-bottom: 100px;
+                margin-bottom: 20px;
+            }
+            .demo-left {
+                width: 100%;
+                max-height: 30vh;
+                overflow-y: auto;
+            }
+            .demo-right {
+                min-height: 35vh;
+                margin-bottom: 20px;
+            }
+            #slide14 > div,
+            #slide15 > div,
+            #slide16 > div,
+            #slide17 > div {
+                flex-direction: column !important;
+                height: auto !important;
+                padding-bottom: 120px !important;
+                overflow-y: auto !important;
+            }
+            #slide14 > div > div,
+            #slide15 > div > div,
+            #slide16 > div > div,
+            #slide17 > div > div {
+                width: 100% !important;
+                max-width: 100% !important;
+                margin-bottom: 15px !important;
+            }
+            textarea {
+                min-height: 80px !important;
+                font-size: 10px !important;
+            }
+            button#runBenchmark,
+            button#runCode,
+            button#plotFunction,
+            button#generateCSV {
+                margin-bottom: 15px !important;
+            }
+            /* SVG/Canvas drawing areas */
+            .demo-right svg,
+            #svgContainer,
+            #plotArea,
+            #drawingPreview {
+                max-height: calc(100vh - 350px) !important;
+                margin-bottom: 20px !important;
+            }
+            /* Benchmark slide specific */
+            #slide17 {
+                padding-bottom: 140px !important;
+            }
+            .benchmark-container {
+                flex-direction: column !important;
+                height: auto !important;
+                min-height: auto !important;
+                padding-bottom: 20px !important;
+            }
+            .benchmark-container > div {
+                width: 100% !important;
+            }
+            #runBenchmark {
+                position: relative;
+                z-index: 50;
+                margin-bottom: 20px !important;
+            }
+        }
 
         /* Interactive Demo Slide */
         .demo-container {
@@ -666,12 +765,114 @@
         </div>
     </div>
 
+    <!-- SLIDE 17: Benchmark Comparison -->
+    <div class="slide" id="slide17" style="padding: 20px; overflow-y: auto;">
+        <div class="benchmark-container" style="display:flex; gap:20px; height:calc(100vh - 60px);">
+            <!-- Left: Benchmark Controls -->
+            <div style="width:350px; display:flex; flex-direction:column; gap:15px;">
+                <h2 style="color:#ff4444; font-size:18px; margin:0;">Engine Benchmark</h2>
+                <p style="color:#888; font-size:11px; margin:0;">Compare Rust/WASM vs XLISP (Emscripten)</p>
+
+                <div style="background:#111; border:1px solid #333; padding:15px;">
+                    <label style="color:#888; font-size:11px;">Test Code:</label>
+                    <select id="benchmarkTest" style="width:100%; background:#222; color:#00ff88; border:1px solid #333; padding:8px; margin-top:5px;">
+                        <option value="math">Math: Factorial(10) x 100</option>
+                        <option value="fibonacci">Recursion: Fibonacci(15)</option>
+                        <option value="drawing">Drawing: 50 entities</option>
+                        <option value="list">List ops: car/cdr x 1000</option>
+                        <option value="custom">Custom code</option>
+                    </select>
+                </div>
+
+                <textarea id="benchmarkCode" style="flex:1; background:#1a1a2e; color:#00ff88; border:1px solid #333; padding:10px; font-family:monospace; font-size:11px; min-height:150px;">; Factorial benchmark
+(defun factorial (n)
+  (if (<= n 1)
+    1
+    (* n (factorial (1- n)))))
+
+(factorial 10)</textarea>
+
+                <div style="display:flex; gap:10px;">
+                    <label style="color:#888; font-size:11px; padding:8px 0;">Iterations:</label>
+                    <input type="number" id="benchmarkIterations" value="100" min="1" max="10000" style="width:80px; background:#222; color:#00ff88; border:1px solid #333; padding:5px;">
+                </div>
+
+                <button id="runBenchmark" style="background:#ff4444; border-color:#ff4444; color:#fff; padding:12px; font-size:14px; font-weight:bold;">Run Benchmark</button>
+
+                <div id="benchmarkStatus" style="color:#888; font-size:11px; min-height:20px;"></div>
+            </div>
+
+            <!-- Right: Results -->
+            <div style="flex:1; display:flex; flex-direction:column; gap:15px;">
+                <div style="display:flex; gap:15px; flex:1;">
+                    <!-- Rust Results -->
+                    <div style="flex:1; background:#111; border:2px solid #00ff88; padding:20px; display:flex; flex-direction:column;">
+                        <h3 style="color:#00ff88; font-size:14px; margin:0 0 15px 0;">Rust/WASM (acadlisp)</h3>
+                        <div style="flex:1; display:flex; flex-direction:column; justify-content:center; align-items:center;">
+                            <div id="rustTime" style="font-size:48px; color:#00ff88; font-weight:bold;">--</div>
+                            <div style="color:#888; font-size:12px;">ms (avg)</div>
+                        </div>
+                        <div style="border-top:1px solid #333; padding-top:10px; margin-top:10px;">
+                            <div style="display:flex; justify-content:space-between; color:#666; font-size:11px;">
+                                <span>Total:</span><span id="rustTotal">--</span>
+                            </div>
+                            <div style="display:flex; justify-content:space-between; color:#666; font-size:11px;">
+                                <span>Entities:</span><span id="rustEntities">--</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- XLISP Results -->
+                    <div style="flex:1; background:#111; border:2px solid #ff8800; padding:20px; display:flex; flex-direction:column; opacity:0.5;" id="xlispPanel">
+                        <h3 style="color:#ff8800; font-size:14px; margin:0 0 5px 0;">XLISP 3.3 (Emscripten)</h3>
+                        <p style="color:#666; font-size:10px; margin:0 0 10px 0;">by David Betz, 1985</p>
+                        <div style="flex:1; display:flex; flex-direction:column; justify-content:center; align-items:center;">
+                            <div id="xlispTime" style="font-size:48px; color:#ff8800; font-weight:bold;">--</div>
+                            <div style="color:#888; font-size:12px;">ms (avg)</div>
+                        </div>
+                        <div style="border-top:1px solid #333; padding-top:10px; margin-top:10px;">
+                            <div style="display:flex; justify-content:space-between; color:#666; font-size:11px;">
+                                <span>Total:</span><span id="xlispTotal">--</span>
+                            </div>
+                            <div style="display:flex; justify-content:space-between; color:#666; font-size:11px;">
+                                <span>Status:</span><span id="xlispStatus">Not loaded</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Comparison Bar -->
+                <div style="background:#111; border:1px solid #333; padding:20px;">
+                    <div style="display:flex; justify-content:space-between; margin-bottom:10px;">
+                        <span style="color:#00ff88; font-size:12px;">Rust</span>
+                        <span id="speedupText" style="color:#fff; font-size:14px; font-weight:bold;">--</span>
+                        <span style="color:#ff8800; font-size:12px;">XLISP</span>
+                    </div>
+                    <div style="background:#222; height:30px; border-radius:4px; overflow:hidden; display:flex;">
+                        <div id="rustBar" style="background:#00ff88; width:50%; transition:width 0.5s;"></div>
+                        <div id="xlispBar" style="background:#ff8800; width:50%; transition:width 0.5s;"></div>
+                    </div>
+                </div>
+
+                <!-- Info -->
+                <div style="background:#1a1a2e; border:1px solid #333; padding:15px; color:#666; font-size:11px;">
+                    <p style="margin:0 0 10px 0;"><strong style="color:#888;">About this benchmark:</strong></p>
+                    <p style="margin:0 0 5px 0;">• <span style="color:#00ff88;">Rust/WASM</span>: Our custom interpreter, optimized for CAD workflows - <a href="https://github.com/acadlisp/acadlisp" target="_blank" style="color:#00ff88;">source</a></p>
+                    <p style="margin:0 0 5px 0;">• <span style="color:#ff8800;">XLISP</span>: Created by <strong>David Betz</strong> in 1985 - the ancestor of AutoLISP. Compiled to WASM via Emscripten.</p>
+                    <p style="margin:0 0 5px 0; padding-left:12px;">Original: <a href="https://github.com/dbetz/xlisp" target="_blank" style="color:#ff8800;">github.com/dbetz/xlisp</a> | Our WASM fork: <a href="https://github.com/holg/xlisp" target="_blank" style="color:#ff8800;">github.com/holg/xlisp</a></p>
+                    <p style="margin:0;">• Both run entirely in your browser - no server calls</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <div class="nav">
         <button id="startSlideshow" style="background:#ff8800; color:#000; border-color:#ff8800; font-weight:bold;">▶ Slideshow</button>
         <button id="skipToDemo" style="background:#00ff88; color:#000; border-color:#00ff88; font-weight:bold;">⚡ Generate DWGs</button>
         <button id="skipToPlayground" style="background:#00aaff; color:#000; border-color:#00aaff;">▶ Playground</button>
         <button id="skipToPlotter" style="background:#ff8800; color:#000; border-color:#ff8800;">📐 Plotter</button>
-        <span class="counter" id="slideCounter">1 / 16</span>
+        <button id="skipToBenchmark" style="background:#ff4444; color:#fff; border-color:#ff4444;">⚡ Benchmark</button>
+        <span class="counter" id="slideCounter">1 / 17</span>
         <button id="prevSlide">← Prev</button>
         <button id="nextSlide">Next →</button>
     </div>
@@ -679,7 +880,7 @@
     <script type="module">
         // Slide navigation
         let currentSlide = 1;
-        const totalSlides = 16;
+        const totalSlides = 17;
         let slideshowInterval = null;
         let slideshowRunning = false;
 
@@ -724,6 +925,7 @@
         document.getElementById('skipToDemo').onclick = () => showSlide(14);
         document.getElementById('skipToPlayground').onclick = () => showSlide(15);
         document.getElementById('skipToPlotter').onclick = () => showSlide(16);
+        document.getElementById('skipToBenchmark').onclick = () => showSlide(17);
 
         document.addEventListener('keydown', (e) => {
             if (e.key === 'ArrowRight' || e.key === ' ') showSlide(Math.min(totalSlides, currentSlide + 1));
@@ -1224,6 +1426,173 @@
                 document.getElementById('plotArea').innerHTML = '';
                 document.getElementById('plotOutput').textContent = '';
                 document.getElementById('plotStats').textContent = '';
+            };
+
+            // ============================================
+            // SLIDE 17: Benchmark Comparison
+            // ============================================
+
+            const benchmarkTests = {
+                math: `; Factorial benchmark
+(defun factorial (n)
+  (if (<= n 1)
+    1
+    (* n (factorial (1- n)))))
+
+(factorial 10)`,
+                fibonacci: `; Fibonacci - heavy recursion
+(defun fib (n)
+  (if (< n 2)
+    n
+    (+ (fib (- n 1)) (fib (- n 2)))))
+
+(fib 15)`,
+                drawing: `; Drawing benchmark - 50 entities
+(defun draw-grid (n)
+  (if (> n 0)
+    (progn
+      (command "LINE" (list 0 (* n 10)) (list 200 (* n 10)) "")
+      (command "LINE" (list (* n 10) 0) (list (* n 10) 200) "")
+      (draw-grid (1- n)))))
+
+(draw-grid 25)`,
+                list: `; List operations
+(defun list-ops (n lst)
+  (if (<= n 0)
+    lst
+    (list-ops (1- n) (cons (car lst) (cdr lst)))))
+
+(list-ops 100 '(1 2 3 4 5 6 7 8 9 10))`
+            };
+
+            document.getElementById('benchmarkTest').onchange = (e) => {
+                if (e.target.value !== 'custom' && benchmarkTests[e.target.value]) {
+                    document.getElementById('benchmarkCode').value = benchmarkTests[e.target.value];
+                }
+            };
+
+            // XLISP module - loaded via Emscripten
+            let xlispEngine = null;
+            let xlispAvailable = false;
+
+            // Load XLISP module
+            async function loadXlisp() {
+                try {
+                    // Dynamically import XLISP
+                    const script = document.createElement('script');
+                    script.src = 'xlisp.js';
+                    document.head.appendChild(script);
+
+                    await new Promise((resolve, reject) => {
+                        script.onload = resolve;
+                        script.onerror = reject;
+                    });
+
+                    // Wait for createXLisp to be available
+                    if (typeof createXLisp === 'function') {
+                        xlispEngine = await createXLisp();
+                        console.log('XLISP module loaded, available exports:', Object.keys(xlispEngine).filter(k => k.startsWith('_') || k === 'ccall' || k === 'cwrap'));
+
+                        // Initialize XLISP
+                        const initResult = xlispEngine._xlisp_init();
+                        console.log('XLISP init result:', initResult);
+
+                        if (initResult) {
+                            xlispAvailable = true;
+                            document.getElementById('xlispPanel').style.opacity = '1';
+                            document.getElementById('xlispStatus').textContent = 'Ready';
+                            console.log('XLISP 3.3 engine initialized');
+                        } else {
+                            document.getElementById('xlispStatus').textContent = 'Init failed';
+                        }
+                    }
+                } catch (e) {
+                    console.log('XLISP not available:', e.message);
+                    document.getElementById('xlispStatus').textContent = 'Load failed';
+                }
+            }
+            loadXlisp();
+
+            document.getElementById('runBenchmark').onclick = async () => {
+                const code = document.getElementById('benchmarkCode').value;
+                const iterations = parseInt(document.getElementById('benchmarkIterations').value) || 100;
+                const status = document.getElementById('benchmarkStatus');
+
+                status.textContent = 'Running Rust benchmark...';
+
+                // Run Rust benchmark
+                await new Promise(r => setTimeout(r, 10)); // Let UI update
+                const rustResult = JSON.parse(engine.benchmark(code, iterations));
+
+                document.getElementById('rustTime').textContent = rustResult.avg_ms.toFixed(3);
+                document.getElementById('rustTotal').textContent = rustResult.total_ms.toFixed(1) + ' ms';
+                document.getElementById('rustEntities').textContent = rustResult.entities;
+
+                let xlispResult = null;
+
+                if (xlispAvailable && xlispEngine) {
+                    status.textContent = 'Running XLISP benchmark...';
+                    await new Promise(r => setTimeout(r, 10));
+
+                    try {
+                        // Allocate string in WASM memory
+                        const encoder = new TextEncoder();
+                        const codeBytes = encoder.encode(code + '\0');
+                        const codePtr = xlispEngine._malloc(codeBytes.length);
+                        xlispEngine.HEAPU8.set(codeBytes, codePtr);
+
+                        const start = performance.now();
+                        for (let i = 0; i < iterations; i++) {
+                            xlispEngine._xlisp_eval(codePtr);
+                        }
+                        const end = performance.now();
+                        const total = end - start;
+
+                        xlispEngine._free(codePtr);
+
+                        xlispResult = {
+                            total_ms: total,
+                            avg_ms: total / iterations,
+                            iterations: iterations
+                        };
+
+                        document.getElementById('xlispTime').textContent = xlispResult.avg_ms.toFixed(3);
+                        document.getElementById('xlispTotal').textContent = xlispResult.total_ms.toFixed(1) + ' ms';
+                    } catch (e) {
+                        document.getElementById('xlispTime').textContent = 'ERR';
+                        document.getElementById('xlispStatus').textContent = e.message;
+                        console.error('XLISP error:', e);
+                    }
+                } else {
+                    document.getElementById('xlispTime').textContent = 'N/A';
+                    document.getElementById('xlispStatus').textContent = 'Not loaded yet';
+                }
+
+                // Update comparison bar
+                if (xlispResult) {
+                    const total = rustResult.avg_ms + xlispResult.avg_ms;
+                    const rustPct = (rustResult.avg_ms / total) * 100;
+                    const xlispPct = (xlispResult.avg_ms / total) * 100;
+
+                    document.getElementById('rustBar').style.width = rustPct + '%';
+                    document.getElementById('xlispBar').style.width = xlispPct + '%';
+
+                    const speedup = xlispResult.avg_ms / rustResult.avg_ms;
+                    if (speedup > 1) {
+                        document.getElementById('speedupText').textContent = `Rust is ${speedup.toFixed(1)}x faster`;
+                        document.getElementById('speedupText').style.color = '#00ff88';
+                    } else {
+                        document.getElementById('speedupText').textContent = `XLISP is ${(1/speedup).toFixed(1)}x faster`;
+                        document.getElementById('speedupText').style.color = '#ff8800';
+                    }
+                } else {
+                    document.getElementById('rustBar').style.width = '100%';
+                    document.getElementById('xlispBar').style.width = '0%';
+                    document.getElementById('speedupText').textContent = 'XLISP not available for comparison';
+                    document.getElementById('speedupText').style.color = '#888';
+                }
+
+                status.textContent = `Benchmark complete: ${iterations} iterations`;
             };
         });
     </script>

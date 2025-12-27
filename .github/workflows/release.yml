@@ -67,6 +67,12 @@ jobs:
       - name: Build WASM (release)
         run: trunk build --release --public-url /acadlisp/
 
+      - name: Compress with Brotli
+        run: |
+          sudo apt-get install -y brotli
+          brotli -f -k dist/*.wasm dist/*.js
+          ls -lh dist/
+
       - name: Setup Pages
         uses: actions/configure-pages@v4
 
