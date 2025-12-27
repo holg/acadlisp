@@ -481,6 +481,54 @@ fn entity_to_json(entity: &DrawEntity) -> String {
                 block_name, x, y, scale, rotation, layer
             )
         }
+        DrawEntity::Pin {
+            name,
+            number,
+            etype,
+            style,
+            x,
+            y,
+            length,
+            rotation,
+            layer,
+        } => {
+            format!(
+                r#"{{"type": "PIN", "name": "{}", "number": "{}", "type": "{}", "style": "{}", "x": {}, "y": {}, "length": {}, "rotation": {}, "layer": "{}"}}"#,
+                name, number, etype, style, x, y, length, rotation, layer
+            )
+        }
+        DrawEntity::Property {
+            key,
+            value,
+            x,
+            y,
+            rotation,
+            height,
+            visible,
+            layer,
+        } => {
+            format!(
+                r#"{{"type": "PROPERTY", "key": "{}", "value": "{}", "x": {}, "y": {}, "rotation": {}, "height": {}, "visible": {}, "layer": "{}"}}"#,
+                key, value, x, y, rotation, height, visible, layer
+            )
+        }
+        DrawEntity::Pad {
+            name,
+            ptype,
+            shape,
+            x,
+            y,
+            width,
+            height,
+            drill,
+            rotation,
+            layers,
+        } => {
+            format!(
+                r#"{{"type": "PAD", "name": "{}", "type": "{}", "shape": "{}", "x": {}, "y": {}, "width": {}, "height": {}, "drill": {}, "rotation": {}, "layers": "{}"}}"#,
+                name, ptype, shape, x, y, width, height, drill, rotation, layers
+            )
+        }
     }
 }
 
@@ -516,6 +564,15 @@ fn save_entities_svg(entities: &[DrawEntity], path: &str) {
                 min_y = min_y.min(*y);
                 max_x = max_x.max(*x + 50.0);
                 max_y = max_y.max(*y + 50.0);
+            }
+            DrawEntity::Pin { x, y, length, .. } => {
+                min_x = min_x.min(*x - length);
+                min_y = min_y.min(*y - length);
+                max_x = max_x.max(*x + length);
+                max_y = max_y.max(*y + length);
+            }
+            DrawEntity::Property { .. } => {
+                // Ignore
             }
             _ => {}
         }

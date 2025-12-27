@@ -14,6 +14,9 @@
 use wasm_bindgen::prelude::*;
 
 pub mod interpreter;
+pub mod kicad;
+#[cfg(test)]
+mod kicad_tests;
 pub mod lexer;
 pub mod parser;
 
@@ -94,6 +97,22 @@ impl WasmEngine {
     #[wasm_bindgen]
     pub fn get_output(&self) -> String {
         self.interpreter.output.join("")
+    }
+
+    /// Export current drawing as a KiCad Symbol Library
+    #[wasm_bindgen]
+    pub fn get_kicad_sym(&self, library_name: &str, symbol_name: &str) -> String {
+        kicad::to_kicad_sym(
+            &self.interpreter.drawing.entities,
+            library_name,
+            symbol_name,
+        )
+    }
+
+    /// Export current drawing as a KiCad Footprint
+    #[wasm_bindgen]
+    pub fn get_kicad_mod(&self, footprint_name: &str) -> String {
+        kicad::to_kicad_mod(&self.interpreter.drawing.entities, footprint_name)
     }
 
     /// Clear the drawing
@@ -353,6 +372,9 @@ impl WasmEngine {
                         "  0\nINSERT\n  8\n{}\n  2\n{}\n 10\n{}\n 20\n{}\n 41\n{}\n 42\n{}\n 50\n{}\n",
                         layer, block_name, x, y, scale, scale, rotation
                     ));
+                }
+                DrawEntity::Pin { .. } | DrawEntity::Property { .. } | DrawEntity::Pad { .. } => {
+                    // KiCad specific entities ignored in DXF export for now
                 }
             }
         }
@@ -1022,6 +1044,54 @@ fn entity_to_json(entity: &DrawEntity) -> String {
                 block_name, x, y, scale, rotation, layer
             )
         }
+        DrawEntity::Pin {
+            name,
+            number,
+            etype,
+            style,
+            x,
+            y,
+            length,
+            rotation,
+            layer,
+        } => {
+            format!(
+                r#"{{"type":"PIN","name":"{}","num":"{}","etype":"{}","style":"{}","x":{},"y":{},"len":{},"rot":{},"layer":"{}"}}"#,
+                name, number, etype, style, x, y, length, rotation, layer
+            )
+        }
+        DrawEntity::Property {
+            key,
+            value,
+            x,
+            y,
+            rotation,
+            height,
+            visible,
+            layer,
+        } => {
+            format!(
+                r#"{{"type":"PROP","key":"{}","val":"{}","x":{},"y":{},"rot":{},"h":{},"vis":{},"layer":"{}"}}"#,
+                key, value, x, y, rotation, height, visible, layer
+            )
+        }
+        DrawEntity::Pad {
+            name,
+            ptype,
+            shape,
+            x,
+            y,
+            width,
+            height,
+            drill,
+            rotation,
+            layers,
+        } => {
+            format!(
+                r#"{{"type":"PAD","name":"{}","ptype":"{}","shape":"{}","x":{},"y":{},"w":{},"h":{},"drill":{},"rot":{},"layers":"{}"}}"#,
+                name, ptype, shape, x, y, width, height, drill, rotation, layers
+            )
+        }
     }
 }
 
@@ -1058,7 +1128,44 @@ fn entities_to_svg(entities: &[DrawEntity]) -> String {
                 max_x = max_x.max(*x + text.len() as f64 * height * 0.6);
                 max_y = max_y.max(*y + height);
             }
-            _ => {}
+            DrawEntity::Insert { x, y, .. } => {
+                min_x = min_x.min(*x);
+                min_y = min_y.min(*y);
+                max_x = max_x.max(*x + 50.0);
+                max_y = max_y.max(*y + 50.0);
+            }
+            DrawEntity::Pin { x, y, length, .. } => {
+                // Include pins in bounding box
+                min_x = min_x.min(*x - length);
+                min_y = min_y.min(*y - length);
+                max_x = max_x.max(*x + length);
+                max_y = max_y.max(*y + length);
+            }
+            DrawEntity::Property { .. } => {
+                // Ignore properties for bounds
+            }
+            DrawEntity::Pad {
+                x, y, width, height, ..
+            } => {
+                let w2 = width / 2.0;
+                let h2 = height / 2.0;
+                min_x = min_x.min(*x - w2);
+                min_y = min_y.min(*y - h2);
+                max_x = max_x.max(*x + w2);
+                max_y = max_y.max(*y + h2);
+            }
+            DrawEntity::Arc { cx, cy, radius, .. } => {
+                min_x = min_x.min(cx - radius);
+                min_y = min_y.min(cy - radius);
+                max_x = max_x.max(cx + radius);
+                max_y = max_y.max(cy + radius);
+            }
+            DrawEntity::Point { x, y, .. } => {
+                min_x = min_x.min(*x);
+                min_y = min_y.min(*y);
+                max_x = max_x.max(*x);
+                max_y = max_y.max(*y);
+            }
         }
     }
 
@@ -1071,22 +1178,45 @@ fn entities_to_svg(entities: &[DrawEntity]) -> String {
     let height = max_y - min_y;
 
     let mut svg = format!(
-        r#"<svg xmlns="http://www.w3.org/2000/svg" viewBox="{} {} {} {}" width="100%" height="100%" preserveAspectRatio="xMidYMid meet" style="background:#1a1a2e">"#,
-        min_x, -max_y, width, height
+        r#"<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg"
+     viewBox="{} {} {} {}"
+     width="{}" height="{}"
+     style="background-color: #1a1a2e;">
+  <title>{} - {}</title>
+  <defs>
+    <style>
+      .line {{ stroke: #00ff88; stroke-width: 1; fill: none; }}
+      .circle {{ stroke: #00aaff; stroke-width: 1; fill: none; }}
+      .text {{ fill: #ffffff; font-family: monospace; }}
+      .block {{ stroke: #ff8800; fill: none; }}
+    </style>
+  </defs>
+  <g transform="translate(0, {}) scale(1, -1)">
+"#,
+        min_x - padding,
+        min_y - padding,
+        width,
+        height,
+        width.min(1200.0),
+        height.min(900.0),
+        "AutoLISP Drawing",
+        "Generated",
+        height
     );
 
     for entity in entities {
         match entity {
             DrawEntity::Line { x1, y1, x2, y2, .. } => {
                 svg.push_str(&format!(
-                    "<line x1=\"{}\" y1=\"{}\" x2=\"{}\" y2=\"{}\" stroke=\"#00ff88\" stroke-width=\"1\"/>",
-                    x1, -y1, x2, -y2
+                    "    <line x1=\"{}\" y1=\"{}\" x2=\"{}\" y2=\"{}\" class=\"line\" />\n",
+                    x1, y1, x2, y2
                 ));
             }
             DrawEntity::Circle { cx, cy, radius, .. } => {
                 svg.push_str(&format!(
-                    "<circle cx=\"{}\" cy=\"{}\" r=\"{}\" stroke=\"#00aaff\" fill=\"none\" stroke-width=\"1\"/>",
-                    cx, -cy, radius
+                    "    <circle cx=\"{}\" cy=\"{}\" r=\"{}\" class=\"circle\" />\n",
+                    cx, cy, radius
                 ));
             }
             DrawEntity::Text {
@@ -1096,16 +1226,118 @@ fn entities_to_svg(entities: &[DrawEntity]) -> String {
                     .replace('&', "&amp;")
                     .replace('<', "&lt;")
                     .replace('>', "&gt;");
+                // Note: text needs to be flipped back since we're in a flipped coordinate system
                 svg.push_str(&format!(
-                    "<text x=\"{}\" y=\"{}\" fill=\"#fff\" font-family=\"monospace\" font-size=\"{}\">{}</text>",
-                    x, -y, height * 1.5, escaped
+                    "    <text x=\"{}\" y=\"{}\" class=\"text\" font-size=\"{}\" transform=\"scale(1,-1) translate(0,{})\">{}</text>\n",
+                    x, -y, height * 1.5, -2.0 * y, escaped
                 ));
             }
-            _ => {}
+            DrawEntity::Insert {
+                block_name, x, y, ..
+            } => {
+                svg.push_str(&format!(
+                    "    <rect x=\"{}\" y=\"{}\" width=\"40\" height=\"40\" class=\"block\" />\n",
+                    x, y
+                ));
+                svg.push_str(&format!(
+                    "    <text x=\"{}\" y=\"{}\" class=\"text\" font-size=\"8\" transform=\"scale(1,-1) translate(0,{})\">{}</text>\n",
+                    x + 2.0, -(y + 20.0), -2.0 * (y + 20.0), block_name
+                ));
+            }
+            DrawEntity::Pin {
+                name,
+                number,
+                x,
+                y,
+                length,
+                rotation,
+                ..
+            } => {
+                // Draw a simple line and circle for pin in SVG
+                let rad = rotation.to_radians();
+                let end_x = x + length * rad.cos();
+                let end_y = y + length * rad.sin();
+                svg.push_str(&format!(
+                    "    <line x1=\"{}\" y1=\"{}\" x2=\"{}\" y2=\"{}\" stroke=\"#ff00ff\" stroke-width=\"0.5\" />\n",
+                    x, -y, end_x, -end_y
+                ));
+                svg.push_str(&format!(
+                    "    <circle cx=\"{}\" cy=\"{}\" r=\"0.5\" stroke=\"#ff00ff\" fill=\"none\" />\n",
+                    x, -y
+                ));
+                // Text
+                svg.push_str(&format!(
+                    "    <text x=\"{}\" y=\"{}\" class=\"text\" font-size=\"2\" transform=\"scale(1,-1) translate(0,{})\">{} {}</text>\n",
+                    end_x, -(end_y + 2.0), -2.0 * (end_y + 2.0), name, number
+                ));
+            }
+            DrawEntity::Property { .. } => {
+                // Ignore properties in SVG for now
+            }
+            DrawEntity::Pad {
+                name,
+                shape,
+                x,
+                y,
+                width,
+                height,
+                ..
+            } => {
+                // Draw a simple shape for pad in SVG
+                if shape == "circle" || shape == "oval" {
+                    svg.push_str(&format!(
+                        "    <circle cx=\"{}\" cy=\"{}\" r=\"{}\" fill=\"#ffaa00\" fill-opacity=\"0.5\" />\n",
+                        x,
+                        -y,
+                        width.min(*height) / 2.0
+                    ));
+                } else {
+                    // Rect or others
+                    svg.push_str(&format!(
+                        "    <rect x=\"{}\" y=\"{}\" width=\"{}\" height=\"{}\" fill=\"#ffaa00\" fill-opacity=\"0.5\" transform=\"rotate(0)\" />\n",
+                        x - width / 2.0,
+                        -y - height / 2.0,
+                        width,
+                        height
+                    ));
+                }
+                svg.push_str(&format!(
+                    "    <text x=\"{}\" y=\"{}\" class=\"text\" font-size=\"{}\" text-anchor=\"middle\" transform=\"scale(1,-1) translate(0,{})\">{}</text>\n",
+                    x, -y, width.min(*height) * 0.4, -2.0 * y, name
+                ));
+            }
+            DrawEntity::Arc {
+                cx,
+                cy,
+                radius,
+                start_angle,
+                end_angle,
+                ..
+            } => {
+                let start_x = cx + radius * start_angle.cos();
+                let start_y = cy + radius * start_angle.sin();
+                let end_x = cx + radius * end_angle.cos();
+                let end_y = cy + radius * end_angle.sin();
+                let large_arc = if (end_angle - start_angle).abs() > std::f64::consts::PI {
+                    1
+                } else {
+                    0
+                };
+                svg.push_str(&format!(
+                    "    <path d=\"M {} {} A {} {} 0 {} 1 {} {}\" class=\"circle\" />\n",
+                    start_x, start_y, radius, radius, large_arc, end_x, end_y
+                ));
+            }
+            DrawEntity::Point { x, y, .. } => {
+                svg.push_str(&format!(
+                    "    <circle cx=\"{}\" cy=\"{}\" r=\"2\" fill=\"#00ff88\" />\n",
+                    x, y
+                ));
+            }
         }
     }
 
-    svg.push_str("</svg>");
+    svg.push_str("  </g>\n</svg>\n");
     svg
 }
 
@@ -2056,6 +2288,9 @@ impl SchaltplanEngine {
                     dxf.push_str(&format!(" 42\n{}\n", scale)); // Y scale
                     dxf.push_str(&format!(" 50\n{}\n", rotation)); // Rotation
                 }
+                DrawEntity::Pin { .. } | DrawEntity::Property { .. } | DrawEntity::Pad { .. } => {
+                    // KiCad specific entities ignored in DXF export
+                }
             }
         }
 
@@ -2138,6 +2373,68 @@ impl SchaltplanEngine {
                     svg.push_str(&format!(
                         "    <text x=\"{}\" y=\"{}\" class=\"text\" font-size=\"8\" transform=\"scale(1,-1) translate(0,{})\">{}</text>\n",
                         x + 2.0, -(y + 20.0), -2.0 * (y + 20.0), block_name
+                    ));
+                }
+                DrawEntity::Pin {
+                    name,
+                    number,
+                    x,
+                    y,
+                    length,
+                    rotation,
+                    ..
+                } => {
+                    // Draw a simple line and circle for pin in SVG
+                    let rad = rotation.to_radians();
+                    let end_x = x + length * rad.cos();
+                    let end_y = y + length * rad.sin();
+                    svg.push_str(&format!(
+                        "    <line x1=\"{}\" y1=\"{}\" x2=\"{}\" y2=\"{}\" stroke=\"#ff00ff\" stroke-width=\"0.5\" />\n",
+                        x, -y, end_x, -end_y
+                    ));
+                    svg.push_str(&format!(
+                        "    <circle cx=\"{}\" cy=\"{}\" r=\"0.5\" stroke=\"#ff00ff\" fill=\"none\" />\n",
+                        x, -y
+                    ));
+                    // Text
+                    svg.push_str(&format!(
+                        "    <text x=\"{}\" y=\"{}\" class=\"text\" font-size=\"2\" transform=\"scale(1,-1) translate(0,{})\">{} {}</text>\n",
+                        end_x, -(end_y + 2.0), -2.0 * (end_y + 2.0), name, number
+                    ));
+                }
+                DrawEntity::Property { .. } => {
+                    // Ignore properties in SVG for now
+                }
+                DrawEntity::Pad {
+                    name,
+                    shape,
+                    x,
+                    y,
+                    width,
+                    height,
+                    ..
+                } => {
+                    // Draw a simple shape for pad in SVG
+                    if shape == "circle" || shape == "oval" {
+                        svg.push_str(&format!(
+                            "    <circle cx=\"{}\" cy=\"{}\" r=\"{}\" fill=\"#ffaa00\" fill-opacity=\"0.5\" />\n",
+                            x,
+                            -y,
+                            width.min(*height) / 2.0
+                        ));
+                    } else {
+                        // Rect or others
+                        svg.push_str(&format!(
+                            "    <rect x=\"{}\" y=\"{}\" width=\"{}\" height=\"{}\" fill=\"#ffaa00\" fill-opacity=\"0.5\" transform=\"rotate(0)\" />\n",
+                            x - width / 2.0,
+                            -y - height / 2.0,
+                            width,
+                            height
+                        ));
+                    }
+                    svg.push_str(&format!(
+                        "    <text x=\"{}\" y=\"{}\" class=\"text\" font-size=\"{}\" text-anchor=\"middle\" transform=\"scale(1,-1) translate(0,{})\">{}</text>\n",
+                        x, -y, width.min(*height) * 0.4, -2.0 * y, name
                     ));
                 }
                 DrawEntity::Arc {
@@ -2259,6 +2556,54 @@ impl SchaltplanEngine {
                     block_name, x, y, scale, rotation, layer
                 )
             }
+            DrawEntity::Pin {
+                name,
+                number,
+                etype,
+                style,
+                x,
+                y,
+                length,
+                rotation,
+                layer,
+            } => {
+                format!(
+                    r#"{{"type":"PIN","name":"{}","num":"{}","etype":"{}","style":"{}","x":{},"y":{},"len":{},"rot":{},"layer":"{}"}}"#,
+                    name, number, etype, style, x, y, length, rotation, layer
+                )
+            }
+            DrawEntity::Property {
+                key,
+                value,
+                x,
+                y,
+                rotation,
+                height,
+                visible,
+                layer,
+            } => {
+                format!(
+                    r#"{{"type":"PROP","key":"{}","val":"{}","x":{},"y":{},"rot":{},"h":{},"vis":{},"layer":"{}"}}"#,
+                    key, value, x, y, rotation, height, visible, layer
+                )
+            }
+            DrawEntity::Pad {
+                name,
+                ptype,
+                shape,
+                x,
+                y,
+                width,
+                height,
+                drill,
+                rotation,
+                layers,
+            } => {
+                format!(
+                    r#"{{"type":"PAD","name":"{}","ptype":"{}","shape":"{}","x":{},"y":{},"w":{},"h":{},"drill":{},"rot":{},"layers":"{}"}}"#,
+                    name, ptype, shape, x, y, width, height, drill, rotation, layers
+                )
+            }
         }
     }
 
@@ -2299,6 +2644,26 @@ impl SchaltplanEngine {
                     min_y = min_y.min(*y);
                     max_x = max_x.max(*x + 50.0);
                     max_y = max_y.max(*y + 50.0);
+                }
+                DrawEntity::Pin { x, y, length, .. } => {
+                    // Include pins in bounding box
+                    min_x = min_x.min(*x - length);
+                    min_y = min_y.min(*y - length);
+                    max_x = max_x.max(*x + length);
+                    max_y = max_y.max(*y + length);
+                }
+                DrawEntity::Property { .. } => {
+                    // Ignore properties for bounds
+                }
+                DrawEntity::Pad {
+                    x, y, width, height, ..
+                } => {
+                    let w2 = width / 2.0;
+                    let h2 = height / 2.0;
+                    min_x = min_x.min(*x - w2);
+                    min_y = min_y.min(*y - h2);
+                    max_x = max_x.max(*x + w2);
+                    max_y = max_y.max(*y + h2);
                 }
                 DrawEntity::Arc { cx, cy, radius, .. } => {
                     min_x = min_x.min(cx - radius);
