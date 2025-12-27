@@ -20,7 +20,7 @@ mod kicad_tests;
 pub mod lexer;
 pub mod parser;
 
-pub use interpreter::{DrawEntity, DrawingState, Interpreter};
+pub use interpreter::{CadType, DrawEntity, DrawingState, Interpreter};
 pub use parser::Expr;
 
 // Only use fs, Path, and HashMap for non-WASM builds
@@ -84,7 +84,7 @@ impl WasmEngine {
     /// Get drawing entities as SVG
     #[wasm_bindgen]
     pub fn get_entities_svg(&self) -> String {
-        entities_to_svg(&self.interpreter.drawing.entities)
+        entities_to_svg(&self.interpreter.drawing.entities, self.interpreter.drawing.cad_type)
     }
 
     /// Get number of entities
@@ -120,6 +120,25 @@ impl WasmEngine {
     pub fn clear(&mut self) {
         self.interpreter.drawing.entities.clear();
         self.interpreter.output.clear();
+    }
+
+    /// Set CAD type: "rustlisp" (default) or "kicad"
+    /// This affects coordinate system handling in SVG output
+    #[wasm_bindgen]
+    pub fn set_cad_type(&mut self, cad_type: &str) {
+        self.interpreter.drawing.cad_type = match cad_type.to_lowercase().as_str() {
+            "kicad" => CadType::KiCad,
+            _ => CadType::RustLisp,
+        };
+    }
+
+    /// Get current CAD type as string
+    #[wasm_bindgen]
+    pub fn get_cad_type(&self) -> String {
+        match self.interpreter.drawing.cad_type {
+            CadType::RustLisp => "rustlisp".to_string(),
+            CadType::KiCad => "kicad".to_string(),
+        }
     }
 
     /// Benchmark: run code multiple times and return timing stats as JSON
@@ -179,6 +198,8 @@ impl WasmEngine {
             "spiral" => EXAMPLE_SPIRAL.to_string(),
             "schaltplan" => EXAMPLE_SCHALTPLAN.to_string(),
             "fractal" => EXAMPLE_FRACTAL.to_string(),
+            "kicad_sym" => EXAMPLE_KICAD_SYM.to_string(),
+            "kicad_fp" => EXAMPLE_KICAD_FP.to_string(),
             _ => "; Unknown example".to_string(),
         }
     }
@@ -974,6 +995,51 @@ const EXAMPLE_FRACTAL: &str = r#"; Recursive Tree (simple fractal)
 (command "TEXT" '(60 5) 3 0 "Recursive Tree")
 (princ "\nTree complete!")"#;
 
+const EXAMPLE_KICAD_SYM: &str = r#"; KiCad Symbol Example
+; Creates a simple IC symbol for KiCad
+
+; Define symbol properties
+(kicad-prop "Reference" "U1" 0 7 0 1.27 1)
+(kicad-prop "Value" "NE555" 0 -7 0 1.27 1)
+
+; Draw symbol body (rectangle)
+(command "LINE" '(-6 5) '(6 5) "")
+(command "LINE" '(6 5) '(6 -5) "")
+(command "LINE" '(6 -5) '(-6 -5) "")
+(command "LINE" '(-6 -5) '(-6 5) "")
+
+; Add pins
+; (kicad-pin name number type style x y length rotation)
+(kicad-pin "GND" "1" "power_in" "line" 0 -7.54 2.54 90)
+(kicad-pin "VCC" "8" "power_in" "line" 0 7.54 2.54 270)
+(kicad-pin "TRIG" "2" "input" "line" -8.54 2.54 2.54 0)
+(kicad-pin "OUT" "3" "output" "line" 8.54 0 2.54 180)
+(kicad-pin "RESET" "4" "input" "line" -8.54 -2.54 2.54 0)
+
+(princ "\nKiCad symbol ready! Click 'KiCad Sym' to export.")"#;
+
+const EXAMPLE_KICAD_FP: &str = r#"; KiCad Footprint Example
+; Creates a simple 2-pad SMD footprint
+
+; Set layer to silkscreen for outline
+(command "LAYER" "S" "F.SilkS" "")
+
+; Draw outline on silkscreen
+(command "LINE" '(-2.5 1.5) '(2.5 1.5) "")
+(command "LINE" '(2.5 1.5) '(2.5 -1.5) "")
+(command "LINE" '(2.5 -1.5) '(-2.5 -1.5) "")
+(command "LINE" '(-2.5 -1.5) '(-2.5 1.5) "")
+
+; Pin 1 indicator
+(command "CIRCLE" '(-1.8 0) 0.2)
+
+; Add SMD pads
+; (kicad-pad name type shape x y width height drill rotation layers)
+(kicad-pad "1" "smd" "rect" -1.5 0 1.0 2.0 0 0 "F.Cu")
+(kicad-pad "2" "smd" "rect" 1.5 0 1.0 2.0 0 0 "F.Cu")
+
+(princ "\nKiCad footprint ready! Click 'KiCad Mod' to export.")"#;
+
 fn entity_to_json(entity: &DrawEntity) -> String {
     match entity {
         DrawEntity::Line {
@@ -1095,7 +1161,7 @@ fn entity_to_json(entity: &DrawEntity) -> String {
     }
 }
 
-fn entities_to_svg(entities: &[DrawEntity]) -> String {
+fn entities_to_svg(entities: &[DrawEntity], cad_type: CadType) -> String {
     // Calculate bounding box
     let mut min_x = f64::MAX;
     let mut min_y = f64::MAX;
@@ -1105,6 +1171,11 @@ fn entities_to_svg(entities: &[DrawEntity]) -> String {
     if entities.is_empty() {
         return String::from("<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"400\" height=\"300\"><rect fill=\"#1a1a2e\" width=\"100%\" height=\"100%\"/></svg>");
     }
+
+    // Y-flip factor: both RustLisp and KiCad use Y-up, SVG uses Y-down
+    // For now both use same coordinate transform; future: different styling/colors per cad_type
+    let _y_flip = -1.0;
+    let _cad_type = cad_type;
 
     for entity in entities {
         match entity {
@@ -1145,7 +1216,11 @@ fn entities_to_svg(entities: &[DrawEntity]) -> String {
                 // Ignore properties for bounds
             }
             DrawEntity::Pad {
-                x, y, width, height, ..
+                x,
+                y,
+                width,
+                height,
+                ..
             } => {
                 let w2 = width / 2.0;
                 let h2 = height / 2.0;
@@ -1177,46 +1252,49 @@ fn entities_to_svg(entities: &[DrawEntity]) -> String {
     let width = max_x - min_x;
     let height = max_y - min_y;
 
+    // For SVG we flip Y coordinates (CAD Y goes up, SVG Y goes down)
+    // viewBox: min_x, -max_y, width, height
     let mut svg = format!(
         r#"<?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg"
      viewBox="{} {} {} {}"
-     width="{}" height="{}"
+     width="100%" height="100%"
+     preserveAspectRatio="xMidYMid meet"
      style="background-color: #1a1a2e;">
-  <title>{} - {}</title>
+  <title>AutoLISP Drawing - Generated</title>
   <defs>
     <style>
       .line {{ stroke: #00ff88; stroke-width: 1; fill: none; }}
       .circle {{ stroke: #00aaff; stroke-width: 1; fill: none; }}
       .text {{ fill: #ffffff; font-family: monospace; }}
       .block {{ stroke: #ff8800; fill: none; }}
+      .pin {{ stroke: #ff00ff; stroke-width: 1.5; fill: none; }}
+      .pin-dot {{ fill: #ff00ff; }}
+      .pin-text {{ fill: #ffaaff; font-family: monospace; }}
+      .pad {{ fill: #ffaa00; fill-opacity: 0.7; stroke: #ff8800; stroke-width: 0.5; }}
     </style>
   </defs>
-  <g transform="translate(0, {}) scale(1, -1)">
+  <g>
 "#,
         min_x - padding,
-        min_y - padding,
+        -(max_y + padding),
         width,
         height,
-        width.min(1200.0),
-        height.min(900.0),
-        "AutoLISP Drawing",
-        "Generated",
-        height
     );
 
     for entity in entities {
         match entity {
             DrawEntity::Line { x1, y1, x2, y2, .. } => {
+                // Negate Y for SVG coordinate system (CAD Y up -> SVG Y down)
                 svg.push_str(&format!(
                     "    <line x1=\"{}\" y1=\"{}\" x2=\"{}\" y2=\"{}\" class=\"line\" />\n",
-                    x1, y1, x2, y2
+                    x1, -y1, x2, -y2
                 ));
             }
             DrawEntity::Circle { cx, cy, radius, .. } => {
                 svg.push_str(&format!(
                     "    <circle cx=\"{}\" cy=\"{}\" r=\"{}\" class=\"circle\" />\n",
-                    cx, cy, radius
+                    cx, -cy, radius
                 ));
             }
             DrawEntity::Text {
@@ -1226,53 +1304,65 @@ fn entities_to_svg(entities: &[DrawEntity]) -> String {
                     .replace('&', "&amp;")
                     .replace('<', "&lt;")
                     .replace('>', "&gt;");
-                // Note: text needs to be flipped back since we're in a flipped coordinate system
+                // Y already negated for SVG; render text directly (no flip needed)
                 svg.push_str(&format!(
-                    "    <text x=\"{}\" y=\"{}\" class=\"text\" font-size=\"{}\" transform=\"scale(1,-1) translate(0,{})\">{}</text>\n",
-                    x, -y, height * 1.5, -2.0 * y, escaped
+                    "    <text x=\"{}\" y=\"{}\" class=\"text\" font-size=\"{}\">{}</text>\n",
+                    x, -y, height * 1.5, escaped
                 ));
             }
             DrawEntity::Insert {
                 block_name, x, y, ..
             } => {
+                let svg_y = -y;
                 svg.push_str(&format!(
                     "    <rect x=\"{}\" y=\"{}\" width=\"40\" height=\"40\" class=\"block\" />\n",
-                    x, y
+                    x, svg_y - 40.0
                 ));
                 svg.push_str(&format!(
-                    "    <text x=\"{}\" y=\"{}\" class=\"text\" font-size=\"8\" transform=\"scale(1,-1) translate(0,{})\">{}</text>\n",
-                    x + 2.0, -(y + 20.0), -2.0 * (y + 20.0), block_name
+                    "    <text x=\"{}\" y=\"{}\" class=\"text\" font-size=\"8\">{}</text>\n",
+                    x + 2.0, svg_y - 16.0, block_name
                 ));
             }
             DrawEntity::Pin {
                 name,
-                number,
+                number: _,
                 x,
                 y,
                 length,
                 rotation,
                 ..
             } => {
-                // Draw a simple line and circle for pin in SVG
+                // Draw pin: line from pin position to body, circle at connection point
                 let rad = rotation.to_radians();
                 let end_x = x + length * rad.cos();
                 let end_y = y + length * rad.sin();
+                // Negate Y for SVG
+                let svg_y = -y;
+                let svg_end_y = -end_y;
+                // Pin line
                 svg.push_str(&format!(
-                    "    <line x1=\"{}\" y1=\"{}\" x2=\"{}\" y2=\"{}\" stroke=\"#ff00ff\" stroke-width=\"0.5\" />\n",
-                    x, -y, end_x, -end_y
+                    "    <line x1=\"{}\" y1=\"{}\" x2=\"{}\" y2=\"{}\" class=\"pin\" />\n",
+                    x, svg_y, end_x, svg_end_y
                 ));
+                // Pin dot at connection point
                 svg.push_str(&format!(
-                    "    <circle cx=\"{}\" cy=\"{}\" r=\"0.5\" stroke=\"#ff00ff\" fill=\"none\" />\n",
-                    x, -y
+                    "    <circle cx=\"{}\" cy=\"{}\" r=\"1\" class=\"pin-dot\" />\n",
+                    x, svg_y
                 ));
-                // Text
+                // Pin name text (no flip needed, Y already negated)
+                let text_x = (x + end_x) / 2.0;
+                let text_y = (svg_y + svg_end_y) / 2.0;
                 svg.push_str(&format!(
-                    "    <text x=\"{}\" y=\"{}\" class=\"text\" font-size=\"2\" transform=\"scale(1,-1) translate(0,{})\">{} {}</text>\n",
-                    end_x, -(end_y + 2.0), -2.0 * (end_y + 2.0), name, number
+                    "    <text x=\"{}\" y=\"{}\" class=\"pin-text\" font-size=\"2.5\" text-anchor=\"middle\">{}</text>\n",
+                    text_x, text_y, name
                 ));
             }
-            DrawEntity::Property { .. } => {
-                // Ignore properties in SVG for now
+            DrawEntity::Property { key: _, value, x, y, height, .. } => {
+                // Draw property as text (no flip needed, Y already negated)
+                svg.push_str(&format!(
+                    "    <text x=\"{}\" y=\"{}\" fill=\"#aaaaaa\" font-size=\"{}\" text-anchor=\"middle\">{}</text>\n",
+                    x, -y, height.max(2.0), value
+                ));
             }
             DrawEntity::Pad {
                 name,
@@ -1284,11 +1374,12 @@ fn entities_to_svg(entities: &[DrawEntity]) -> String {
                 ..
             } => {
                 // Draw a simple shape for pad in SVG
+                let svg_y = -y;
                 if shape == "circle" || shape == "oval" {
                     svg.push_str(&format!(
                         "    <circle cx=\"{}\" cy=\"{}\" r=\"{}\" fill=\"#ffaa00\" fill-opacity=\"0.5\" />\n",
                         x,
-                        -y,
+                        svg_y,
                         width.min(*height) / 2.0
                     ));
                 } else {
@@ -1296,14 +1387,14 @@ fn entities_to_svg(entities: &[DrawEntity]) -> String {
                     svg.push_str(&format!(
                         "    <rect x=\"{}\" y=\"{}\" width=\"{}\" height=\"{}\" fill=\"#ffaa00\" fill-opacity=\"0.5\" transform=\"rotate(0)\" />\n",
                         x - width / 2.0,
-                        -y - height / 2.0,
+                        svg_y - height / 2.0,
                         width,
                         height
                     ));
                 }
                 svg.push_str(&format!(
-                    "    <text x=\"{}\" y=\"{}\" class=\"text\" font-size=\"{}\" text-anchor=\"middle\" transform=\"scale(1,-1) translate(0,{})\">{}</text>\n",
-                    x, -y, width.min(*height) * 0.4, -2.0 * y, name
+                    "    <text x=\"{}\" y=\"{}\" class=\"text\" font-size=\"{}\" text-anchor=\"middle\">{}</text>\n",
+                    x, svg_y, width.min(*height) * 0.4, name
                 ));
             }
             DrawEntity::Arc {
@@ -1315,9 +1406,9 @@ fn entities_to_svg(entities: &[DrawEntity]) -> String {
                 ..
             } => {
                 let start_x = cx + radius * start_angle.cos();
-                let start_y = cy + radius * start_angle.sin();
+                let start_y = -(cy + radius * start_angle.sin());
                 let end_x = cx + radius * end_angle.cos();
-                let end_y = cy + radius * end_angle.sin();
+                let end_y = -(cy + radius * end_angle.sin());
                 let large_arc = if (end_angle - start_angle).abs() > std::f64::consts::PI {
                     1
                 } else {
@@ -1331,7 +1422,7 @@ fn entities_to_svg(entities: &[DrawEntity]) -> String {
             DrawEntity::Point { x, y, .. } => {
                 svg.push_str(&format!(
                     "    <circle cx=\"{}\" cy=\"{}\" r=\"2\" fill=\"#00ff88\" />\n",
-                    x, y
+                    x, -y
                 ));
             }
         }
@@ -2656,7 +2747,11 @@ impl SchaltplanEngine {
                     // Ignore properties for bounds
                 }
                 DrawEntity::Pad {
-                    x, y, width, height, ..
+                    x,
+                    y,
+                    width,
+                    height,
+                    ..
                 } => {
                     let w2 = width / 2.0;
                     let h2 = height / 2.0;

@@ -176,6 +176,73 @@ export class WasmEngine {
         return ret >>> 0;
     }
     /**
+     * Get current CAD type as string
+     * @returns {string}
+     */
+    get_cad_type() {
+        let deferred1_0;
+        let deferred1_1;
+        try {
+            const ret = wasm.wasmengine_get_cad_type(this.__wbg_ptr);
+            deferred1_0 = ret[0];
+            deferred1_1 = ret[1];
+            return getStringFromWasm0(ret[0], ret[1]);
+        } finally {
+            wasm.__wbindgen_free(deferred1_0, deferred1_1, 1);
+        }
+    }
+    /**
+     * Set CAD type: "rustlisp" (default) or "kicad"
+     * This affects coordinate system handling in SVG output
+     * @param {string} cad_type
+     */
+    set_cad_type(cad_type) {
+        const ptr0 = passStringToWasm0(cad_type, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len0 = WASM_VECTOR_LEN;
+        wasm.wasmengine_set_cad_type(this.__wbg_ptr, ptr0, len0);
+    }
+    /**
+     * Export current drawing as a KiCad Footprint
+     * @param {string} footprint_name
+     * @returns {string}
+     */
+    get_kicad_mod(footprint_name) {
+        let deferred2_0;
+        let deferred2_1;
+        try {
+            const ptr0 = passStringToWasm0(footprint_name, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+            const len0 = WASM_VECTOR_LEN;
+            const ret = wasm.wasmengine_get_kicad_mod(this.__wbg_ptr, ptr0, len0);
+            deferred2_0 = ret[0];
+            deferred2_1 = ret[1];
+            return getStringFromWasm0(ret[0], ret[1]);
+        } finally {
+            wasm.__wbindgen_free(deferred2_0, deferred2_1, 1);
+        }
+    }
+    /**
+     * Export current drawing as a KiCad Symbol Library
+     * @param {string} library_name
+     * @param {string} symbol_name
+     * @returns {string}
+     */
+    get_kicad_sym(library_name, symbol_name) {
+        let deferred3_0;
+        let deferred3_1;
+        try {
+            const ptr0 = passStringToWasm0(library_name, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+            const len0 = WASM_VECTOR_LEN;
+            const ptr1 = passStringToWasm0(symbol_name, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+            const len1 = WASM_VECTOR_LEN;
+            const ret = wasm.wasmengine_get_kicad_sym(this.__wbg_ptr, ptr0, len0, ptr1, len1);
+            deferred3_0 = ret[0];
+            deferred3_1 = ret[1];
+            return getStringFromWasm0(ret[0], ret[1]);
+        } finally {
+            wasm.__wbindgen_free(deferred3_0, deferred3_1, 1);
+        }
+    }
+    /**
      * Plot a function f(x) - evaluates the function and generates SVG
      * Returns JSON with { svg: string, points: number, min_y: number, max_y: number }
      * @param {string} code

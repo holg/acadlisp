@@ -1,6 +1,5 @@
 #[cfg(test)]
 mod tests {
-    use super::*;
     use crate::interpreter::Interpreter;
     use crate::kicad;
 
@@ -43,6 +42,8 @@ mod tests {
 
         assert!(fp.contains("(footprint \"TEST_FP\""));
         assert!(fp.contains("(fp_line (start -2 2) (end 2 2) (layer \"F.SilkS\")"));
-        assert!(fp.contains("(pad \"1\" smd rect (at -1.5 0 0) (size 1 1.5) (drill 0) (layers \"F.Cu\"))"));
+        assert!(fp.contains(
+            "(pad \"1\" smd rect (at -1.5 0 0) (size 1 1.5) (drill 0) (layers \"F.Cu\"))"
+        ));
     }
 }

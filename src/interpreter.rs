@@ -6,6 +6,16 @@ use std::collections::HashMap;
 use std::fs::File;
 use std::io::{BufRead, BufReader, Write};
 
+/// CAD type determines coordinate system and rendering behavior
+/// - RustLisp: AutoCAD-style, Y increases upward, large coordinates (0-1000+)
+/// - KiCad: Electronic symbol style, Y increases upward but centered at origin, small coords (-50 to 50)
+#[derive(Debug, Clone, Copy, PartialEq, Default)]
+pub enum CadType {
+    #[default]
+    RustLisp,
+    KiCad,
+}
+
 // Simulated AutoCAD drawing entity
 #[derive(Debug, Clone)]
 #[allow(dead_code)]
@@ -96,6 +106,7 @@ pub struct DrawingState {
     pub current_color: i32,
     pub current_point: Option<(f64, f64, f64)>,
     pub system_variables: HashMap<String, Expr>,
+    pub cad_type: CadType,
 }
 
 impl DrawingState {
@@ -106,6 +117,7 @@ impl DrawingState {
             current_color: 7,
             current_point: None,
             system_variables: HashMap::new(),
+            cad_type: CadType::default(),
         };
         // Initialize some common system variables
         state
@@ -1616,7 +1628,7 @@ impl Interpreter {
                     "INSERT" => self.simulate_insert_command(&args[1..]),
                     "LAYER" => self.simulate_layer_command(&args[1..]),
                     "-LAYER" => self.simulate_layer_command(&args[1..]),
-                    "ZOOM" => {}   // View manipulation
+                    "ZOOM" => {} // View manipulation
                     "PAN" => {}
                     "SAVE" => {}
                     "SAVEAS" => {}

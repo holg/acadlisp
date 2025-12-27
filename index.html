@@ -128,6 +128,7 @@
         }
         .nav button:hover { background: #00ff88; color: #000; }
         .nav .counter { color: #666; padding: 10px; }
+        .nav.collapsed { display: none; }
 
         /* Mobile Responsive */
         @media (max-width: 768px) {
@@ -194,8 +195,16 @@
             button#runBenchmark,
             button#runCode,
             button#plotFunction,
-            button#generateCSV {
+            button#generateCSV,
+            button#runLisp {
                 margin-bottom: 15px !important;
+            }
+            /* Export buttons container - ensure visible above nav */
+            #slide15 > div > div:nth-child(2) > div:last-child {
+                position: sticky !important;
+                bottom: 110px !important;
+                z-index: 200 !important;
+                margin-bottom: 120px !important;
             }
             /* SVG/Canvas drawing areas */
             .demo-right svg,
@@ -551,9 +560,13 @@
                 <h1>rust-autolisp <span class="count" id="count">0</span></h1>
                 <span class="small">CSV → TPL → DXF | Rust/WASM Engine</span>
             </div>
-            <div>
+            <div style="display:flex; gap:5px; align-items:center;">
                 <button id="process" class="primary">▶ Verarbeiten</button>
                 <button id="exportAll">⬇ Export All DXF</button>
+                <span style="color:#333; margin:0 10px;">|</span>
+                <button onclick="showSlide(13)" style="padding:8px 12px; background:#222;">← Back</button>
+                <button onclick="showSlide(15)" style="padding:8px 12px; background:#333;">Playground →</button>
+                <button onclick="showSlide(1)" style="padding:8px 12px; background:#222; border-color:#666;">⌂</button>
             </div>
         </div>
         <div class="demo-container">
@@ -583,7 +596,14 @@
         <div style="display:flex; gap:15px; height:calc(100vh - 40px);">
             <!-- Left: LISP Editor -->
             <div style="flex:1; display:flex; flex-direction:column;">
-                <h2 style="color:#00aaff; font-size:14px; margin-bottom:10px;">AutoLISP Playground</h2>
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+                    <h2 style="color:#00aaff; font-size:14px; margin:0;">AutoLISP Playground</h2>
+                    <div style="display:flex; gap:5px;">
+                        <button onclick="showSlide(14)" style="padding:8px 15px; background:#333; border-color:#00ff88;">← Demo</button>
+                        <button onclick="showSlide(16)" style="padding:8px 15px; background:#333; border-color:#00ff88;">Plotter →</button>
+                        <button onclick="showSlide(1)" style="padding:8px 15px; background:#222; border-color:#666;">⌂ Start</button>
+                    </div>
+                </div>
                 <div style="margin-bottom:10px;">
                     <button id="runLisp" class="primary">▶ Run</button>
                     <button id="clearLisp">Clear</button>
@@ -595,6 +615,8 @@
                         <option value="spiral">Spiral</option>
                         <option value="schaltplan">Mini Schaltplan</option>
                         <option value="fractal">Recursive Tree</option>
+                        <option value="kicad_sym">KiCad Symbol</option>
+                        <option value="kicad_fp">KiCad Footprint</option>
                     </select>
                 </div>
                 <textarea id="lispCode" style="flex:1; background:#1a1a2e; color:#00ff88; border:1px solid #333; padding:10px; font-family:monospace; font-size:12px;">; Try some AutoLISP!
@@ -618,10 +640,12 @@
             <!-- Middle: Drawing Output -->
             <div style="flex:1.5; display:flex; flex-direction:column;">
                 <h2 style="color:#00aaff; font-size:14px; margin-bottom:10px;">Drawing Output</h2>
-                <div id="lispDrawing" style="flex:1; background:#1a1a2e; border:1px solid #333; display:flex; align-items:center; justify-content:center; overflow:auto;"></div>
-                <div style="margin-top:10px; display:flex; gap:10px;">
+                <div id="lispDrawing" style="flex:1; min-height:300px; background:#0a0a15; border:1px solid #333; overflow:hidden; position:relative;"></div>
+                <div style="margin-top:10px; display:flex; gap:10px; flex-wrap:wrap; position:relative; z-index:200; background:#1a1a2e; padding:10px; border-radius:5px;">
                     <button id="exportPlaySvg">⬇ SVG</button>
                     <button id="exportPlayDxf">⬇ DXF</button>
+                    <button id="exportKicadSym" style="background:#ff8800; border-color:#ff8800; color:#000;">⬇ KiCad Sym</button>
+                    <button id="exportKicadMod" style="background:#ff8800; border-color:#ff8800; color:#000;">⬇ KiCad Mod</button>
                     <span id="playStats" style="color:#666; font-size:11px; padding:8px;"></span>
                 </div>
             </div>
@@ -664,7 +688,14 @@
         <div style="display:flex; gap:15px; height:calc(100vh - 40px);">
             <!-- Left: Function Editor -->
             <div style="flex:1; display:flex; flex-direction:column;">
-                <h2 style="color:#ff8800; font-size:16px; margin-bottom:10px;">📐 LISP Function Plotter</h2>
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+                    <h2 style="color:#ff8800; font-size:16px; margin:0;">📐 LISP Function Plotter</h2>
+                    <div style="display:flex; gap:5px;">
+                        <button onclick="showSlide(15)" style="padding:8px 15px; background:#333; border-color:#00ff88;">← Playground</button>
+                        <button onclick="showSlide(17)" style="padding:8px 15px; background:#333; border-color:#00ff88;">Benchmark →</button>
+                        <button onclick="showSlide(1)" style="padding:8px 15px; background:#222; border-color:#666;">⌂</button>
+                    </div>
+                </div>
                 <p style="color:#888; font-size:11px; margin-bottom:10px;">Define f(x) in LISP, plot it visually. Learn functional programming!</p>
                 <div style="margin-bottom:10px;">
                     <button id="plotFunction" class="primary" style="background:#ff8800; border-color:#ff8800;">📈 Plot</button>
@@ -770,7 +801,13 @@
         <div class="benchmark-container" style="display:flex; gap:20px; height:calc(100vh - 60px);">
             <!-- Left: Benchmark Controls -->
             <div style="width:350px; display:flex; flex-direction:column; gap:15px;">
-                <h2 style="color:#ff4444; font-size:18px; margin:0;">Engine Benchmark</h2>
+                <div style="display:flex; justify-content:space-between; align-items:center;">
+                    <h2 style="color:#ff4444; font-size:18px; margin:0;">Engine Benchmark</h2>
+                    <div style="display:flex; gap:5px;">
+                        <button onclick="showSlide(16)" style="padding:6px 12px; background:#333; font-size:11px;">← Plotter</button>
+                        <button onclick="showSlide(1)" style="padding:6px 12px; background:#222; border-color:#666; font-size:11px;">⌂</button>
+                    </div>
+                </div>
                 <p style="color:#888; font-size:11px; margin:0;">Compare Rust/WASM vs XLISP (Emscripten)</p>
 
                 <div style="background:#111; border:1px solid #333; padding:15px;">
@@ -889,6 +926,14 @@
             document.getElementById(`slide${n}`).classList.add('active');
             document.getElementById('slideCounter').textContent = `${n} / ${totalSlides}`;
             currentSlide = n;
+
+            // Collapse nav on interactive slides (14-17) to give more space
+            const nav = document.querySelector('.nav');
+            if (n >= 14 && n <= 17) {
+                nav.classList.add('collapsed');
+            } else {
+                nav.classList.remove('collapsed');
+            }
         }
 
         function startSlideshow() {
@@ -999,6 +1044,7 @@
             let engine;
             try {
                 engine = new WasmEngine();
+                window.engine = engine; // Expose globally for debugging
                 console.log('WasmEngine created successfully');
             } catch (e) {
                 console.error('Failed to create WasmEngine:', e);
@@ -1347,7 +1393,16 @@
 
                     const drawingDiv = document.getElementById('lispDrawing');
                     drawingDiv.innerHTML = playSvg;
-                    console.log('Drawing div innerHTML set, children:', drawingDiv.children.length);
+                    // Ensure SVG fills the container
+                    const svgEl = drawingDiv.querySelector('svg');
+                    if (svgEl) {
+                        svgEl.style.position = 'absolute';
+                        svgEl.style.top = '0';
+                        svgEl.style.left = '0';
+                        svgEl.style.width = '100%';
+                        svgEl.style.height = '100%';
+                    }
+                    console.log('Drawing div innerHTML set, children:', drawingDiv.children.length, 'svg:', !!svgEl);
 
                     document.getElementById('playStats').textContent = `${count} entities | ${elapsed}ms`;
                 } catch (e) {
@@ -1373,6 +1428,18 @@
                 if (engine.entity_count() === 0) { appendLog('Nothing to export'); return; }
                 const dxf = engine.get_entities_dxf();  // DXF from Rust
                 downloadFile(dxf, 'drawing.dxf', 'application/dxf');
+            };
+
+            document.getElementById('exportKicadSym').onclick = () => {
+                if (engine.entity_count() === 0) { appendLog('Nothing to export'); return; }
+                const sym = engine.get_kicad_sym('MyLibrary', 'MySymbol');
+                downloadFile(sym, 'symbol.kicad_sym', 'text/plain');
+            };
+
+            document.getElementById('exportKicadMod').onclick = () => {
+                if (engine.entity_count() === 0) { appendLog('Nothing to export'); return; }
+                const mod = engine.get_kicad_mod('MyFootprint');
+                downloadFile(mod, 'footprint.kicad_mod', 'text/plain');
             };
 
             // ============================================

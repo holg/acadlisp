@@ -7,4 +7,3 @@ no_module = false
 [watch]
 # Watch for changes in source files
 watch = ["src", "index.html"]
-

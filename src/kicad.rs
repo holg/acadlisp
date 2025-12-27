@@ -11,7 +11,10 @@ pub fn to_kicad_sym(entities: &[DrawEntity], library_name: &str, symbol_name: &s
     sexpr.push_str("(kicad_symbol_lib (version 20211014) (generator acadlisp)\n");
 
     // Start symbol definition
-    sexpr.push_str(&format!("  (symbol \"{}:{}\" (in_bom yes) (on_board yes)\n", library_name, symbol_name));
+    sexpr.push_str(&format!(
+        "  (symbol \"{}:{}\" (in_bom yes) (on_board yes)\n",
+        library_name, symbol_name
+    ));
 
     // Separate properties, pins, and graphics
     let mut properties = Vec::new();
@@ -34,11 +37,29 @@ pub fn to_kicad_sym(entities: &[DrawEntity], library_name: &str, symbol_name: &s
     let mut has_ds = false;
 
     for (i, prop) in properties.iter().enumerate() {
-        if let DrawEntity::Property { key, value, x, y, rotation, height, visible, .. } = prop {
-            if key == "Reference" { has_ref = true; }
-            if key == "Value" { has_val = true; }
-            if key == "Footprint" { has_fp = true; }
-            if key == "Datasheet" { has_ds = true; }
+        if let DrawEntity::Property {
+            key,
+            value,
+            x,
+            y,
+            rotation,
+            height,
+            visible,
+            ..
+        } = prop
+        {
+            if key == "Reference" {
+                has_ref = true;
+            }
+            if key == "Value" {
+                has_val = true;
+            }
+            if key == "Footprint" {
+                has_fp = true;
+            }
+            if key == "Datasheet" {
+                has_ds = true;
+            }
 
             sexpr.push_str(&format!(
                 "    (property \"{}\" \"{}\" (id {}) (at {} {} {}) (effects (font (size {} {})) {}))\n",
@@ -85,7 +106,14 @@ pub fn to_kicad_sym(entities: &[DrawEntity], library_name: &str, symbol_name: &s
                     cx, cy, radius
                 ));
             }
-            DrawEntity::Arc { cx, cy, radius, start_angle, end_angle, .. } => {
+            DrawEntity::Arc {
+                cx,
+                cy,
+                radius,
+                start_angle,
+                end_angle,
+                ..
+            } => {
                 let start_x = cx + radius * start_angle.cos();
                 let start_y = cy + radius * start_angle.sin();
                 let end_x = cx + radius * end_angle.cos();
@@ -99,22 +127,44 @@ pub fn to_kicad_sym(entities: &[DrawEntity], library_name: &str, symbol_name: &s
                     start_x, start_y, mid_x, mid_y, end_x, end_y
                 ));
             }
-            DrawEntity::Text { x, y, height, text, .. } => {
+            DrawEntity::Text {
+                x, y, height, text, ..
+            } => {
                 sexpr.push_str(&format!(
                     "      (text \"{}\" (at {} {} 0) (effects (font (size {} {}))))\n",
-                    escape_string(text), x, y, height, height
+                    escape_string(text),
+                    x,
+                    y,
+                    height,
+                    height
                 ));
             }
-            DrawEntity::Insert { block_name: _, x: _, y: _, .. } => {
-                 // Ignored
+            DrawEntity::Insert {
+                block_name: _,
+                x: _,
+                y: _,
+                ..
+            } => {
+                // Ignored
             }
-             _ => {}
+            _ => {}
         }
     }
 
     // Pins
     for pin in pins {
-        if let DrawEntity::Pin { name, number, etype, style, x, y, length, rotation, .. } = pin {
+        if let DrawEntity::Pin {
+            name,
+            number,
+            etype,
+            style,
+            x,
+            y,
+            length,
+            rotation,
+            ..
+        } = pin
+        {
             sexpr.push_str(&format!(
                 "      (pin {} {} (at {} {} {}) (length {}) \n",
                 etype, style, x, y, rotation, length
@@ -143,7 +193,10 @@ pub fn to_kicad_mod(entities: &[DrawEntity], footprint_name: &str) -> String {
     let mut sexpr = String::new();
 
     // Header
-    sexpr.push_str(&format!("(footprint \"{}\" (layer \"F.Cu\")\n", footprint_name));
+    sexpr.push_str(&format!(
+        "(footprint \"{}\" (layer \"F.Cu\")\n",
+        footprint_name
+    ));
     sexpr.push_str("  (tedit 0)\n"); // Timestamp edit 0
 
     // Properties (Reference, Value) need to be handled if present, or defaults added.
@@ -156,14 +209,26 @@ pub fn to_kicad_mod(entities: &[DrawEntity], footprint_name: &str) -> String {
     // Process entities
     for entity in entities {
         match entity {
-            DrawEntity::Pad { name, ptype, shape, x, y, width, height, drill, rotation, layers } => {
+            DrawEntity::Pad {
+                name,
+                ptype,
+                shape,
+                x,
+                y,
+                width,
+                height,
+                drill,
+                rotation,
+                layers,
+            } => {
                 // (pad "1" smd rect (at 0 0) (size 1.5 1.5) (layers "F.Cu" "F.Paste" "F.Mask"))
                 // layers string should be space separated quoted strings, but we store it as a single string?
                 // Let's assume the user passes "F.Cu" or "F.Cu F.Mask".
                 // We need to format it properly. If it's just a raw string like "F.Cu", we can quote it.
                 // If it's a list like "F.Cu,F.Mask", we should split and quote.
 
-                let layer_str = layers.split(',')
+                let layer_str = layers
+                    .split(',')
                     .map(|s| format!("\"{}\"", s.trim()))
                     .collect::<Vec<_>>()
                     .join(" ");
@@ -173,14 +238,25 @@ pub fn to_kicad_mod(entities: &[DrawEntity], footprint_name: &str) -> String {
                     name, ptype, shape, x, y, rotation, width, height, drill, layer_str
                 ));
             }
-            DrawEntity::Line { x1, y1, x2, y2, layer } => {
+            DrawEntity::Line {
+                x1,
+                y1,
+                x2,
+                y2,
+                layer,
+            } => {
                 // (fp_line (start x y) (end x y) (layer "Layer") (width 0.15))
                 sexpr.push_str(&format!(
                     "  (fp_line (start {} {}) (end {} {}) (layer \"{}\") (stroke (width 0.15) (type solid)))\n",
                     x1, y1, x2, y2, layer
                 ));
             }
-            DrawEntity::Circle { cx, cy, radius, layer } => {
+            DrawEntity::Circle {
+                cx,
+                cy,
+                radius,
+                layer,
+            } => {
                 // (fp_circle (center x y) (end x y) (layer "Layer") ...)
                 // End point is center + radius
                 let end_x = cx + radius;
@@ -189,7 +265,14 @@ pub fn to_kicad_mod(entities: &[DrawEntity], footprint_name: &str) -> String {
                     cx, cy, end_x, cy, layer
                 ));
             }
-            DrawEntity::Arc { cx, cy, radius, start_angle, end_angle, layer } => {
+            DrawEntity::Arc {
+                cx,
+                cy,
+                radius,
+                start_angle,
+                end_angle,
+                layer,
+            } => {
                 // (fp_arc (start x y) (mid x y) (end x y) ...)
                 let start_x = cx + radius * start_angle.cos();
                 let start_y = cy + radius * start_angle.sin();
@@ -204,27 +287,62 @@ pub fn to_kicad_mod(entities: &[DrawEntity], footprint_name: &str) -> String {
                     start_x, start_y, mid_x, mid_y, end_x, end_y, layer
                 ));
             }
-            DrawEntity::Text { x, y, height, text, layer } => {
+            DrawEntity::Text {
+                x,
+                y,
+                height,
+                text,
+                layer,
+            } => {
                 // (fp_text user "Text" (at x y rot) (layer "Layer") (effects (font (size h h) (thickness t))))
                 // Check if it's special text
-                let type_str = if text.starts_with("REF") { "reference" } else if text.starts_with("VAL") { "value" } else { "user" };
+                let type_str = if text.starts_with("REF") {
+                    "reference"
+                } else if text.starts_with("VAL") {
+                    "value"
+                } else {
+                    "user"
+                };
 
-                if type_str == "reference" { has_ref = true; }
-                if type_str == "value" { has_val = true; }
+                if type_str == "reference" {
+                    has_ref = true;
+                }
+                if type_str == "value" {
+                    has_val = true;
+                }
 
                 sexpr.push_str(&format!(
                     "  (fp_text {} \"{}\" (at {} {} 0) (layer \"{}\") (effects (font (size {} {}) (thickness 0.15))))\n",
                     type_str, escape_string(text), x, y, layer, height, height
                 ));
             }
-            DrawEntity::Property { key, value, x, y, rotation, height, visible, layer } => {
+            DrawEntity::Property {
+                key,
+                value,
+                x,
+                y,
+                rotation,
+                height,
+                visible,
+                layer,
+            } => {
                 // Properties in footprints are often just text or specific fields.
                 // We'll map them to fp_text if possible, or ignore if they don't fit the model.
                 // Standard properties Reference/Value map to text.
-                let type_str = if key == "Reference" { "reference" } else if key == "Value" { "value" } else { "user" };
+                let type_str = if key == "Reference" {
+                    "reference"
+                } else if key == "Value" {
+                    "value"
+                } else {
+                    "user"
+                };
 
-                if type_str == "reference" { has_ref = true; }
-                if type_str == "value" { has_val = true; }
+                if type_str == "reference" {
+                    has_ref = true;
+                }
+                if type_str == "value" {
+                    has_val = true;
+                }
 
                 sexpr.push_str(&format!(
                     "  (fp_text {} \"{}\" (at {} {} {}) (layer \"{}\") (effects (font (size {} {}) (thickness 0.15)) {}))\n",
@@ -238,7 +356,7 @@ pub fn to_kicad_mod(entities: &[DrawEntity], footprint_name: &str) -> String {
 
     // Add default Ref/Val if missing
     if !has_ref {
-        sexpr.push_str(&format!("  (fp_text reference \"REF**\" (at 0 -0.5) (layer \"F.SilkS\") (effects (font (size 1 1) (thickness 0.15))))\n"));
+        sexpr.push_str("  (fp_text reference \"REF**\" (at 0 -0.5) (layer \"F.SilkS\") (effects (font (size 1 1) (thickness 0.15))))\n");
     }
     if !has_val {
         sexpr.push_str(&format!("  (fp_text value \"{}\" (at 0 1) (layer \"F.Fab\") (effects (font (size 1 1) (thickness 0.15))))\n", footprint_name));
