@@ -1,9 +1,16 @@
 #!/usr/bin/env bash
 # Build release with Brotli compression for nginx
+# Usage:
+#   ./build-release.sh          # Just build
+#   ./build-release.sh local    # Build and start local server on port 8053
+#   ./build-release.sh deploy   # Build and deploy to acadlisp.de
+
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$SCRIPT_DIR/.."
+
+MODE="${1:-build}"
 
 echo "Building release..."
 trunk build --release
@@ -27,5 +34,23 @@ for f in dist/*.wasm dist/*.js; do
 done
 
 echo ""
-echo "Upload dist/ to acadlisp.de"
-echo "nginx will serve .br files automatically for browsers that support it"
+
+case "$MODE" in
+    local)
+        echo "=== Starting local server on port 8053 ==="
+        echo "Access at: http://127.0.0.1:8053/"
+        echo "Press Ctrl+C to stop"
+        echo ""
+        trunk serve --release --port 8053
+        ;;
+    deploy)
+        echo "=== Deploying to acadlisp.de ==="
+        echo "Syncing dist/ to trahe.eu:/var/www/acadlisp.de/html ..."
+        rsync -avz --progress dist/ trahe.eu:/var/www/acadlisp.de/html/
+        echo ""
+        echo "Deployed! Visit https://acadlisp.de/"
+        ;;
+    build|*)
+        echo "Build only. Use './build-release.sh local' to start server or './build-release.sh deploy' to deploy."
+        ;;
+esac

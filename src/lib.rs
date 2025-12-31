@@ -185,7 +185,7 @@ impl WasmEngine {
     /// Get list of available examples
     #[wasm_bindgen]
     pub fn get_example_names(&self) -> String {
-        r#"["hello","math","box","spiral","schaltplan","fractal"]"#.to_string()
+        r#"["hello","math","box","spiral","schaltplan","fractal","kicad_sym","kicad_fp","kicad_cake","kicad_newyear","birthday","newyear2026"]"#.to_string()
     }
 
     /// Get example code by name
@@ -200,6 +200,10 @@ impl WasmEngine {
             "fractal" => EXAMPLE_FRACTAL.to_string(),
             "kicad_sym" => EXAMPLE_KICAD_SYM.to_string(),
             "kicad_fp" => EXAMPLE_KICAD_FP.to_string(),
+            "kicad_cake" => EXAMPLE_KICAD_CAKE.to_string(),
+            "kicad_newyear" => EXAMPLE_KICAD_NEWYEAR.to_string(),
+            "birthday" => EXAMPLE_BIRTHDAY.to_string(),
+            "newyear2026" => EXAMPLE_NEWYEAR2026.to_string(),
             _ => "; Unknown example".to_string(),
         }
     }
@@ -858,10 +862,228 @@ impl Default for WasmEngine {
 }
 
 // ============================================
+// Steganography & Encryption - WASM functions
+// ============================================
+
+/// Extract encryption key from PNG image data using LSB steganography.
+/// The key is embedded in the LSB of red channel pixels.
+/// Format: 2-byte big-endian length + key bytes + null terminator
+#[wasm_bindgen]
+pub fn extract_key_from_png(png_data: &[u8]) -> Option<String> {
+    // Simple PNG decoder - find IDAT chunk and decompress
+    let pixels = decode_png_pixels(png_data)?;
+
+    // Extract LSB from red channel (every 4th byte in RGBA)
+    let bits: Vec<u8> = pixels.iter()
+        .step_by(4)
+        .map(|&p| p & 1)
+        .collect();
+
+    if bits.len() < 16 {
+        return None;
+    }
+
+    // Read length (first 16 bits = 2 bytes, big-endian)
+    let mut length: usize = 0;
+    for i in 0..16 {
+        length = (length << 1) | (bits[i] as usize);
+    }
+
+    if length == 0 || length > 256 || bits.len() < 16 + length * 8 {
+        return None;
+    }
+
+    // Read key bytes
+    let mut key_bytes = Vec::with_capacity(length);
+    for byte_idx in 0..length {
+        let mut byte: u8 = 0;
+        for bit_idx in 0..8 {
+            let bit_pos = 16 + byte_idx * 8 + bit_idx;
+            byte = (byte << 1) | bits[bit_pos];
+        }
+        key_bytes.push(byte);
+    }
+
+    String::from_utf8(key_bytes).ok()
+}
+
+/// Simple PNG decoder - extracts raw RGBA pixels
+fn decode_png_pixels(data: &[u8]) -> Option<Vec<u8>> {
+    // Check PNG signature
+    if data.len() < 8 || &data[0..8] != b"\x89PNG\r\n\x1a\n" {
+        return None;
+    }
+
+    let mut pos = 8;
+    let mut width: u32 = 0;
+    let mut height: u32 = 0;
+    let mut idat_data = Vec::new();
+
+    // Parse chunks
+    while pos + 8 < data.len() {
+        let chunk_len = u32::from_be_bytes([data[pos], data[pos+1], data[pos+2], data[pos+3]]) as usize;
+        let chunk_type = &data[pos+4..pos+8];
+
+        if pos + 8 + chunk_len > data.len() {
+            break;
+        }
+
+        match chunk_type {
+            b"IHDR" => {
+                if chunk_len >= 8 {
+                    width = u32::from_be_bytes([data[pos+8], data[pos+9], data[pos+10], data[pos+11]]);
+                    height = u32::from_be_bytes([data[pos+12], data[pos+13], data[pos+14], data[pos+15]]);
+                }
+            }
+            b"IDAT" => {
+                idat_data.extend_from_slice(&data[pos+8..pos+8+chunk_len]);
+            }
+            b"IEND" => break,
+            _ => {}
+        }
+
+        pos += 12 + chunk_len; // length(4) + type(4) + data + crc(4)
+    }
+
+    if width == 0 || height == 0 || idat_data.is_empty() {
+        return None;
+    }
+
+    // Decompress IDAT data (zlib)
+    let decompressed = miniz_decompress(&idat_data)?;
+
+    // Decode PNG filter (simple - assuming filter type 0 for each row)
+    let stride = (width as usize) * 4 + 1; // RGBA + filter byte
+    let mut pixels = Vec::with_capacity((width * height * 4) as usize);
+
+    for y in 0..(height as usize) {
+        let row_start = y * stride;
+        if row_start >= decompressed.len() {
+            break;
+        }
+        // Skip filter byte, copy pixel data
+        let pixel_start = row_start + 1;
+        let pixel_end = (pixel_start + (width as usize) * 4).min(decompressed.len());
+        pixels.extend_from_slice(&decompressed[pixel_start..pixel_end]);
+    }
+
+    Some(pixels)
+}
+
+/// Zlib decompression using flate2
+fn miniz_decompress(data: &[u8]) -> Option<Vec<u8>> {
+    use flate2::read::ZlibDecoder;
+    use std::io::Read;
+
+    let mut decoder = ZlibDecoder::new(data);
+    let mut result = Vec::new();
+    decoder.read_to_end(&mut result).ok()?;
+    Some(result)
+}
+
+/// XOR encrypt/decrypt text with a key
+#[wasm_bindgen]
+pub fn xor_crypt(text: &str, key: &str) -> String {
+    if key.is_empty() {
+        return text.to_string();
+    }
+    let key_bytes: Vec<u8> = key.bytes().collect();
+    text.bytes()
+        .enumerate()
+        .map(|(i, b)| (b ^ key_bytes[i % key_bytes.len()]) as char)
+        .collect()
+}
+
+/// Default encryption key (fallback if logo extraction fails)
+#[wasm_bindgen]
+pub fn get_default_key() -> String {
+    "HN2025".to_string()
+}
+
+/// Compress data using DEFLATE and return as base64
+#[wasm_bindgen]
+pub fn compress_to_base64(data: &str) -> String {
+    use flate2::write::DeflateEncoder;
+    use flate2::Compression;
+    use std::io::Write;
+
+    let mut encoder = DeflateEncoder::new(Vec::new(), Compression::best());
+    if encoder.write_all(data.as_bytes()).is_err() {
+        return String::new();
+    }
+    match encoder.finish() {
+        Ok(compressed) => base64_encode(&compressed),
+        Err(_) => String::new(),
+    }
+}
+
+/// Decompress base64-encoded DEFLATE data
+#[wasm_bindgen]
+pub fn decompress_from_base64(data: &str) -> Option<String> {
+    use flate2::read::DeflateDecoder;
+    use std::io::Read;
+
+    let compressed = base64_decode(data)?;
+    let mut decoder = DeflateDecoder::new(&compressed[..]);
+    let mut result = String::new();
+    decoder.read_to_string(&mut result).ok()?;
+    Some(result)
+}
+
+/// URL-safe base64 encoding
+fn base64_encode(data: &[u8]) -> String {
+    const CHARS: &[u8] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_";
+    let mut result = String::new();
+    let mut i = 0;
+    while i < data.len() {
+        let b0 = data[i] as usize;
+        let b1 = if i + 1 < data.len() { data[i + 1] as usize } else { 0 };
+        let b2 = if i + 2 < data.len() { data[i + 2] as usize } else { 0 };
+
+        result.push(CHARS[(b0 >> 2) & 0x3F] as char);
+        result.push(CHARS[((b0 << 4) | (b1 >> 4)) & 0x3F] as char);
+        if i + 1 < data.len() {
+            result.push(CHARS[((b1 << 2) | (b2 >> 6)) & 0x3F] as char);
+        }
+        if i + 2 < data.len() {
+            result.push(CHARS[b2 & 0x3F] as char);
+        }
+        i += 3;
+    }
+    result
+}
+
+/// URL-safe base64 decoding
+fn base64_decode(data: &str) -> Option<Vec<u8>> {
+    const CHARS: &[u8] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_";
+    let mut result = Vec::new();
+    let bytes: Vec<u8> = data.bytes().collect();
+    let mut i = 0;
+
+    while i < bytes.len() {
+        let c0 = CHARS.iter().position(|&c| c == bytes[i])?;
+        let c1 = if i + 1 < bytes.len() { CHARS.iter().position(|&c| c == bytes[i + 1])? } else { 0 };
+        let c2 = if i + 2 < bytes.len() { CHARS.iter().position(|&c| c == bytes[i + 2]) } else { None };
+        let c3 = if i + 3 < bytes.len() { CHARS.iter().position(|&c| c == bytes[i + 3]) } else { None };
+
+        result.push(((c0 << 2) | (c1 >> 4)) as u8);
+        if let Some(c2) = c2 {
+            result.push((((c1 & 0xF) << 4) | (c2 >> 2)) as u8);
+            if let Some(c3) = c3 {
+                result.push((((c2 & 0x3) << 6) | c3) as u8);
+            }
+        }
+        i += 4;
+    }
+    Some(result)
+}
+
+// ============================================
 // LISP Examples - stored in Rust
 // ============================================
 
-const EXAMPLE_HELLO: &str = r#"; Hello World in AutoLISP
+const EXAMPLE_HELLO: &str = r#"; https://acadlisp.de/?example=hello
+; Hello World in AutoLISP
 (princ "\nHello from AutoLISP!")
 (princ "\nRunning in Rust/WASM!")
 
@@ -875,7 +1097,8 @@ const EXAMPLE_HELLO: &str = r#"; Hello World in AutoLISP
 (command "LINE" '(200 95) '(10 95) "")
 (command "LINE" '(10 95) '(10 50) "")"#;
 
-const EXAMPLE_MATH: &str = r#"; Math and Recursion
+const EXAMPLE_MATH: &str = r#"; https://acadlisp.de/?example=math
+; Math and Recursion
 (princ "\n=== Math ===")
 (princ (strcat "\n2 + 3 = " (itoa (+ 2 3))))
 (princ (strcat "\n7 * 8 = " (itoa (* 7 8))))
@@ -902,7 +1125,8 @@ const EXAMPLE_MATH: &str = r#"; Math and Recursion
   (princ (strcat " " (itoa (fib i))))
   (setq i (1+ i)))"#;
 
-const EXAMPLE_BOX: &str = r#"; Draw a parametric box
+const EXAMPLE_BOX: &str = r#"; https://acadlisp.de/?example=box
+; Draw a parametric box
 (defun draw-box (x y w h)
   (command "LINE" (list x y) (list (+ x w) y) "")
   (command "LINE" (list (+ x w) y) (list (+ x w) (+ y h)) "")
@@ -921,7 +1145,8 @@ const EXAMPLE_BOX: &str = r#"; Draw a parametric box
 
 (princ "\n5 boxes drawn!")"#;
 
-const EXAMPLE_SPIRAL: &str = r#"; Draw a spiral using math
+const EXAMPLE_SPIRAL: &str = r#"; https://acadlisp.de/?example=spiral
+; Draw a spiral using math
 (defun spiral (cx cy r angle step max-r)
   (if (< r max-r)
     (progn
@@ -939,7 +1164,8 @@ const EXAMPLE_SPIRAL: &str = r#"; Draw a spiral using math
 
 (princ "\nSpiral complete!")"#;
 
-const EXAMPLE_SCHALTPLAN: &str = r#"; Mini Schaltplan
+const EXAMPLE_SCHALTPLAN: &str = r#"; https://acadlisp.de/?example=schaltplan
+; Mini Schaltplan
 ; Power rails
 (command "LINE" '(30 140) '(30 20) "")
 (command "LINE" '(70 140) '(70 20) "")
@@ -976,7 +1202,8 @@ const EXAMPLE_SCHALTPLAN: &str = r#"; Mini Schaltplan
 
 (princ "\nSchaltplan done!")"#;
 
-const EXAMPLE_FRACTAL: &str = r#"; Recursive Tree (simple fractal)
+const EXAMPLE_FRACTAL: &str = r#"; https://acadlisp.de/?example=fractal
+; Recursive Tree (simple fractal)
 (defun tree (x y len angle depth)
   (if (> depth 0)
     (progn
@@ -995,7 +1222,8 @@ const EXAMPLE_FRACTAL: &str = r#"; Recursive Tree (simple fractal)
 (command "TEXT" '(60 5) 3 0 "Recursive Tree")
 (princ "\nTree complete!")"#;
 
-const EXAMPLE_KICAD_SYM: &str = r#"; KiCad Symbol Example
+const EXAMPLE_KICAD_SYM: &str = r#"; https://acadlisp.de/?example=kicad_sym
+; KiCad Symbol Example
 ; Creates a simple IC symbol for KiCad
 
 ; Define symbol properties
@@ -1018,7 +1246,8 @@ const EXAMPLE_KICAD_SYM: &str = r#"; KiCad Symbol Example
 
 (princ "\nKiCad symbol ready! Click 'KiCad Sym' to export.")"#;
 
-const EXAMPLE_KICAD_FP: &str = r#"; KiCad Footprint Example
+const EXAMPLE_KICAD_FP: &str = r#"; https://acadlisp.de/?example=kicad_fp
+; KiCad Footprint Example
 ; Creates a simple 2-pad SMD footprint
 
 ; Set layer to silkscreen for outline
@@ -1039,6 +1268,256 @@ const EXAMPLE_KICAD_FP: &str = r#"; KiCad Footprint Example
 (kicad-pad "2" "smd" "rect" 1.5 0 1.0 2.0 0 0 "F.Cu")
 
 (princ "\nKiCad footprint ready! Click 'KiCad Mod' to export.")"#;
+
+const EXAMPLE_KICAD_CAKE: &str = r#"; https://acadlisp.de/?example=kicad_cake
+; KiCad Birthday Cake Symbol
+; A cake you could actually fabricate as PCB art!
+
+(kicad-prop "Reference" "CAKE1" 0 25 0 1.27 1)
+(kicad-prop "Value" "BIRTHDAY_JOSE" 0 -12 0 1.27 1)
+
+; Bottom layer (big rectangle)
+(command "LINE" '(-15 -10) '(15 -10) "")
+(command "LINE" '(15 -10) '(15 -5) "")
+(command "LINE" '(15 -5) '(-15 -5) "")
+(command "LINE" '(-15 -5) '(-15 -10) "")
+
+; Middle layer
+(command "LINE" '(-12 -5) '(12 -5) "")
+(command "LINE" '(12 -5) '(12 0) "")
+(command "LINE" '(12 0) '(-12 0) "")
+(command "LINE" '(-12 0) '(-12 -5) "")
+
+; Top layer
+(command "LINE" '(-9 0) '(9 0) "")
+(command "LINE" '(9 0) '(9 5) "")
+(command "LINE" '(9 5) '(-9 5) "")
+(command "LINE" '(-9 5) '(-9 0) "")
+
+; Frosting waves on top
+(command "LINE" '(-9 5) '(-6 6) "")
+(command "LINE" '(-6 6) '(-3 5) "")
+(command "LINE" '(-3 5) '(0 6) "")
+(command "LINE" '(0 6) '(3 5) "")
+(command "LINE" '(3 5) '(6 6) "")
+(command "LINE" '(6 6) '(9 5) "")
+
+; Candles (5 pins - the "vias" of the cake!)
+(kicad-pin "CANDLE1" "1" "passive" "line" -6 10 4 270)
+(kicad-pin "CANDLE2" "2" "passive" "line" -3 10 4 270)
+(kicad-pin "CANDLE3" "3" "passive" "line" 0 10 4 270)
+(kicad-pin "CANDLE4" "4" "passive" "line" 3 10 4 270)
+(kicad-pin "CANDLE5" "5" "passive" "line" 6 10 4 270)
+
+; Flames (triangles as lines)
+(command "LINE" '(-6 10) '(-5.5 12) "")
+(command "LINE" '(-5.5 12) '(-6.5 12) "")
+(command "LINE" '(-6.5 12) '(-6 10) "")
+
+(command "LINE" '(-3 10) '(-2.5 12) "")
+(command "LINE" '(-2.5 12) '(-3.5 12) "")
+(command "LINE" '(-3.5 12) '(-3 10) "")
+
+(command "LINE" '(0 10) '(0.5 12) "")
+(command "LINE" '(0.5 12) '(-0.5 12) "")
+(command "LINE" '(-0.5 12) '(0 10) "")
+
+(command "LINE" '(3 10) '(3.5 12) "")
+(command "LINE" '(3.5 12) '(2.5 12) "")
+(command "LINE" '(2.5 12) '(3 10) "")
+
+(command "LINE" '(6 10) '(6.5 12) "")
+(command "LINE" '(6.5 12) '(5.5 12) "")
+(command "LINE" '(5.5 12) '(6 10) "")
+
+; Text on cake
+(command "TEXT" '(-7 -8) 2 0 "JOSE 2025")
+
+(princ "\nBirthday cake ready! Export to KiCad and fabricate it!")"#;
+
+const EXAMPLE_KICAD_NEWYEAR: &str = r#"; https://acadlisp.de/?example=kicad_newyear
+; KiCad New Year 2026 Symbol
+; Fireworks and champagne as PCB art!
+
+(kicad-prop "Reference" "NY1" 0 40 0 1.27 1)
+(kicad-prop "Value" "HAPPY_2026" 0 -25 0 1.27 1)
+
+; === BIG "2026" ===
+(command "TEXT" '(-12 -5) 10 0 "2026")
+
+; === FIREWORK LEFT (burst pattern) ===
+(command "LINE" '(-18 25) '(-18 32) "")
+(command "LINE" '(-18 25) '(-23 30) "")
+(command "LINE" '(-18 25) '(-13 30) "")
+(command "LINE" '(-18 25) '(-25 25) "")
+(command "LINE" '(-18 25) '(-11 25) "")
+(command "LINE" '(-18 25) '(-23 20) "")
+(command "LINE" '(-18 25) '(-13 20) "")
+(command "LINE" '(-18 25) '(-18 18) "")
+
+; Sparks
+(command "TEXT" '(-18 33) 2 0 "*")
+(command "TEXT" '(-24 31) 2 0 "*")
+(command "TEXT" '(-12 31) 2 0 "*")
+
+; === FIREWORK RIGHT (burst pattern) ===
+(command "LINE" '(18 28) '(18 35) "")
+(command "LINE" '(18 28) '(13 33) "")
+(command "LINE" '(18 28) '(23 33) "")
+(command "LINE" '(18 28) '(11 28) "")
+(command "LINE" '(18 28) '(25 28) "")
+(command "LINE" '(18 28) '(13 23) "")
+(command "LINE" '(18 28) '(23 23) "")
+(command "LINE" '(18 28) '(18 21) "")
+
+; Sparks
+(command "TEXT" '(18 36) 2 0 "*")
+(command "TEXT" '(12 34) 2 0 "*")
+(command "TEXT" '(24 34) 2 0 "*")
+
+; === CHAMPAGNE GLASS LEFT ===
+(command "LINE" '(-8 8) '(-5 -2) "")
+(command "LINE" '(-2 8) '(-5 -2) "")
+(command "LINE" '(-8 8) '(-2 8) "")
+(command "LINE" '(-5 -2) '(-5 -5) "")
+(command "LINE" '(-7 -5) '(-3 -5) "")
+
+; Bubbles
+(command "TEXT" '(-6 6) 1 0 "o")
+(command "TEXT" '(-4 4) 1 0 "o")
+
+; === CHAMPAGNE GLASS RIGHT ===
+(command "LINE" '(2 8) '(5 -2) "")
+(command "LINE" '(8 8) '(5 -2) "")
+(command "LINE" '(2 8) '(8 8) "")
+(command "LINE" '(5 -2) '(5 -5) "")
+(command "LINE" '(3 -5) '(7 -5) "")
+
+; Bubbles
+(command "TEXT" '(4 6) 1 0 "o")
+(command "TEXT" '(6 4) 1 0 "o")
+
+; === CLOCK showing midnight ===
+(command "CIRCLE" '(0 20) 5)
+(command "LINE" '(0 20) '(0 24) "")
+(command "LINE" '(0 20) '(0.5 23) "")
+(command "TEXT" '(-1 16) 2 0 "12")
+
+; === Firework pins (connectors!) ===
+(kicad-pin "SPARK1" "1" "passive" "line" -18 35 3 270)
+(kicad-pin "SPARK2" "2" "passive" "line" 18 38 3 270)
+(kicad-pin "GND" "3" "power_in" "line" 0 -20 5 90)
+
+(princ "\nHappy New Year 2026! Export to KiCad!")"#;
+
+const EXAMPLE_BIRTHDAY: &str = r#"; https://acadlisp.de/?example=birthday
+; Happy Birthday Jose!
+; A festive greeting card in AutoLISP
+
+(princ "\nHappy Birthday Jose!")
+(princ "\nDrawing your gift...")
+
+; Draw "HAPPY"
+(command "TEXT" '(20 80) 15 0 "HAPPY")
+
+; Draw "BIRTHDAY"
+(command "TEXT" '(20 55) 15 0 "BIRTHDAY")
+
+; Draw "JOSE!"
+(command "TEXT" '(20 30) 20 0 "JOSE!")
+
+; Box around it
+(command "LINE" '(10 20) '(200 20) "")
+(command "LINE" '(200 20) '(200 110) "")
+(command "LINE" '(200 110) '(10 110) "")
+(command "LINE" '(10 110) '(10 20) "")
+
+; Candles (5 vertical lines)
+(command "LINE" '(40 110) '(40 130) "")
+(command "LINE" '(70 110) '(70 130) "")
+(command "LINE" '(100 110) '(100 130) "")
+(command "LINE" '(130 110) '(130 130) "")
+(command "LINE" '(160 110) '(160 130) "")
+
+; Flames
+(command "TEXT" '(38 132) 8 0 "*")
+(command "TEXT" '(68 132) 8 0 "*")
+(command "TEXT" '(98 132) 8 0 "*")
+(command "TEXT" '(128 132) 8 0 "*")
+(command "TEXT" '(158 132) 8 0 "*")
+
+; Final greeting on canvas
+(command "TEXT" '(20 5) 8 0 "Feliz Aniversario Jose!")"#;
+
+const EXAMPLE_NEWYEAR2026: &str = r#"; https://acadlisp.de/?example=newyear2026
+; Happy New Year 2026!
+; Fireworks celebration in AutoLISP
+
+(princ "\nHappy New Year 2026!")
+(princ "\nLaunching fireworks...")
+
+; Night sky background frame
+(command "LINE" '(0 0) '(300 0) "")
+(command "LINE" '(300 0) '(300 200) "")
+(command "LINE" '(300 200) '(0 200) "")
+(command "LINE" '(0 200) '(0 0) "")
+
+; Main title
+(command "TEXT" '(50 180) 20 0 "HAPPY NEW YEAR")
+(command "TEXT" '(100 155) 25 0 "2026")
+
+; Firework 1 - Left (starburst pattern)
+(defun firework (cx cy size)
+  (command "CIRCLE" (list cx cy) 2)
+  (repeat 12
+    (setq ang (* (getvar "USERR1") 30))
+    (setvar "USERR1" (1+ (getvar "USERR1")))
+    (command "LINE"
+      (list cx cy)
+      (list (+ cx (* size (cos (* ang (/ 3.14159 180)))))
+            (+ cy (* size (sin (* ang (/ 3.14159 180))))))
+      "")
+  )
+)
+
+; Draw fireworks at different positions
+(setvar "USERR1" 0)
+(firework 50 120 25)
+
+(setvar "USERR1" 0)
+(firework 150 130 30)
+
+(setvar "USERR1" 0)
+(firework 250 110 20)
+
+; Sparkles / stars
+(command "TEXT" '(30 90) 10 0 "*")
+(command "TEXT" '(80 140) 8 0 "*")
+(command "TEXT" '(120 100) 12 0 "*")
+(command "TEXT" '(180 85) 8 0 "*")
+(command "TEXT" '(220 145) 10 0 "*")
+(command "TEXT" '(270 95) 8 0 "*")
+(command "TEXT" '(200 70) 6 0 "*")
+(command "TEXT" '(60 60) 6 0 "*")
+
+; Champagne glasses
+(command "LINE" '(130 30) '(125 10) "")
+(command "LINE" '(125 10) '(135 10) "")
+(command "LINE" '(135 10) '(130 30) "")
+(command "CIRCLE" '(130 35) 8)
+
+(command "LINE" '(170 30) '(165 10) "")
+(command "LINE" '(165 10) '(175 10) "")
+(command "LINE" '(175 10) '(170 30) "")
+(command "CIRCLE" '(170 35) 8)
+
+; Clink effect
+(command "TEXT" '(145 45) 6 0 "*")
+
+; Bottom message
+(command "TEXT" '(70 5) 8 0 "Frohes Neues Jahr 2026!")
+
+(princ "\nProst! Cheers to 2026!")"#;
 
 fn entity_to_json(entity: &DrawEntity) -> String {
     match entity {
