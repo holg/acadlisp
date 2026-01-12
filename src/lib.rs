@@ -13,6 +13,7 @@
 
 use wasm_bindgen::prelude::*;
 
+pub mod hp41;
 pub mod interpreter;
 pub mod kicad;
 #[cfg(test)]
@@ -3279,9 +3280,718 @@ pub fn run_file(path: &str) -> Result<(Vec<Expr>, Vec<DrawEntity>), String> {
     Ok(run_lisp(&code))
 }
 
+// ============================================
+// HP-41C Calculator - RPN Stack Machine
+// ============================================
+
+/// HP-41C style RPN calculator with 4-level stack
+#[wasm_bindgen]
+pub struct HP41Calculator {
+    stack_x: f64,
+    stack_y: f64,
+    stack_z: f64,
+    stack_t: f64,
+    last_x: f64,
+    // Statistical registers
+    sigma_n: f64,
+    sigma_x: f64,
+    sigma_y: f64,
+    sigma_x2: f64,
+    sigma_y2: f64,
+    sigma_xy: f64,
+    // Display settings
+    display_mode: u8,  // 0=FIX, 1=SCI, 2=ENG
+    display_digits: u8,
+    // Entry state
+    entry_mode: bool,
+    input_buffer: String,
+}
+
+#[wasm_bindgen]
+impl HP41Calculator {
+    #[wasm_bindgen(constructor)]
+    pub fn new() -> HP41Calculator {
+        HP41Calculator {
+            stack_x: 0.0,
+            stack_y: 0.0,
+            stack_z: 0.0,
+            stack_t: 0.0,
+            last_x: 0.0,
+            sigma_n: 0.0,
+            sigma_x: 0.0,
+            sigma_y: 0.0,
+            sigma_x2: 0.0,
+            sigma_y2: 0.0,
+            sigma_xy: 0.0,
+            display_mode: 0,
+            display_digits: 4,
+            entry_mode: false,
+            input_buffer: String::new(),
+        }
+    }
+
+    // Stack operations
+    #[wasm_bindgen]
+    pub fn push(&mut self, val: f64) {
+        self.stack_t = self.stack_z;
+        self.stack_z = self.stack_y;
+        self.stack_y = self.stack_x;
+        self.stack_x = val;
+    }
+
+    #[wasm_bindgen]
+    pub fn drop(&mut self) {
+        self.last_x = self.stack_x;
+        self.stack_x = self.stack_y;
+        self.stack_y = self.stack_z;
+        self.stack_z = self.stack_t;
+    }
+
+    fn drop_no_lastx(&mut self) {
+        self.stack_x = self.stack_y;
+        self.stack_y = self.stack_z;
+        self.stack_z = self.stack_t;
+    }
+
+    #[wasm_bindgen]
+    pub fn swap(&mut self) {
+        std::mem::swap(&mut self.stack_x, &mut self.stack_y);
+    }
+
+    #[wasm_bindgen]
+    pub fn roll_down(&mut self) {
+        let tmp = self.stack_x;
+        self.stack_x = self.stack_y;
+        self.stack_y = self.stack_z;
+        self.stack_z = self.stack_t;
+        self.stack_t = tmp;
+    }
+
+    #[wasm_bindgen]
+    pub fn clear_stack(&mut self) {
+        self.stack_x = 0.0;
+        self.stack_y = 0.0;
+        self.stack_z = 0.0;
+        self.stack_t = 0.0;
+    }
+
+    #[wasm_bindgen]
+    pub fn clear_x(&mut self) {
+        self.stack_x = 0.0;
+        self.input_buffer.clear();
+        self.entry_mode = false;
+    }
+
+    // Getters
+    #[wasm_bindgen]
+    pub fn get_x(&self) -> f64 { self.stack_x }
+    #[wasm_bindgen]
+    pub fn get_y(&self) -> f64 { self.stack_y }
+    #[wasm_bindgen]
+    pub fn get_z(&self) -> f64 { self.stack_z }
+    #[wasm_bindgen]
+    pub fn get_t(&self) -> f64 { self.stack_t }
+    #[wasm_bindgen]
+    pub fn get_last_x(&self) -> f64 { self.last_x }
+
+    // Binary operations - consume Y and X, put result in X, drop stack
+    #[wasm_bindgen]
+    pub fn add(&mut self) {
+        self.last_x = self.stack_x;
+        let result = self.stack_y + self.stack_x;
+        self.stack_x = self.stack_y;  // temporarily for drop
+        self.drop_no_lastx();
+        self.stack_x = result;
+    }
+
+    #[wasm_bindgen]
+    pub fn subtract(&mut self) {
+        self.last_x = self.stack_x;
+        let result = self.stack_y - self.stack_x;
+        self.stack_x = self.stack_y;
+        self.drop_no_lastx();
+        self.stack_x = result;
+    }
+
+    #[wasm_bindgen]
+    pub fn multiply(&mut self) {
+        self.last_x = self.stack_x;
+        let result = self.stack_y * self.stack_x;
+        self.stack_x = self.stack_y;
+        self.drop_no_lastx();
+        self.stack_x = result;
+    }
+
+    #[wasm_bindgen]
+    pub fn divide(&mut self) {
+        self.last_x = self.stack_x;
+        let result = self.stack_y / self.stack_x;
+        self.stack_x = self.stack_y;
+        self.drop_no_lastx();
+        self.stack_x = result;
+    }
+
+    #[wasm_bindgen]
+    pub fn power(&mut self) {
+        self.last_x = self.stack_x;
+        let result = self.stack_y.powf(self.stack_x);
+        self.stack_x = self.stack_y;
+        self.drop_no_lastx();
+        self.stack_x = result;
+    }
+
+    // Unary operations
+    #[wasm_bindgen]
+    pub fn sqrt(&mut self) {
+        self.last_x = self.stack_x;
+        self.stack_x = self.stack_x.sqrt();
+    }
+
+    #[wasm_bindgen]
+    pub fn square(&mut self) {
+        self.last_x = self.stack_x;
+        self.stack_x = self.stack_x * self.stack_x;
+    }
+
+    #[wasm_bindgen]
+    pub fn reciprocal(&mut self) {
+        self.last_x = self.stack_x;
+        self.stack_x = 1.0 / self.stack_x;
+    }
+
+    #[wasm_bindgen]
+    pub fn chs(&mut self) {
+        self.stack_x = -self.stack_x;
+    }
+
+    // Trigonometric
+    #[wasm_bindgen]
+    pub fn sin(&mut self) {
+        self.last_x = self.stack_x;
+        self.stack_x = self.stack_x.sin();
+    }
+
+    #[wasm_bindgen]
+    pub fn cos(&mut self) {
+        self.last_x = self.stack_x;
+        self.stack_x = self.stack_x.cos();
+    }
+
+    #[wasm_bindgen]
+    pub fn tan(&mut self) {
+        self.last_x = self.stack_x;
+        self.stack_x = self.stack_x.tan();
+    }
+
+    #[wasm_bindgen]
+    pub fn asin(&mut self) {
+        self.last_x = self.stack_x;
+        self.stack_x = self.stack_x.asin();
+    }
+
+    #[wasm_bindgen]
+    pub fn acos(&mut self) {
+        self.last_x = self.stack_x;
+        self.stack_x = self.stack_x.acos();
+    }
+
+    #[wasm_bindgen]
+    pub fn atan(&mut self) {
+        self.last_x = self.stack_x;
+        self.stack_x = self.stack_x.atan();
+    }
+
+    // Logarithmic
+    #[wasm_bindgen]
+    pub fn ln(&mut self) {
+        self.last_x = self.stack_x;
+        self.stack_x = self.stack_x.ln();
+    }
+
+    #[wasm_bindgen]
+    pub fn log10(&mut self) {
+        self.last_x = self.stack_x;
+        self.stack_x = self.stack_x.log10();
+    }
+
+    #[wasm_bindgen]
+    pub fn exp(&mut self) {
+        self.last_x = self.stack_x;
+        self.stack_x = self.stack_x.exp();
+    }
+
+    #[wasm_bindgen]
+    pub fn pow10(&mut self) {
+        self.last_x = self.stack_x;
+        self.stack_x = 10.0_f64.powf(self.stack_x);
+    }
+
+    // Constants
+    #[wasm_bindgen]
+    pub fn pi(&mut self) {
+        self.push(std::f64::consts::PI);
+    }
+
+    #[wasm_bindgen]
+    pub fn recall_last_x(&mut self) {
+        self.push(self.last_x);
+    }
+
+    // Polar/Rectangular conversions
+    #[wasm_bindgen]
+    pub fn polar_to_rect(&mut self) {
+        let r = self.stack_y;
+        let theta = self.stack_x;
+        self.stack_x = r * theta.cos();
+        self.stack_y = r * theta.sin();
+    }
+
+    #[wasm_bindgen]
+    pub fn rect_to_polar(&mut self) {
+        let x = self.stack_x;
+        let y = self.stack_y;
+        self.stack_x = (x * x + y * y).sqrt();
+        self.stack_y = y.atan2(x);
+    }
+
+    // Percent
+    #[wasm_bindgen]
+    pub fn percent(&mut self) {
+        self.last_x = self.stack_x;
+        self.stack_x = self.stack_y * (self.stack_x / 100.0);
+    }
+
+    // Display mode
+    #[wasm_bindgen]
+    pub fn set_fix(&mut self, digits: u8) {
+        self.display_mode = 0;
+        self.display_digits = digits.min(9);
+    }
+
+    #[wasm_bindgen]
+    pub fn set_sci(&mut self, digits: u8) {
+        self.display_mode = 1;
+        self.display_digits = digits.min(9);
+    }
+
+    #[wasm_bindgen]
+    pub fn set_eng(&mut self, digits: u8) {
+        self.display_mode = 2;
+        self.display_digits = digits.min(9);
+    }
+
+    // Format number for display (HP-41C style: 10 significant digits)
+    #[wasm_bindgen]
+    pub fn format_display(&self) -> String {
+        self.format_number(self.stack_x)
+    }
+
+    fn format_number(&self, num: f64) -> String {
+        if num.is_nan() {
+            return "ERROR".to_string();
+        }
+        if num.is_infinite() {
+            return if num > 0.0 { "9.999999999 99" } else { "-9.999999999 99" }.to_string();
+        }
+
+        match self.display_mode {
+            1 => {
+                // SCI mode
+                format!("{:.prec$e}", num, prec = self.display_digits as usize)
+                    .replace("e", " ")
+                    .to_uppercase()
+            }
+            2 => {
+                // ENG mode - exponent multiple of 3
+                if num == 0.0 {
+                    return "0.".to_string();
+                }
+                let exp = num.abs().log10().floor() as i32;
+                let eng_exp = (exp as f64 / 3.0).floor() as i32 * 3;
+                let mantissa = num / 10.0_f64.powi(eng_exp);
+                format!("{:.prec$} {:+03}", mantissa, eng_exp, prec = self.display_digits as usize)
+            }
+            _ => {
+                // FIX mode (default)
+                // HP-41C shows 10 significant digits
+                if num.abs() < 1e-99 && num != 0.0 {
+                    return format!("{:.6e}", num).replace("e", " ").to_uppercase();
+                }
+                if num.abs() >= 1e10 {
+                    return format!("{:.6e}", num).replace("e", " ").to_uppercase();
+                }
+
+                // Round to 10 significant digits
+                let formatted = format!("{:.10}", num);
+                // Trim trailing zeros but keep at least one digit after decimal
+                let trimmed = formatted.trim_end_matches('0');
+                if trimmed.ends_with('.') {
+                    format!("{}.", trimmed.trim_end_matches('.'))
+                } else {
+                    trimmed.to_string()
+                }
+            }
+        }
+    }
+
+    // Get LCD segment data as JSON for rendering
+    #[wasm_bindgen]
+    pub fn get_lcd_segments(&self) -> String {
+        let display_str = self.format_display();
+        let mut segments: Vec<String> = Vec::new();
+
+        for ch in display_str.chars() {
+            let pattern = Self::get_14_segment_pattern(ch);
+            segments.push(format!("{{\"char\":\"{}\",\"segments\":{:?}}}", ch, pattern));
+        }
+
+        format!("{{\"display\":\"{}\",\"chars\":[{}]}}", display_str, segments.join(","))
+    }
+
+    // 14-segment patterns for HP-41C style display
+    // Segments: a,b,c,d,e,f,g1,g2,h,i,j,k,l,m
+    fn get_14_segment_pattern(ch: char) -> [u8; 14] {
+        match ch {
+            '0' => [1,1,1,1,1,1,0,0,0,0,1,0,0,0],  // with slash
+            '1' => [0,1,1,0,0,0,0,0,0,0,0,0,0,0],  // right side only
+            '2' => [1,1,0,1,1,0,1,1,0,0,0,0,0,0],
+            '3' => [1,1,1,1,0,0,1,1,0,0,0,0,0,0],
+            '4' => [0,1,1,0,0,1,1,1,0,0,0,0,0,0],
+            '5' => [1,0,1,1,0,1,1,1,0,0,0,0,0,0],
+            '6' => [1,0,1,1,1,1,1,1,0,0,0,0,0,0],
+            '7' => [1,1,1,0,0,0,0,0,0,0,0,0,0,0],
+            '8' => [1,1,1,1,1,1,1,1,0,0,0,0,0,0],
+            '9' => [1,1,1,1,0,1,1,1,0,0,0,0,0,0],
+            'A' => [1,1,1,0,1,1,1,1,0,0,0,0,0,0],
+            'B' => [1,1,1,1,0,0,0,1,0,1,0,0,1,0],
+            'C' => [1,0,0,1,1,1,0,0,0,0,0,0,0,0],
+            'D' => [1,1,1,1,0,0,0,0,0,1,0,0,1,0],
+            'E' => [1,0,0,1,1,1,1,0,0,0,0,0,0,0],
+            'F' => [1,0,0,0,1,1,1,0,0,0,0,0,0,0],
+            'G' => [1,0,1,1,1,1,0,1,0,0,0,0,0,0],
+            'H' => [0,1,1,0,1,1,1,1,0,0,0,0,0,0],
+            'I' => [1,0,0,1,0,0,0,0,0,1,0,0,1,0],
+            'J' => [0,1,1,1,1,0,0,0,0,0,0,0,0,0],
+            'K' => [0,0,0,0,1,1,1,0,0,0,1,1,0,0],
+            'L' => [0,0,0,1,1,1,0,0,0,0,0,0,0,0],
+            'M' => [0,1,1,0,1,1,0,0,1,0,1,0,0,0],
+            'N' => [0,1,1,0,1,1,0,0,1,0,0,0,0,1],
+            'O' => [1,1,1,1,1,1,0,0,0,0,0,0,0,0],
+            'P' => [1,1,0,0,1,1,1,1,0,0,0,0,0,0],
+            'Q' => [1,1,1,1,1,1,0,0,0,0,0,0,0,1],
+            'R' => [1,1,0,0,1,1,1,1,0,0,0,0,0,1],
+            'S' => [1,0,1,1,0,1,1,1,0,0,0,0,0,0],
+            'T' => [1,0,0,0,0,0,0,0,0,1,0,0,1,0],
+            'U' => [0,1,1,1,1,1,0,0,0,0,0,0,0,0],
+            'V' => [0,0,0,0,1,1,0,0,0,0,1,1,0,0],
+            'W' => [0,1,1,0,1,1,0,0,0,0,0,1,0,1],
+            'X' => [0,0,0,0,0,0,0,0,1,0,1,1,0,1],
+            'Y' => [0,0,0,0,0,0,0,0,1,0,1,0,1,0],
+            'Z' => [1,0,0,1,0,0,0,0,0,0,1,1,0,0],
+            '-' => [0,0,0,0,0,0,1,1,0,0,0,0,0,0],
+            '+' => [0,0,0,0,0,0,1,1,0,1,0,0,1,0],
+            ' ' => [0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+            '.' => [0,0,0,0,0,0,0,0,0,0,0,0,0,0], // decimal point handled separately
+            _   => [0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+        }
+    }
+
+    // Statistics
+    #[wasm_bindgen]
+    pub fn sigma_plus(&mut self) {
+        self.sigma_n += 1.0;
+        self.sigma_x += self.stack_x;
+        self.sigma_y += self.stack_y;
+        self.sigma_x2 += self.stack_x * self.stack_x;
+        self.sigma_y2 += self.stack_y * self.stack_y;
+        self.sigma_xy += self.stack_x * self.stack_y;
+        self.push(self.sigma_n);
+    }
+
+    #[wasm_bindgen]
+    pub fn sigma_minus(&mut self) {
+        self.sigma_n -= 1.0;
+        self.sigma_x -= self.stack_x;
+        self.sigma_y -= self.stack_y;
+        self.sigma_x2 -= self.stack_x * self.stack_x;
+        self.sigma_y2 -= self.stack_y * self.stack_y;
+        self.sigma_xy -= self.stack_x * self.stack_y;
+        self.push(self.sigma_n);
+    }
+
+    #[wasm_bindgen]
+    pub fn clear_sigma(&mut self) {
+        self.sigma_n = 0.0;
+        self.sigma_x = 0.0;
+        self.sigma_y = 0.0;
+        self.sigma_x2 = 0.0;
+        self.sigma_y2 = 0.0;
+        self.sigma_xy = 0.0;
+    }
+
+    // Comparison tests (return 1.0 for true, 0.0 for false)
+    #[wasm_bindgen]
+    pub fn test_x_eq_y(&self) -> f64 { if self.stack_x == self.stack_y { 1.0 } else { 0.0 } }
+    #[wasm_bindgen]
+    pub fn test_x_ne_y(&self) -> f64 { if self.stack_x != self.stack_y { 1.0 } else { 0.0 } }
+    #[wasm_bindgen]
+    pub fn test_x_lt_y(&self) -> f64 { if self.stack_x < self.stack_y { 1.0 } else { 0.0 } }
+    #[wasm_bindgen]
+    pub fn test_x_le_y(&self) -> f64 { if self.stack_x <= self.stack_y { 1.0 } else { 0.0 } }
+    #[wasm_bindgen]
+    pub fn test_x_gt_y(&self) -> f64 { if self.stack_x > self.stack_y { 1.0 } else { 0.0 } }
+    #[wasm_bindgen]
+    pub fn test_x_eq_0(&self) -> f64 { if self.stack_x == 0.0 { 1.0 } else { 0.0 } }
+    #[wasm_bindgen]
+    pub fn test_x_ne_0(&self) -> f64 { if self.stack_x != 0.0 { 1.0 } else { 0.0 } }
+    #[wasm_bindgen]
+    pub fn test_x_lt_0(&self) -> f64 { if self.stack_x < 0.0 { 1.0 } else { 0.0 } }
+    #[wasm_bindgen]
+    pub fn test_x_gt_0(&self) -> f64 { if self.stack_x > 0.0 { 1.0 } else { 0.0 } }
+
+    // Entry mode for digit input (accepts string from JS)
+    #[wasm_bindgen]
+    pub fn enter_digit(&mut self, digit: &str) {
+        if !self.entry_mode {
+            // Don't push if stack is empty (first entry)
+            if self.stack_x != 0.0 || !self.input_buffer.is_empty() {
+                self.push(self.stack_x);
+            }
+            self.input_buffer.clear();
+            self.entry_mode = true;
+        }
+        self.input_buffer.push_str(digit);
+        if let Ok(val) = self.input_buffer.parse::<f64>() {
+            self.stack_x = val;
+        }
+    }
+
+    #[wasm_bindgen]
+    pub fn enter_decimal(&mut self) {
+        if !self.entry_mode {
+            self.push(self.stack_x);
+            self.input_buffer = "0".to_string();
+            self.entry_mode = true;
+        }
+        if !self.input_buffer.contains('.') {
+            self.input_buffer.push('.');
+        }
+    }
+
+    #[wasm_bindgen]
+    pub fn enter_exponent(&mut self) {
+        if self.entry_mode && !self.input_buffer.contains('e') {
+            self.input_buffer.push('e');
+        }
+    }
+
+    #[wasm_bindgen]
+    pub fn backspace(&mut self) {
+        if self.entry_mode && !self.input_buffer.is_empty() {
+            self.input_buffer.pop();
+            if self.input_buffer.is_empty() {
+                self.stack_x = 0.0;
+            } else if let Ok(val) = self.input_buffer.parse::<f64>() {
+                self.stack_x = val;
+            }
+        }
+    }
+
+    #[wasm_bindgen]
+    pub fn enter(&mut self) {
+        if self.entry_mode {
+            self.entry_mode = false;
+            self.input_buffer.clear();
+        } else {
+            self.push(self.stack_x);
+        }
+    }
+
+    #[wasm_bindgen]
+    pub fn is_entry_mode(&self) -> bool {
+        self.entry_mode
+    }
+
+    #[wasm_bindgen]
+    pub fn get_input_buffer(&self) -> String {
+        self.input_buffer.clone()
+    }
+
+    // =============================================
+    // LISP Transpilation - returns LISP code strings
+    // =============================================
+
+    /// Transpile pushing a number to LISP
+    #[wasm_bindgen]
+    pub fn lisp_push(&self, val: f64) -> String {
+        format!("(stack-push {})", val)
+    }
+
+    /// Transpile ENTER key to LISP (duplicate X)
+    #[wasm_bindgen]
+    pub fn lisp_enter(&self) -> String {
+        "(stack-push stack-x)".to_string()
+    }
+
+    /// Transpile addition to LISP
+    #[wasm_bindgen]
+    pub fn lisp_add(&self) -> String {
+        "(rpn-add)".to_string()
+    }
+
+    /// Transpile subtraction to LISP
+    #[wasm_bindgen]
+    pub fn lisp_subtract(&self) -> String {
+        "(rpn-sub)".to_string()
+    }
+
+    /// Transpile multiplication to LISP
+    #[wasm_bindgen]
+    pub fn lisp_multiply(&self) -> String {
+        "(rpn-mul)".to_string()
+    }
+
+    /// Transpile division to LISP
+    #[wasm_bindgen]
+    pub fn lisp_divide(&self) -> String {
+        "(rpn-div)".to_string()
+    }
+
+    /// Transpile power to LISP
+    #[wasm_bindgen]
+    pub fn lisp_power(&self) -> String {
+        "(rpn-pow)".to_string()
+    }
+
+    /// Transpile sqrt to LISP
+    #[wasm_bindgen]
+    pub fn lisp_sqrt(&self) -> String {
+        "(rpn-sqrt)".to_string()
+    }
+
+    /// Transpile sin to LISP
+    #[wasm_bindgen]
+    pub fn lisp_sin(&self) -> String {
+        "(rpn-sin)".to_string()
+    }
+
+    /// Transpile cos to LISP
+    #[wasm_bindgen]
+    pub fn lisp_cos(&self) -> String {
+        "(rpn-cos)".to_string()
+    }
+
+    /// Transpile tan to LISP
+    #[wasm_bindgen]
+    pub fn lisp_tan(&self) -> String {
+        "(rpn-tan)".to_string()
+    }
+
+    /// Transpile log (base 10) to LISP
+    #[wasm_bindgen]
+    pub fn lisp_log(&self) -> String {
+        "(rpn-log)".to_string()
+    }
+
+    /// Transpile ln to LISP
+    #[wasm_bindgen]
+    pub fn lisp_ln(&self) -> String {
+        "(rpn-ln)".to_string()
+    }
+
+    /// Transpile 1/x to LISP
+    #[wasm_bindgen]
+    pub fn lisp_inv(&self) -> String {
+        "(rpn-inv)".to_string()
+    }
+
+    /// Transpile CHS to LISP
+    #[wasm_bindgen]
+    pub fn lisp_chs(&self) -> String {
+        "(rpn-chs)".to_string()
+    }
+
+    /// Transpile PI to LISP
+    #[wasm_bindgen]
+    pub fn lisp_pi(&self) -> String {
+        "(rpn-pi)".to_string()
+    }
+
+    /// Transpile swap to LISP
+    #[wasm_bindgen]
+    pub fn lisp_swap(&self) -> String {
+        "(stack-swap)".to_string()
+    }
+
+    /// Transpile roll down to LISP
+    #[wasm_bindgen]
+    pub fn lisp_roll_down(&self) -> String {
+        "(stack-roll-down)".to_string()
+    }
+
+    /// Transpile clear X to LISP
+    #[wasm_bindgen]
+    pub fn lisp_clear_x(&self) -> String {
+        "(setq stack-x 0)".to_string()
+    }
+
+    /// Transpile clear stack to LISP
+    #[wasm_bindgen]
+    pub fn lisp_clear_stack(&self) -> String {
+        "(stack-clear)".to_string()
+    }
+
+    /// Transpile LAST X to LISP
+    #[wasm_bindgen]
+    pub fn lisp_last_x(&self) -> String {
+        "(stack-push last-x)".to_string()
+    }
+
+    /// Get X value as LISP
+    #[wasm_bindgen]
+    pub fn lisp_get_x(&self) -> String {
+        "(get-x)".to_string()
+    }
+
+    /// Get Y value as LISP
+    #[wasm_bindgen]
+    pub fn lisp_get_y(&self) -> String {
+        "(get-y)".to_string()
+    }
+
+    /// Get Z value as LISP
+    #[wasm_bindgen]
+    pub fn lisp_get_z(&self) -> String {
+        "(get-z)".to_string()
+    }
+
+    /// Get T value as LISP
+    #[wasm_bindgen]
+    pub fn lisp_get_t(&self) -> String {
+        "(get-t)".to_string()
+    }
+}
+
 #[cfg(all(test, not(target_arch = "wasm32")))]
 mod tests {
     use super::*;
+
+    #[test]
+    fn test_hp41_basic() {
+        let mut calc = HP41Calculator::new();
+        calc.push(3.0);
+        calc.push(4.0);
+        calc.add();
+        assert_eq!(calc.get_x(), 7.0);
+    }
+
+    #[test]
+    fn test_hp41_pi() {
+        let mut calc = HP41Calculator::new();
+        calc.pi();
+        let display = calc.format_display();
+        assert!(display.starts_with("3.14159265"));
+    }
 
     #[test]
     fn test_engine_creation() {

@@ -354,107 +354,189 @@
         }
         .stats { color: #666; font-size: 11px; padding: 10px; border-top: 1px solid #333; }
 
-        /* HP-41C Calculator Styles - Authentic Look */
-        .hp41-small {
-            background: linear-gradient(180deg, #3a3a3a 0%, #2a2a2a 100%);
-            border: 1px solid #444;
+        /* HP-41CX Calculator Styles - Authentic Look */
+        .hp41-body {
+            background: linear-gradient(180deg, #1a1816 0%, #0f0e0d 50%, #1a1816 100%);
+            border-radius: 8px 8px 16px 16px;
+            padding: 14px 10px 18px 10px;
+            box-shadow:
+                0 8px 30px rgba(0,0,0,0.7),
+                inset 0 1px 0 rgba(255,255,255,0.05);
+            width: 290px;
+            position: relative;
+        }
+
+        /* LCD */
+        .hp41-lcd-bezel {
+            background: #0a0908;
+            border-radius: 4px;
+            padding: 8px 10px;
+            margin-bottom: 8px;
+        }
+
+        .hp41-lcd {
+            background: linear-gradient(180deg, #b8c9a0 0%, #9ab888 100%);
+            border-radius: 2px;
+            height: 32px;
+            box-shadow: inset 0 1px 3px rgba(0,0,0,0.3);
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            padding: 0 8px;
+            font-family: 'Courier New', monospace;
+            font-size: 18px;
+            color: #1a2a12;
+            letter-spacing: 1px;
+        }
+
+        /* Top controls: ON/USER and PRGM/ALPHA grouped */
+        .hp41-top-controls {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            padding: 0 4px;
+        }
+
+        .hp41-btn-group {
+            display: flex;
+            gap: 2px;
+        }
+
+        .hp41-small-btn {
+            background: linear-gradient(180deg, #2a2826 0%, #1a1816 100%);
+            border: none;
+            border-radius: 2px;
+            color: #999;
+            font-size: 7px;
+            font-weight: 600;
+            padding: 3px 8px;
+            cursor: pointer;
+            box-shadow: 0 2px 0 #0a0908;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .hp41-small-btn:active {
+            transform: translateY(1px);
+            box-shadow: 0 1px 0 #0a0908;
+        }
+
+        .hp41-small-btn.alpha {
+            color: #5ba3d0;
+        }
+
+        /* Row group */
+        .hp41-row-group {
+            margin-bottom: 1px;
+        }
+
+        /* Gold labels on body */
+        .hp41-gold-labels {
+            display: grid;
+            gap: 3px;
+            margin-bottom: 1px;
+            padding: 0 2px;
+        }
+
+        .hp41-gold-labels.cols-5 { grid-template-columns: repeat(5, 1fr); }
+        .hp41-gold-labels.cols-4 { grid-template-columns: repeat(4, 1fr); gap: 8px; }
+        .hp41-gold-labels.enter-row { grid-template-columns: 2fr 1fr 1fr 1fr; gap: 3px; }
+
+        .hp41-gold-label {
+            color: #c9a030;
+            font-size: 6px;
+            font-weight: 600;
+            text-align: center;
+            height: 9px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* Button rows */
+        .hp41-btn-row {
+            display: grid;
+            gap: 3px;
+        }
+
+        .hp41-btn-row.cols-5 { grid-template-columns: repeat(5, 1fr); }
+        .hp41-btn-row.cols-4 { grid-template-columns: repeat(4, 1fr); gap: 8px; }
+        .hp41-btn-row.enter-row { grid-template-columns: 2fr 1fr 1fr 1fr; gap: 3px; }
+
+        /* Standard button */
+        .hp41-btn {
+            background: linear-gradient(180deg, #252220 0%, #151310 100%);
+            border: none;
             border-radius: 3px;
-            color: #ccc;
-            font-size: 9px;
-            font-weight: bold;
-            padding: 4px 2px;
-            cursor: pointer;
-            font-family: Arial, sans-serif;
-        }
-        .hp41-small:hover { background: #444; }
-        .hp41-small:active { transform: scale(0.95); }
-
-        .hp41-fn {
-            background: linear-gradient(180deg, #4a3828 0%, #3a2818 100%);
-            border: 1px solid #5a4838;
-            border-radius: 4px;
             color: #fff;
+            font-size: 9px;
+            font-weight: 500;
+            padding: 4px 1px 3px 1px;
+            cursor: pointer;
+            box-shadow:
+                0 2px 0 #080706,
+                inset 0 1px 0 rgba(255,255,255,0.08);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 28px;
+            gap: 1px;
+        }
+
+        .hp41-btn:active {
+            transform: translateY(1px);
+            box-shadow: 0 1px 0 #080706;
+        }
+
+        /* Taller buttons for bottom rows */
+        .hp41-btn.tall {
+            min-height: 38px;
+            padding: 5px 1px 4px 1px;
+        }
+
+        /* Orange shift */
+        .hp41-btn.shift {
+            background: linear-gradient(180deg, #d4842a 0%, #b86a18 100%);
+            box-shadow: 0 2px 0 #6a3a0c, inset 0 1px 0 rgba(255,255,255,0.2);
+        }
+
+        /* Labels */
+        .label-main {
             font-size: 10px;
-            font-weight: bold;
-            padding: 6px 2px 8px 2px;
-            cursor: pointer;
-            font-family: Arial, sans-serif;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            min-height: 38px;
-            text-shadow: 0 1px 1px rgba(0,0,0,0.5);
-        }
-        .hp41-fn:hover { background: linear-gradient(180deg, #5a4838 0%, #4a3828 100%); }
-        .hp41-fn:active { transform: scale(0.95); }
-
-        .hp41-gold {
-            color: #d4a84a;
-            font-size: 7px;
-            margin-bottom: 2px;
-            display: block;
-        }
-        .hp41-blue {
-            color: #6a9fd4;
-            font-size: 7px;
-            margin-bottom: 2px;
-            display: block;
-        }
-
-        .hp41-shift {
-            background: linear-gradient(180deg, #d4842a 0%, #b4641a 100%);
-            border: 1px solid #e4944a;
-            border-radius: 4px;
-            min-height: 38px;
-            cursor: pointer;
-        }
-        .hp41-shift:hover { background: linear-gradient(180deg, #e4944a 0%, #c4742a 100%); }
-        .hp41-shift:active { transform: scale(0.95); }
-
-        .hp41-enter {
-            background: linear-gradient(180deg, #4a3828 0%, #3a2818 100%);
-            border: 1px solid #5a4838;
-            border-radius: 4px;
             color: #fff;
-            font-size: 9px;
-            font-weight: bold;
-            padding: 6px 2px;
-            cursor: pointer;
-            font-family: Arial, sans-serif;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            grid-column: span 2;
-            min-height: 38px;
+            font-weight: 500;
         }
-        .hp41-enter:hover { background: linear-gradient(180deg, #5a4838 0%, #4a3828 100%); }
-        .hp41-enter:active { transform: scale(0.95); }
 
-        .hp41-black {
-            background: linear-gradient(180deg, #2a2a2a 0%, #1a1a1a 100%);
-            border: 1px solid #3a3a3a;
-            border-radius: 4px;
-            color: #fff;
-            font-size: 12px;
-            font-weight: bold;
-            padding: 6px 2px 8px 2px;
-            cursor: pointer;
-            font-family: Arial, sans-serif;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            min-height: 38px;
+        .label-alpha {
+            color: #5ba3d0;
+            font-size: 7px;
+            font-weight: 600;
         }
-        .hp41-black:hover { background: linear-gradient(180deg, #3a3a3a 0%, #2a2a2a 100%); }
-        .hp41-black:active { transform: scale(0.95); background: #1a1a1a; }
 
-        .hp41-zero {
-            grid-column: span 1;
+        /* Bottom number section separator */
+        .section-gap {
+            height: 6px;
         }
+
+        /* Stack display */
+        .hp41-stack {
+            color: #444;
+            font-size: 7px;
+            margin-top: 6px;
+            padding: 3px 5px;
+            background: #080706;
+            border-radius: 2px;
+            font-family: 'Monaco', 'Consolas', monospace;
+        }
+
+        .hp41-stack .x-reg { color: #00cc66; }
+
 
         #calcLcdCanvas {
             image-rendering: pixelated;
             image-rendering: crisp-edges;
+            border-radius: 2px;
         }
     </style>
 </head>
@@ -891,12 +973,48 @@
                 </div>
                 <!-- HP-41C CODE AREA (left side in calc mode) -->
                 <div id="calcCodeArea" style="display:none; flex:1; flex-direction:column;">
-                    <p style="color:#888; font-size:11px; margin-bottom:10px;">LISP Evaluation Log - Every button press is LISP!</p>
-                    <div id="calcHistory" style="flex:1; background:#1a1a2e; border:1px solid #333; padding:10px; overflow-y:auto; font-family:monospace; font-size:11px;"></div>
-                    <div style="margin-top:10px; display:flex; gap:5px;">
-                        <button id="clearCalcHistory" style="background:#333; border-color:#666;">Clear Log</button>
-                        <button id="copyCalcUrl" style="background:#666; border-color:#888;" title="Copy calculator state URL">📋 URL</button>
+                    <!-- Tab buttons -->
+                    <div style="display:flex; gap:2px; margin-bottom:5px;">
+                        <button id="tabLog" onclick="switchCalcTab('log')" style="flex:1; padding:5px; background:#ff8800; color:#000; border:none; font-size:11px; font-weight:bold;">LISP Log</button>
+                        <button id="tabProgram" onclick="switchCalcTab('program')" style="flex:1; padding:5px; background:#333; color:#ff8800; border:none; font-size:11px;">HP-41C Program</button>
                     </div>
+
+                    <!-- Log Tab -->
+                    <div id="calcLogTab" style="flex:1; display:flex; flex-direction:column;">
+                        <p style="color:#888; font-size:11px; margin-bottom:5px;">Every button press is LISP!</p>
+                        <div id="calcHistory" style="flex:1; background:#1a1a2e; border:1px solid #333; padding:10px; overflow-y:auto; font-family:monospace; font-size:11px;"></div>
+                        <div style="margin-top:10px; display:flex; gap:5px;">
+                            <button id="clearCalcHistory" style="background:#333; border-color:#666;">Clear</button>
+                            <button id="copyCalcUrl" style="background:#666; border-color:#888;" title="Copy calculator state URL">📋 URL</button>
+                        </div>
+                    </div>
+
+                    <!-- Program Tab -->
+                    <div id="calcProgramTab" style="flex:1; display:none; flex-direction:column;">
+                        <p style="color:#888; font-size:11px; margin-bottom:5px;">HP-41C Program Editor (transpiles to LISP)</p>
+                        <textarea id="hp41ProgramCode" style="flex:1; background:#1a1a2e; color:#00ff88; border:1px solid #333; padding:10px; font-family:monospace; font-size:11px; resize:none;" placeholder="; Example: Circle Area
+LBL &quot;AREA&quot;
+X^2
+PI
+*
+RTN">; Example: Factorial
+LBL "FACT"
+STO 00
+1
+LBL 01
+RCL 00
+*
+DSE 00
+GTO 01
+RTN</textarea>
+                        <div style="margin-top:10px; display:flex; gap:5px;">
+                            <button id="transpileHP41" style="background:#ff8800; color:#000; border:none; font-weight:bold;">Transpile to LISP</button>
+                            <button id="runHP41" style="background:#00ff88; color:#000; border:none;">Run</button>
+                            <button id="loadHP41Example" style="background:#333; border-color:#666;">Examples</button>
+                        </div>
+                        <div id="hp41TranspileOutput" style="background:#0a0a0f; border:1px solid #333; padding:8px; height:120px; font-size:10px; overflow-y:auto; margin-top:10px; font-family:monospace; color:#00ff88;"></div>
+                    </div>
+
                     <div id="calcOutput" style="background:#0a0a0f; border:1px solid #333; padding:8px; height:50px; font-size:10px; overflow-y:auto; margin-top:10px; color:#888;">HP-41C LISP Calculator ready.</div>
                 </div>
             </div>
@@ -916,80 +1034,175 @@
                     <span id="plotStats" style="color:#666; font-size:11px; margin-left:auto;"></span>
                 </div>
             </div>
-            <!-- HP-41C Calculator (right side - output area in calc mode) -->
-            <div id="calcContainer" style="flex:1.8; display:none; flex-direction:column; max-width:380px;">
-                <!-- HP-41C Body -->
-                <div id="hp41body" style="background:linear-gradient(180deg, #1a1a1a 0%, #252525 50%, #1a1a1a 100%); border-radius:12px; padding:15px; box-shadow: 0 4px 20px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.1);">
-                    <!-- LCD Display Area -->
-                    <div style="background:#2a2a2a; border-radius:8px; padding:8px; margin-bottom:12px;">
-                        <canvas id="calcLcdCanvas" width="340" height="44" style="width:100%; background:linear-gradient(180deg, #c8d4b8 0%, #b8c8a8 100%); border-radius:4px; box-shadow: inset 0 1px 3px rgba(0,0,0,0.3);"></canvas>
+            <!-- HP-41CX Calculator (right side - output area in calc mode) -->
+            <div id="calcContainer" style="flex:1.8; display:none; flex-direction:column; max-width:300px;">
+                <!-- HP-41CX Body -->
+                <div id="hp41body" class="hp41-body">
+                    <!-- LCD -->
+                    <div class="hp41-lcd-bezel">
+                        <canvas id="calcLcdCanvas" width="320" height="32" class="hp41-lcd" style="width:100%;"></canvas>
                     </div>
-                    <!-- Top row: ON, USER, PRGM, ALPHA -->
-                    <div style="display:grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap:6px; margin-bottom:8px;">
-                        <button class="hp41-small" data-key="on">ON</button>
-                        <button class="hp41-small" data-key="user">USER</button>
-                        <button class="hp41-small" data-key="prgm">PRGM</button>
-                        <button class="hp41-small" data-key="alpha">ALPHA</button>
-                    </div>
-                    <!-- Main button grid - authentic HP-41C layout -->
-                    <div style="display:grid; grid-template-columns:repeat(5,1fr); gap:5px;">
-                        <!-- Row 1: Σ+, 1/x, √x, LOG, LN -->
-                        <button class="hp41-fn" data-key="sigma+"><span class="hp41-gold">Σ−</span>Σ+</button>
-                        <button class="hp41-fn" data-key="1/x"><span class="hp41-gold">y^x</span>1/x</button>
-                        <button class="hp41-fn" data-key="sqrt"><span class="hp41-gold">x²</span>√x</button>
-                        <button class="hp41-fn" data-key="log"><span class="hp41-gold">10^x</span>LOG</button>
-                        <button class="hp41-fn" data-key="ln"><span class="hp41-gold">e^x</span>LN</button>
-                        <!-- Row 2: x⇔y, R↓, SIN, COS, TAN -->
-                        <button class="hp41-fn" data-key="xchg"><span class="hp41-gold">CLΣ</span>x⇔y</button>
-                        <button class="hp41-fn" data-key="roll"><span class="hp41-gold">%</span>R↓</button>
-                        <button class="hp41-fn" data-key="sin"><span class="hp41-gold">SIN⁻¹</span>SIN</button>
-                        <button class="hp41-fn" data-key="cos"><span class="hp41-gold">COS⁻¹</span>COS</button>
-                        <button class="hp41-fn" data-key="tan"><span class="hp41-gold">TAN⁻¹</span>TAN</button>
-                        <!-- Row 3: shift, XEQ, STO, RCL, SST -->
-                        <button class="hp41-shift" data-key="shift"></button>
-                        <button class="hp41-fn" data-key="xeq"><span class="hp41-gold">ASN</span>XEQ</button>
-                        <button class="hp41-fn" data-key="sto"><span class="hp41-gold">LBL</span>STO</button>
-                        <button class="hp41-fn" data-key="rcl"><span class="hp41-gold">GTO</span>RCL</button>
-                        <button class="hp41-fn" data-key="sst"><span class="hp41-gold">BST</span>SST</button>
-                        <!-- Row 4: ENTER (2 cols), CHS, EEX, ← -->
-                        <button class="hp41-enter" data-key="enter"><span class="hp41-gold">CATALOG</span>ENTER ↑</button>
-                        <button class="hp41-fn" data-key="chs"><span class="hp41-gold">ISG</span>CHS</button>
-                        <button class="hp41-fn" data-key="eex"><span class="hp41-gold">RTN</span>EEX</button>
-                        <button class="hp41-fn" data-key="bsp"><span class="hp41-gold">CLx/a</span>←</button>
-                        <!-- Row 5: −, 7, 8, 9, ÷ -->
-                        <button class="hp41-black" data-key="sub"><span class="hp41-blue">x=y?</span>−</button>
-                        <button class="hp41-black" data-key="7"><span class="hp41-blue">SF</span>7</button>
-                        <button class="hp41-black" data-key="8"><span class="hp41-blue">CF</span>8</button>
-                        <button class="hp41-black" data-key="9"><span class="hp41-blue">FS?</span>9</button>
-                        <button class="hp41-black" data-key="div"><span class="hp41-blue"></span>÷</button>
-                        <!-- Row 6: +, 4, 5, 6, × -->
-                        <button class="hp41-black" data-key="add"><span class="hp41-blue">x≤y?</span>+</button>
-                        <button class="hp41-black" data-key="4"><span class="hp41-blue">BEEP</span>4</button>
-                        <button class="hp41-black" data-key="5"><span class="hp41-blue">P→R</span>5</button>
-                        <button class="hp41-black" data-key="6"><span class="hp41-blue">R→P</span>6</button>
-                        <button class="hp41-black" data-key="mul"><span class="hp41-blue"></span>×</button>
-                        <!-- Row 7: ×, 1, 2, 3, − (wrong in image, should be operators on left) -->
-                        <button class="hp41-black" data-key="mul2"><span class="hp41-blue">x&gt;y?</span>×</button>
-                        <button class="hp41-black" data-key="1"><span class="hp41-blue">FIX</span>1</button>
-                        <button class="hp41-black" data-key="2"><span class="hp41-blue">SCI</span>2</button>
-                        <button class="hp41-black" data-key="3"><span class="hp41-blue">ENG</span>3</button>
-                        <button class="hp41-black" data-key="rns"><span class="hp41-blue">VIEW</span>R/S</button>
-                        <!-- Row 8: ÷, 0, ., R/S -->
-                        <button class="hp41-black" data-key="div2"><span class="hp41-blue">x=0?</span>÷</button>
-                        <button class="hp41-black" data-key="0"><span class="hp41-blue">π</span>0</button>
-                        <button class="hp41-black" data-key="."><span class="hp41-blue">LASTx</span>.</button>
-                        <button class="hp41-black" data-key="lastx"><span class="hp41-blue"></span>·</button>
-                        <button class="hp41-black" data-key="rs"><span class="hp41-blue"></span>R/S</button>
-                    </div>
-                    <!-- Stack display (small, below) -->
-                    <div id="calcStackView" style="color:#666; font-size:9px; margin-top:10px; padding:5px; background:#0a0a0a; border-radius:4px; font-family:monospace; display:flex; justify-content:space-between;">
-                        <div>
-                            <span id="stackT" style="margin-right:8px;">T:0</span>
-                            <span id="stackZ" style="margin-right:8px;">Z:0</span>
-                            <span id="stackY" style="margin-right:8px;">Y:0</span>
-                            <span style="color:#00ff88;">X:display</span>
+
+                    <!-- Top: ON/USER ... SST/BST/PRGM/ALPHA -->
+                    <div class="hp41-top-controls">
+                        <div class="hp41-btn-group">
+                            <button class="hp41-small-btn" data-key="on">ON</button>
+                            <button class="hp41-small-btn" data-key="user">USER</button>
                         </div>
-                        <span id="calcShift" style="color:#ff8800; font-weight:bold;"></span>
+                        <div class="hp41-btn-group" style="gap:2px;">
+                            <button class="hp41-small-btn" data-key="sst" title="Single Step">SST</button>
+                            <button class="hp41-small-btn" data-key="bst" title="Back Step">BST</button>
+                            <button class="hp41-small-btn" data-key="prgm" id="prgmBtn">PRGM</button>
+                            <button class="hp41-small-btn alpha" data-key="alpha">ALPHA</button>
+                        </div>
+                    </div>
+
+                    <!-- ===== TOP SECTION: 5 keys per row ===== -->
+
+                    <!-- Row 1: Σ+ 1/x √x LOG LN -->
+                    <div class="hp41-row-group">
+                        <div class="hp41-gold-labels cols-5">
+                            <span class="hp41-gold-label">Σ−</span>
+                            <span class="hp41-gold-label">y^x</span>
+                            <span class="hp41-gold-label">x²</span>
+                            <span class="hp41-gold-label">10^x</span>
+                            <span class="hp41-gold-label">e^x</span>
+                        </div>
+                        <div class="hp41-btn-row cols-5">
+                            <button class="hp41-btn" data-key="sigma+"><span class="label-main">Σ+</span><span class="label-alpha">A</span></button>
+                            <button class="hp41-btn" data-key="1/x"><span class="label-main">1/x</span><span class="label-alpha">B</span></button>
+                            <button class="hp41-btn" data-key="sqrt"><span class="label-main">√x</span><span class="label-alpha">C</span></button>
+                            <button class="hp41-btn" data-key="log"><span class="label-main">LOG</span><span class="label-alpha">D</span></button>
+                            <button class="hp41-btn" data-key="ln"><span class="label-main">LN</span><span class="label-alpha">E</span></button>
+                        </div>
+                    </div>
+
+                    <!-- Row 2: x⇔y R↓ SIN COS TAN -->
+                    <div class="hp41-row-group">
+                        <div class="hp41-gold-labels cols-5">
+                            <span class="hp41-gold-label">CLΣ</span>
+                            <span class="hp41-gold-label">%</span>
+                            <span class="hp41-gold-label">SIN⁻¹</span>
+                            <span class="hp41-gold-label">COS⁻¹</span>
+                            <span class="hp41-gold-label">TAN⁻¹</span>
+                        </div>
+                        <div class="hp41-btn-row cols-5">
+                            <button class="hp41-btn" data-key="xchg"><span class="label-main">x⇔y</span><span class="label-alpha">F</span></button>
+                            <button class="hp41-btn" data-key="roll"><span class="label-main">R↓</span><span class="label-alpha">G</span></button>
+                            <button class="hp41-btn" data-key="sin"><span class="label-main">SIN</span><span class="label-alpha">H</span></button>
+                            <button class="hp41-btn" data-key="cos"><span class="label-main">COS</span><span class="label-alpha">I</span></button>
+                            <button class="hp41-btn" data-key="tan"><span class="label-main">TAN</span><span class="label-alpha">J</span></button>
+                        </div>
+                    </div>
+
+                    <!-- Row 3: shift XEQ STO RCL SST -->
+                    <div class="hp41-row-group">
+                        <div class="hp41-gold-labels cols-5">
+                            <span class="hp41-gold-label"></span>
+                            <span class="hp41-gold-label">ASN</span>
+                            <span class="hp41-gold-label">LBL</span>
+                            <span class="hp41-gold-label">GTO</span>
+                            <span class="hp41-gold-label">BST</span>
+                        </div>
+                        <div class="hp41-btn-row cols-5">
+                            <button class="hp41-btn shift" data-key="shift"></button>
+                            <button class="hp41-btn" data-key="xeq"><span class="label-main">XEQ</span><span class="label-alpha">K</span></button>
+                            <button class="hp41-btn" data-key="sto"><span class="label-main">STO</span><span class="label-alpha">L</span></button>
+                            <button class="hp41-btn" data-key="rcl"><span class="label-main">RCL</span><span class="label-alpha">M</span></button>
+                            <button class="hp41-btn" data-key="sst"><span class="label-main">SST</span><span class="label-alpha"></span></button>
+                        </div>
+                    </div>
+
+                    <!-- Row 4: ENTER CHS EEX ← -->
+                    <div class="hp41-row-group">
+                        <div class="hp41-gold-labels enter-row">
+                            <span class="hp41-gold-label">CATALOG</span>
+                            <span class="hp41-gold-label">ISG</span>
+                            <span class="hp41-gold-label">RTN</span>
+                            <span class="hp41-gold-label">CLX/A</span>
+                        </div>
+                        <div class="hp41-btn-row enter-row">
+                            <button class="hp41-btn" data-key="enter"><span class="label-main">ENTER ↑</span><span class="label-alpha">N</span></button>
+                            <button class="hp41-btn" data-key="chs"><span class="label-main">CHS</span><span class="label-alpha">O</span></button>
+                            <button class="hp41-btn" data-key="eex"><span class="label-main">EEX</span><span class="label-alpha">P</span></button>
+                            <button class="hp41-btn" data-key="bsp"><span class="label-main">←</span><span class="label-alpha"></span></button>
+                        </div>
+                    </div>
+
+                    <!-- ===== BOTTOM SECTION: 4 keys per row ===== -->
+                    <div class="section-gap"></div>
+
+                    <!-- Row 5: − 7 8 9 -->
+                    <div class="hp41-row-group">
+                        <div class="hp41-gold-labels cols-4">
+                            <span class="hp41-gold-label">x=y?</span>
+                            <span class="hp41-gold-label">SF</span>
+                            <span class="hp41-gold-label">CF</span>
+                            <span class="hp41-gold-label">FS?</span>
+                        </div>
+                        <div class="hp41-btn-row cols-4">
+                            <button class="hp41-btn tall" data-key="sub"><span class="label-main">−</span><span class="label-alpha">T</span></button>
+                            <button class="hp41-btn tall" data-key="7"><span class="label-main">7</span><span class="label-alpha">W</span></button>
+                            <button class="hp41-btn tall" data-key="8"><span class="label-main">8</span><span class="label-alpha">X</span></button>
+                            <button class="hp41-btn tall" data-key="9"><span class="label-main">9</span><span class="label-alpha">Y</span></button>
+                        </div>
+                    </div>
+
+                    <!-- Row 6: + 4 5 6 -->
+                    <div class="hp41-row-group">
+                        <div class="hp41-gold-labels cols-4">
+                            <span class="hp41-gold-label">x≤y?</span>
+                            <span class="hp41-gold-label">BEEP</span>
+                            <span class="hp41-gold-label">P→R</span>
+                            <span class="hp41-gold-label">R→P</span>
+                        </div>
+                        <div class="hp41-btn-row cols-4">
+                            <button class="hp41-btn tall" data-key="add"><span class="label-main">+</span><span class="label-alpha">Z</span></button>
+                            <button class="hp41-btn tall" data-key="4"><span class="label-main">4</span><span class="label-alpha">T</span></button>
+                            <button class="hp41-btn tall" data-key="5"><span class="label-main">5</span><span class="label-alpha">U</span></button>
+                            <button class="hp41-btn tall" data-key="6"><span class="label-main">6</span><span class="label-alpha">V</span></button>
+                        </div>
+                    </div>
+
+                    <!-- Row 7: × 1 2 3 -->
+                    <div class="hp41-row-group">
+                        <div class="hp41-gold-labels cols-4">
+                            <span class="hp41-gold-label">x&gt;y?</span>
+                            <span class="hp41-gold-label">FIX</span>
+                            <span class="hp41-gold-label">SCI</span>
+                            <span class="hp41-gold-label">ENG</span>
+                        </div>
+                        <div class="hp41-btn-row cols-4">
+                            <button class="hp41-btn tall" data-key="mul"><span class="label-main">×</span><span class="label-alpha">:</span></button>
+                            <button class="hp41-btn tall" data-key="1"><span class="label-main">1</span><span class="label-alpha">Q</span></button>
+                            <button class="hp41-btn tall" data-key="2"><span class="label-main">2</span><span class="label-alpha">R</span></button>
+                            <button class="hp41-btn tall" data-key="3"><span class="label-main">3</span><span class="label-alpha">S</span></button>
+                        </div>
+                    </div>
+
+                    <!-- Row 8: ÷ 0 . R/S -->
+                    <div class="hp41-row-group">
+                        <div class="hp41-gold-labels cols-4">
+                            <span class="hp41-gold-label">x=0?</span>
+                            <span class="hp41-gold-label">π</span>
+                            <span class="hp41-gold-label">LAST X</span>
+                            <span class="hp41-gold-label">VIEW</span>
+                        </div>
+                        <div class="hp41-btn-row cols-4">
+                            <button class="hp41-btn tall" data-key="div"><span class="label-main">÷</span><span class="label-alpha">?</span></button>
+                            <button class="hp41-btn tall" data-key="0"><span class="label-main">0</span><span class="label-alpha">SPACE</span></button>
+                            <button class="hp41-btn tall" data-key="."><span class="label-main">.</span><span class="label-alpha">,</span></button>
+                            <button class="hp41-btn tall" data-key="rs"><span class="label-main">R/S</span><span class="label-alpha"></span></button>
+                        </div>
+                    </div>
+
+                    <!-- Stack -->
+                    <div id="calcStackView" class="hp41-stack">
+                        <span id="stackT">T:0</span> &nbsp;
+                        <span id="stackZ">Z:0</span> &nbsp;
+                        <span id="stackY">Y:0</span> &nbsp;
+                        <span class="x-reg">X:display</span>
+                        <span id="calcShift" style="color:#ff8800; font-weight:bold; float:right;"></span>
                     </div>
                 </div>
             </div>
@@ -1728,11 +1941,107 @@
                 return;
             }
 
+            // LISP RPN Stack code (needs to be defined before use)
+            const rpnStackLispInit = `
+; HP-41C RPN Stack (4-level: X, Y, Z, T)
+(setq stack-x 0)
+(setq stack-y 0)
+(setq stack-z 0)
+(setq stack-t 0)
+(setq last-x 0)
+
+; Stack operations
+(defun stack-push (val)
+  (setq stack-t stack-z)
+  (setq stack-z stack-y)
+  (setq stack-y stack-x)
+  (setq stack-x val))
+
+(defun stack-drop ()
+  (setq last-x stack-x)
+  (setq stack-x stack-y)
+  (setq stack-y stack-z)
+  (setq stack-z stack-t))
+
+(defun stack-swap ()
+  (let ((tmp stack-x))
+    (setq stack-x stack-y)
+    (setq stack-y tmp)))
+
+(defun stack-roll-down ()
+  (let ((tmp stack-x))
+    (setq stack-x stack-y)
+    (setq stack-y stack-z)
+    (setq stack-z stack-t)
+    (setq stack-t tmp)))
+
+(defun stack-clear ()
+  (setq stack-x 0)
+  (setq stack-y 0)
+  (setq stack-z 0)
+  (setq stack-t 0))
+
+(defun stack-drop-no-lastx ()
+  (setq stack-y stack-z)
+  (setq stack-z stack-t))
+
+; Binary operations
+(defun rpn-add ()
+  (setq last-x stack-x)
+  (setq stack-x (+ stack-y stack-x))
+  (stack-drop-no-lastx))
+
+(defun rpn-sub ()
+  (setq last-x stack-x)
+  (setq stack-x (- stack-y stack-x))
+  (stack-drop-no-lastx))
+
+(defun rpn-mul ()
+  (setq last-x stack-x)
+  (setq stack-x (* stack-y stack-x))
+  (stack-drop-no-lastx))
+
+(defun rpn-div ()
+  (setq last-x stack-x)
+  (setq stack-x (/ stack-y stack-x))
+  (stack-drop-no-lastx))
+
+(defun rpn-pow ()
+  (setq last-x stack-x)
+  (setq stack-x (expt stack-y stack-x))
+  (stack-drop-no-lastx))
+
+; Unary operations
+(defun rpn-sqrt () (setq last-x stack-x) (setq stack-x (sqrt stack-x)))
+(defun rpn-sin () (setq last-x stack-x) (setq stack-x (sin stack-x)))
+(defun rpn-cos () (setq last-x stack-x) (setq stack-x (cos stack-x)))
+(defun rpn-tan () (setq last-x stack-x) (setq stack-x (/ (sin stack-x) (cos stack-x))))
+(defun rpn-log () (setq last-x stack-x) (setq stack-x (/ (log stack-x) (log 10))))
+(defun rpn-ln () (setq last-x stack-x) (setq stack-x (log stack-x)))
+(defun rpn-inv () (setq last-x stack-x) (setq stack-x (/ 1 stack-x)))
+(defun rpn-chs () (setq stack-x (- 0 stack-x)))
+(defun rpn-pi () (stack-push 3.14159265358979))
+
+; Get stack values
+(defun get-x () stack-x)
+(defun get-y () stack-y)
+(defun get-z () stack-z)
+(defun get-t () stack-t)
+`;
+
             let engine;
             try {
                 engine = new WasmEngine();
                 window.engine = engine; // Expose globally for debugging
                 console.log('WasmEngine created successfully');
+
+                // Initialize LISP RPN stack functions
+                try {
+                    engine.eval(rpnStackLispInit);
+                    console.log('LISP RPN stack initialized');
+                } catch (e) {
+                    console.error('Failed to init LISP RPN stack:', e);
+                }
 
                 // Initialize encryption key from logo.png via WASM steganography
                 initEncryptionKey(window.wasmBindings);
@@ -2765,161 +3074,145 @@
             };
 
             // ============================================
-            // HP-41C LISP-Powered RPN Calculator
+            // HP-41C Calculator - WASM Powered
             // ============================================
 
-            // LISP code for 7-segment LCD digit templates
-            const lcdSegmentLisp = `
-; HP-41C LCD 7-Segment Display Templates
-; Each segment is a line: (x1 y1 x2 y2)
-; Segments: a(top), b(top-right), c(bottom-right), d(bottom), e(bottom-left), f(top-left), g(middle)
-
-(defun seg-a (x y w h) (list (+ x 1) y (+ x w -1) y))
-(defun seg-b (x y w h) (list (+ x w) (+ y 1) (+ x w) (+ y (/ h 2) -1)))
-(defun seg-c (x y w h) (list (+ x w) (+ y (/ h 2) 1) (+ x w) (+ y h -1)))
-(defun seg-d (x y w h) (list (+ x 1) (+ y h) (+ x w -1) (+ y h)))
-(defun seg-e (x y w h) (list x (+ y (/ h 2) 1) x (+ y h -1)))
-(defun seg-f (x y w h) (list x (+ y 1) x (+ y (/ h 2) -1)))
-(defun seg-g (x y w h) (list (+ x 1) (+ y (/ h 2)) (+ x w -1) (+ y (/ h 2))))
-
-; Digit patterns: which segments are ON (1) or OFF (0) for each digit
-; Order: a b c d e f g
-(defun digit-0 () (list 1 1 1 1 1 1 0))
-(defun digit-1 () (list 0 1 1 0 0 0 0))
-(defun digit-2 () (list 1 1 0 1 1 0 1))
-(defun digit-3 () (list 1 1 1 1 0 0 1))
-(defun digit-4 () (list 0 1 1 0 0 1 1))
-(defun digit-5 () (list 1 0 1 1 0 1 1))
-(defun digit-6 () (list 1 0 1 1 1 1 1))
-(defun digit-7 () (list 1 1 1 0 0 0 0))
-(defun digit-8 () (list 1 1 1 1 1 1 1))
-(defun digit-9 () (list 1 1 1 1 0 1 1))
-(defun digit-minus () (list 0 0 0 0 0 0 1))
-(defun digit-E () (list 1 0 0 1 1 1 1))
-(defun digit-dot () (list 0 0 0 0 0 0 0))
-
-; Get segments for a character
-(defun get-digit-segs (ch)
-  (cond
-    ((= ch 0) (digit-0))
-    ((= ch 1) (digit-1))
-    ((= ch 2) (digit-2))
-    ((= ch 3) (digit-3))
-    ((= ch 4) (digit-4))
-    ((= ch 5) (digit-5))
-    ((= ch 6) (digit-6))
-    ((= ch 7) (digit-7))
-    ((= ch 8) (digit-8))
-    ((= ch 9) (digit-9))
-    (t (digit-8))))
-`;
-
-            // LISP code for RPN stack operations
-            const rpnStackLisp = `
-; HP-41C RPN Stack (4-level: X, Y, Z, T)
-(setq stack-x 0)
-(setq stack-y 0)
-(setq stack-z 0)
-(setq stack-t 0)
-(setq last-x 0)
-
-; Stack operations
-(defun stack-push (val)
-  (setq stack-t stack-z)
-  (setq stack-z stack-y)
-  (setq stack-y stack-x)
-  (setq stack-x val))
-
-(defun stack-drop ()
-  (setq last-x stack-x)
-  (setq stack-x stack-y)
-  (setq stack-y stack-z)
-  (setq stack-z stack-t))
-
-(defun stack-swap ()
-  (let ((tmp stack-x))
-    (setq stack-x stack-y)
-    (setq stack-y tmp)))
-
-(defun stack-roll-down ()
-  (let ((tmp stack-x))
-    (setq stack-x stack-y)
-    (setq stack-y stack-z)
-    (setq stack-z stack-t)
-    (setq stack-t tmp)))
-
-(defun stack-clear ()
-  (setq stack-x 0)
-  (setq stack-y 0)
-  (setq stack-z 0)
-  (setq stack-t 0))
-
-; Binary operations (use Y and X, result in X)
-(defun rpn-add ()
-  (setq last-x stack-x)
-  (setq stack-x (+ stack-y stack-x))
-  (stack-drop-no-lastx))
-
-(defun rpn-sub ()
-  (setq last-x stack-x)
-  (setq stack-x (- stack-y stack-x))
-  (stack-drop-no-lastx))
-
-(defun rpn-mul ()
-  (setq last-x stack-x)
-  (setq stack-x (* stack-y stack-x))
-  (stack-drop-no-lastx))
-
-(defun rpn-div ()
-  (setq last-x stack-x)
-  (setq stack-x (/ stack-y stack-x))
-  (stack-drop-no-lastx))
-
-(defun rpn-pow ()
-  (setq last-x stack-x)
-  (setq stack-x (expt stack-y stack-x))
-  (stack-drop-no-lastx))
-
-(defun stack-drop-no-lastx ()
-  (setq stack-y stack-z)
-  (setq stack-z stack-t))
-
-; Unary operations (use X, result in X)
-(defun rpn-sqrt () (setq last-x stack-x) (setq stack-x (sqrt stack-x)))
-(defun rpn-sin () (setq last-x stack-x) (setq stack-x (sin stack-x)))
-(defun rpn-cos () (setq last-x stack-x) (setq stack-x (cos stack-x)))
-(defun rpn-tan () (setq last-x stack-x) (setq stack-x (/ (sin stack-x) (cos stack-x))))
-(defun rpn-log () (setq last-x stack-x) (setq stack-x (/ (log stack-x) (log 10))))
-(defun rpn-ln () (setq last-x stack-x) (setq stack-x (log stack-x)))
-(defun rpn-inv () (setq last-x stack-x) (setq stack-x (/ 1 stack-x)))
-(defun rpn-chs () (setq stack-x (- 0 stack-x)))
-(defun rpn-pi () (stack-push 3.14159265358979))
-
-; Get stack values
-(defun get-x () stack-x)
-(defun get-y () stack-y)
-(defun get-z () stack-z)
-(defun get-t () stack-t)
-`;
-
-            let hp41cInitialized = false;
+            let hp41 = null;  // WASM HP41Calculator instance (for transpilation)
+            let hp41ShiftMode = false;
+            let hp41AlphaMode = false;
+            let hp41AlphaBuffer = '';
+            // Entry state (JS-side for display, LISP for calculation)
             let hp41cInputBuffer = '';
             let hp41cEntryMode = false;
+            // HP-41C Transpiler
+            let hp41Transpiler = null;
+
+            // Tab switching for calc code area
+            window.switchCalcTab = function(tab) {
+                const logTab = document.getElementById('calcLogTab');
+                const programTab = document.getElementById('calcProgramTab');
+                const tabLog = document.getElementById('tabLog');
+                const tabProgram = document.getElementById('tabProgram');
+
+                if (tab === 'log') {
+                    logTab.style.display = 'flex';
+                    programTab.style.display = 'none';
+                    tabLog.style.background = '#ff8800';
+                    tabLog.style.color = '#000';
+                    tabProgram.style.background = '#333';
+                    tabProgram.style.color = '#ff8800';
+                } else {
+                    logTab.style.display = 'none';
+                    programTab.style.display = 'flex';
+                    tabLog.style.background = '#333';
+                    tabLog.style.color = '#ff8800';
+                    tabProgram.style.background = '#ff8800';
+                    tabProgram.style.color = '#000';
+                }
+            };
+
+            // HP-41C Program examples
+            const HP41_EXAMPLES = {
+                'FACT': `; Factorial (n!)
+; Enter n, then XEQ "FACT"
+LBL "FACT"
+STO 00
+1
+LBL 01
+RCL 00
+*
+DSE 00
+GTO 01
+RTN`,
+                'AREA': `; Circle Area
+; Enter radius, then XEQ "AREA"
+LBL "AREA"
+X^2
+PI
+*
+RTN`,
+                'QUAD': `; Quadratic Formula
+; Y=a, X=b, enter c then XEQ
+LBL "QUAD"
+STO 02         ; c
+X<>Y
+STO 01         ; b
+X<>Y
+STO 00         ; a
+RCL 01
+X^2
+RCL 00
+RCL 02
+*
+4
+*
+-
+SQRT
+STO 03         ; discriminant
+RCL 01
+CHS
+RCL 03
++
+RCL 00
+2
+*
+/
+RTN`,
+                'FIB': `; Fibonacci
+; Enter n, then XEQ "FIB"
+LBL "FIB"
+STO 00         ; n
+0
+1
+LBL 01
+X<>Y
++
+DSE 00
+GTO 01
+RTN`,
+                'PRIME': `; Prime test
+; Enter n, XEQ "PRIME"
+; Returns 1 if prime, 0 if not
+LBL "PRIME"
+STO 00
+2
+STO 01
+LBL 01
+RCL 00
+RCL 01
+MOD
+X=0?
+GTO 02         ; not prime
+RCL 01
+1
++
+STO 01
+X^2
+RCL 00
+X>Y?
+GTO 01
+1              ; is prime
+RTN
+LBL 02
+0              ; not prime
+RTN`
+            };
 
             function initHP41C() {
-                if (hp41cInitialized) {
+                if (hp41) {
                     updateHP41CDisplay();
                     return;
                 }
 
                 try {
-                    // Load LCD segment definitions
-                    engine.eval(lcdSegmentLisp);
-                    // Load RPN stack operations
-                    engine.eval(rpnStackLisp);
-                    hp41cInitialized = true;
-                    hp41cInputBuffer = '';
-                    hp41cEntryMode = false;
+                    // Get HP41Calculator from WASM bindings
+                    if (!window.wasmBindings || !window.wasmBindings.HP41Calculator) {
+                        throw new Error('HP41Calculator not found in WASM bindings');
+                    }
+                    const { HP41Calculator } = window.wasmBindings;
+
+                    // Create WASM HP-41C calculator instance
+                    hp41 = new HP41Calculator();
 
                     // Setup button handlers
                     setupHP41CButtons();
@@ -2927,25 +3220,94 @@
                     // Initial display update
                     updateHP41CDisplay();
 
-                    document.getElementById('calcOutput').textContent = 'HP-41C LISP Calculator initialized. RPN mode ready.';
-                    logCalcHistory('HP-41C initialized with LISP-powered RPN stack');
+                    document.getElementById('calcOutput').textContent = 'HP-41C Ready (WASM)';
+                    logCalcHistory('HP-41C initialized (Rust/WASM powered)');
                 } catch (e) {
-                    document.getElementById('calcOutput').textContent = 'Error initializing: ' + e.message;
+                    document.getElementById('calcOutput').textContent = 'Error: ' + e.message;
+                    console.error('HP41C init error:', e);
                 }
             }
 
-            let hp41cShiftMode = false; // Orange shift key state
-            let hp41cAlphaMode = false; // ALPHA mode for text entry
-            let hp41cAlphaBuffer = ''; // Text buffer for ALPHA mode
-
             function setupHP41CButtons() {
-                // Handle all HP-41C button types
-                document.querySelectorAll('.hp41-fn, .hp41-black, .hp41-small, .hp41-shift, .hp41-enter').forEach(btn => {
+                document.querySelectorAll('.hp41-btn, .hp41-small-btn').forEach(btn => {
                     btn.onclick = () => handleHP41CKey(btn.dataset.key);
                 });
 
                 document.getElementById('clearCalcHistory').onclick = () => {
                     document.getElementById('calcHistory').innerHTML = '';
+                };
+
+                // HP-41C Transpiler buttons
+                document.getElementById('transpileHP41').onclick = () => {
+                    const code = document.getElementById('hp41ProgramCode').value;
+                    const output = document.getElementById('hp41TranspileOutput');
+
+                    try {
+                        // Initialize transpiler if needed
+                        if (!hp41Transpiler && window.wasmBindings && window.wasmBindings.HP41Transpiler) {
+                            hp41Transpiler = new window.wasmBindings.HP41Transpiler();
+                        }
+
+                        if (!hp41Transpiler) {
+                            output.textContent = 'Error: HP41Transpiler not available';
+                            return;
+                        }
+
+                        // Parse the program
+                        const parseResult = hp41Transpiler.parse(code);
+                        output.textContent = parseResult + '\n\n';
+
+                        // Transpile to LISP
+                        const lisp = hp41Transpiler.to_lisp();
+                        output.textContent += lisp;
+                        output.style.color = '#00ff88';
+
+                        logCalcHistory('Transpiled HP-41C program: ' + hp41Transpiler.get_name());
+                    } catch (e) {
+                        output.textContent = 'Error: ' + e.message;
+                        output.style.color = '#ff4444';
+                    }
+                };
+
+                document.getElementById('runHP41').onclick = () => {
+                    const output = document.getElementById('hp41TranspileOutput');
+
+                    try {
+                        if (!hp41Transpiler || hp41Transpiler.instruction_count() === 0) {
+                            output.textContent = 'Please transpile first';
+                            return;
+                        }
+
+                        // Reset and run all in Rust - returns LISP to execute
+                        hp41Transpiler.reset();
+                        const lisp = hp41Transpiler.run_all(1000);
+
+                        if (lisp && lisp.length > 0) {
+                            output.textContent += '\n\n; Generated LISP:\n' + lisp;
+                            engine.eval(lisp);
+                        }
+
+                        const result = formatNumber(engine.eval('stack-x'));
+                        output.textContent += '\n\n; Result (stack-x): ' + result;
+                        logCalcHistory('Ran ' + hp41Transpiler.get_name() + ': ' + lisp + ' => ' + result);
+                        updateHP41CDisplay();
+                    } catch (e) {
+                        output.textContent += '\n\nError: ' + e.message;
+                        output.style.color = '#ff4444';
+                    }
+                };
+
+                document.getElementById('loadHP41Example').onclick = () => {
+                    const examples = Object.keys(HP41_EXAMPLES);
+                    const current = document.getElementById('hp41ProgramCode').value;
+                    let currentIndex = examples.findIndex(name =>
+                        current.includes(`LBL "${name}"`) || current.includes(`LBL '${name}'`)
+                    );
+                    const nextIndex = (currentIndex + 1) % examples.length;
+                    const nextName = examples[nextIndex];
+
+                    document.getElementById('hp41ProgramCode').value = HP41_EXAMPLES[nextName];
+                    document.getElementById('hp41TranspileOutput').textContent = `; Loaded example: ${nextName}\n; Click "Transpile to LISP" to convert`;
                 };
 
                 // Keyboard input support
@@ -2957,7 +3319,7 @@
                     if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
 
                     // ALPHA mode - capture all printable characters
-                    if (hp41cAlphaMode) {
+                    if (hp41AlphaMode) {
                         if (e.key === 'Escape') {
                             toggleAlpha(); // Exit ALPHA mode
                             e.preventDefault();
@@ -3005,10 +3367,12 @@
                     // Number keys
                     if (e.key >= '0' && e.key <= '9') {
                         key = e.key;
+                        e.preventDefault();
                     }
                     // Decimal point
                     else if (e.key === '.' || e.key === ',') {
                         key = '.';
+                        e.preventDefault();
                     }
                     // Enter key
                     else if (e.key === 'Enter') {
@@ -3040,19 +3404,19 @@
                     }
                     // Functions
                     else if (e.key === 's' || e.key === 'S') {
-                        key = hp41cShiftMode ? 'asin' : 'sin';
+                        key = hp41ShiftMode ? 'asin' : 'sin';
                     }
                     else if (e.key === 'c' || e.key === 'C') {
-                        key = hp41cShiftMode ? 'acos' : 'cos';
+                        key = hp41ShiftMode ? 'acos' : 'cos';
                     }
                     else if (e.key === 't' || e.key === 'T') {
-                        key = hp41cShiftMode ? 'atan' : 'tan';
+                        key = hp41ShiftMode ? 'atan' : 'tan';
                     }
                     else if (e.key === 'l' || e.key === 'L') {
-                        key = hp41cShiftMode ? '10x' : 'log';
+                        key = hp41ShiftMode ? '10x' : 'log';
                     }
                     else if (e.key === 'n' || e.key === 'N') {
-                        key = hp41cShiftMode ? 'ex' : 'ln';
+                        key = hp41ShiftMode ? 'ex' : 'ln';
                     }
                     else if (e.key === 'r' || e.key === 'R') {
                         key = 'sqrt';
@@ -3090,166 +3454,78 @@
             }
 
             function toggleShift() {
-                hp41cShiftMode = !hp41cShiftMode;
-                const shiftBtn = document.querySelector('.hp41-shift');
+                hp41ShiftMode = !hp41ShiftMode;
+                const shiftBtn = document.querySelector('.hp41-btn.shift');
                 if (shiftBtn) {
-                    shiftBtn.style.background = hp41cShiftMode
+                    shiftBtn.style.background = hp41ShiftMode
                         ? 'linear-gradient(180deg, #ffaa44 0%, #dd8822 100%)'
-                        : 'linear-gradient(180deg, #d4842a 0%, #b4641a 100%)';
-                    shiftBtn.style.boxShadow = hp41cShiftMode ? '0 0 10px #ffaa44' : 'none';
+                        : 'linear-gradient(180deg, #d4842a 0%, #b86a18 100%)';
+                    shiftBtn.style.boxShadow = hp41ShiftMode ? '0 0 10px #ffaa44' : '0 2px 0 #6a3a0c, inset 0 1px 0 rgba(255,255,255,0.2)';
                 }
-                updateStatusDisplay();
-                logCalcHistory(hp41cShiftMode ? 'SHIFT mode ON (gold functions)' : 'SHIFT mode OFF');
+                document.getElementById('calcShift').textContent = hp41ShiftMode ? 'SHIFT' : '';
+                logCalcHistory(hp41ShiftMode ? 'SHIFT ON' : 'SHIFT OFF');
             }
 
             function toggleAlpha() {
-                hp41cAlphaMode = !hp41cAlphaMode;
-                hp41cAlphaBuffer = '';
-                const alphaBtn = document.querySelector('[data-key="alpha"]');
+                hp41AlphaMode = !hp41AlphaMode;
+                hp41AlphaBuffer = '';
+                const alphaBtn = document.querySelector('.hp41-small-btn.alpha');
                 if (alphaBtn) {
-                    alphaBtn.style.background = hp41cAlphaMode
+                    alphaBtn.style.background = hp41AlphaMode
                         ? 'linear-gradient(180deg, #44aa44 0%, #228822 100%)'
-                        : 'linear-gradient(180deg, #3a3a3a 0%, #2a2a2a 100%)';
-                    alphaBtn.style.color = hp41cAlphaMode ? '#fff' : '#ccc';
+                        : 'linear-gradient(180deg, #2a2826 0%, #1a1816 100%)';
+                    alphaBtn.style.color = hp41AlphaMode ? '#fff' : '#5ba3d0';
                 }
-                updateStatusDisplay();
-                if (hp41cAlphaMode) {
-                    logCalcHistory('ALPHA mode ON - Type text! (Enter to display, Esc to exit)');
-                    document.getElementById('calcOutput').textContent = 'ALPHA: Type your message, Enter to show on LCD';
+                if (hp41AlphaMode) {
+                    logCalcHistory('ALPHA mode ON');
+                    document.getElementById('calcOutput').textContent = 'ALPHA: Type text, Enter to display';
                 } else {
                     logCalcHistory('ALPHA mode OFF');
                     updateHP41CDisplay();
                 }
             }
 
-            function updateStatusDisplay() {
-                let status = '';
-                if (hp41cAlphaMode) status += 'ALPHA ';
-                if (hp41cShiftMode) status += 'SHIFT';
-                document.getElementById('calcShift').textContent = status;
-            }
-
+            // Copy LCD content to clipboard
             function copyLCDToClipboard() {
-                let text = '';
-                if (hp41cAlphaMode && hp41cAlphaBuffer) {
-                    text = hp41cAlphaBuffer;
-                } else {
-                    // Get current display value
-                    const x = hp41cEntryMode && hp41cInputBuffer
-                        ? hp41cInputBuffer
-                        : engine.eval('(get-x)');
-                    text = formatNumber(x);
-                }
-                navigator.clipboard.writeText(text).then(() => {
-                    document.getElementById('calcOutput').textContent = 'Copied to clipboard: ' + text;
-                    logCalcHistory('COPY: "' + text + '"');
+                if (!hp41) return;
+                const displayStr = hp41.is_entry_mode() ? hp41.get_input_buffer() : hp41.format_display();
+                navigator.clipboard.writeText(displayStr).then(() => {
+                    logCalcHistory('Copied: ' + displayStr);
+                }).catch(err => {
+                    console.error('Copy failed:', err);
                 });
             }
 
-            // Draw alphanumeric text on LCD (ALPHA mode)
-            function drawAlphaText(text) {
-                const canvas = document.getElementById('calcLcdCanvas');
-                if (!canvas) return;
-                const ctx = canvas.getContext('2d');
+            // Shift key mappings (gold labels)
+            const HP41_SHIFT_MAP = {
+                'sigma+': 'sigma-', '1/x': 'yx', 'sqrt': 'x2', 'log': '10x', 'ln': 'ex',
+                'xchg': 'clsigma', 'roll': 'percent', 'sin': 'asin', 'cos': 'acos', 'tan': 'atan',
+                'enter': 'catalog', 'chs': 'isg', 'eex': 'rtn', 'bsp': 'clxa',
+                'sub': 'xeqy', 'add': 'xley', 'mul': 'xgty', 'div': 'xeq0',
+                '0': 'pi', '.': 'lastx', '7': 'sf', '8': 'cf', '9': 'fsq',
+                '4': 'beep', '5': 'p2r', '6': 'r2p', '1': 'fix', '2': 'sci', '3': 'eng', 'rs': 'view'
+            };
 
-                // Clear canvas - HP-41C LCD background
-                ctx.fillStyle = '#c8d4bc';
-                ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-                // Draw text using a simple LCD-style font
-                const charWidth = 22;
-                const charHeight = 32;
-                const startX = 10;
-                const startY = 6;
-
-                // Log LISP code for drawing
-                let lispCode = '; ALPHA Display Drawing\n';
-
-                for (let i = 0; i < text.length && i < 14; i++) {
-                    const ch = text[i];
-                    const x = startX + (i * charWidth);
-                    drawLCDChar(ctx, x, startY, charWidth - 4, charHeight, ch);
-                    lispCode += `(lcd-char "${ch}" ${x} ${startY})\n`;
+            // Format number for display
+            function formatNumber(val) {
+                if (val === null || val === undefined) return '0';
+                // Handle string that looks like array: '["5"]' or '["3.14"]'
+                if (typeof val === 'string') {
+                    // Remove array brackets if present
+                    val = val.replace(/^\[["']?|["']?\]$/g, '').replace(/^["']|["']$/g, '');
+                    val = parseFloat(val) || 0;
                 }
-
-                logCalcLispCode(lispCode);
-            }
-
-            // Draw a single character on the LCD (simplified 5x7 dot matrix style)
-            function drawLCDChar(ctx, x, y, w, h, char) {
-                ctx.fillStyle = '#1a1a1a';
-
-                // Simple character patterns (5 columns, simplified)
-                const patterns = {
-                    'A': [[0,1,1,1,0],[1,0,0,0,1],[1,1,1,1,1],[1,0,0,0,1],[1,0,0,0,1]],
-                    'B': [[1,1,1,1,0],[1,0,0,0,1],[1,1,1,1,0],[1,0,0,0,1],[1,1,1,1,0]],
-                    'C': [[0,1,1,1,1],[1,0,0,0,0],[1,0,0,0,0],[1,0,0,0,0],[0,1,1,1,1]],
-                    'D': [[1,1,1,1,0],[1,0,0,0,1],[1,0,0,0,1],[1,0,0,0,1],[1,1,1,1,0]],
-                    'E': [[1,1,1,1,1],[1,0,0,0,0],[1,1,1,1,0],[1,0,0,0,0],[1,1,1,1,1]],
-                    'F': [[1,1,1,1,1],[1,0,0,0,0],[1,1,1,1,0],[1,0,0,0,0],[1,0,0,0,0]],
-                    'G': [[0,1,1,1,1],[1,0,0,0,0],[1,0,1,1,1],[1,0,0,0,1],[0,1,1,1,0]],
-                    'H': [[1,0,0,0,1],[1,0,0,0,1],[1,1,1,1,1],[1,0,0,0,1],[1,0,0,0,1]],
-                    'I': [[1,1,1,1,1],[0,0,1,0,0],[0,0,1,0,0],[0,0,1,0,0],[1,1,1,1,1]],
-                    'J': [[0,0,0,0,1],[0,0,0,0,1],[0,0,0,0,1],[1,0,0,0,1],[0,1,1,1,0]],
-                    'K': [[1,0,0,0,1],[1,0,0,1,0],[1,1,1,0,0],[1,0,0,1,0],[1,0,0,0,1]],
-                    'L': [[1,0,0,0,0],[1,0,0,0,0],[1,0,0,0,0],[1,0,0,0,0],[1,1,1,1,1]],
-                    'M': [[1,0,0,0,1],[1,1,0,1,1],[1,0,1,0,1],[1,0,0,0,1],[1,0,0,0,1]],
-                    'N': [[1,0,0,0,1],[1,1,0,0,1],[1,0,1,0,1],[1,0,0,1,1],[1,0,0,0,1]],
-                    'O': [[0,1,1,1,0],[1,0,0,0,1],[1,0,0,0,1],[1,0,0,0,1],[0,1,1,1,0]],
-                    'P': [[1,1,1,1,0],[1,0,0,0,1],[1,1,1,1,0],[1,0,0,0,0],[1,0,0,0,0]],
-                    'Q': [[0,1,1,1,0],[1,0,0,0,1],[1,0,1,0,1],[1,0,0,1,0],[0,1,1,0,1]],
-                    'R': [[1,1,1,1,0],[1,0,0,0,1],[1,1,1,1,0],[1,0,0,1,0],[1,0,0,0,1]],
-                    'S': [[0,1,1,1,1],[1,0,0,0,0],[0,1,1,1,0],[0,0,0,0,1],[1,1,1,1,0]],
-                    'T': [[1,1,1,1,1],[0,0,1,0,0],[0,0,1,0,0],[0,0,1,0,0],[0,0,1,0,0]],
-                    'U': [[1,0,0,0,1],[1,0,0,0,1],[1,0,0,0,1],[1,0,0,0,1],[0,1,1,1,0]],
-                    'V': [[1,0,0,0,1],[1,0,0,0,1],[1,0,0,0,1],[0,1,0,1,0],[0,0,1,0,0]],
-                    'W': [[1,0,0,0,1],[1,0,0,0,1],[1,0,1,0,1],[1,1,0,1,1],[1,0,0,0,1]],
-                    'X': [[1,0,0,0,1],[0,1,0,1,0],[0,0,1,0,0],[0,1,0,1,0],[1,0,0,0,1]],
-                    'Y': [[1,0,0,0,1],[0,1,0,1,0],[0,0,1,0,0],[0,0,1,0,0],[0,0,1,0,0]],
-                    'Z': [[1,1,1,1,1],[0,0,0,1,0],[0,0,1,0,0],[0,1,0,0,0],[1,1,1,1,1]],
-                    '0': [[0,1,1,1,0],[1,0,0,1,1],[1,0,1,0,1],[1,1,0,0,1],[0,1,1,1,0]],
-                    '1': [[0,0,1,0,0],[0,1,1,0,0],[0,0,1,0,0],[0,0,1,0,0],[0,1,1,1,0]],
-                    '2': [[0,1,1,1,0],[1,0,0,0,1],[0,0,1,1,0],[0,1,0,0,0],[1,1,1,1,1]],
-                    '3': [[1,1,1,1,0],[0,0,0,0,1],[0,1,1,1,0],[0,0,0,0,1],[1,1,1,1,0]],
-                    '4': [[1,0,0,1,0],[1,0,0,1,0],[1,1,1,1,1],[0,0,0,1,0],[0,0,0,1,0]],
-                    '5': [[1,1,1,1,1],[1,0,0,0,0],[1,1,1,1,0],[0,0,0,0,1],[1,1,1,1,0]],
-                    '6': [[0,1,1,1,0],[1,0,0,0,0],[1,1,1,1,0],[1,0,0,0,1],[0,1,1,1,0]],
-                    '7': [[1,1,1,1,1],[0,0,0,0,1],[0,0,0,1,0],[0,0,1,0,0],[0,0,1,0,0]],
-                    '8': [[0,1,1,1,0],[1,0,0,0,1],[0,1,1,1,0],[1,0,0,0,1],[0,1,1,1,0]],
-                    '9': [[0,1,1,1,0],[1,0,0,0,1],[0,1,1,1,1],[0,0,0,0,1],[0,1,1,1,0]],
-                    ' ': [[0,0,0,0,0],[0,0,0,0,0],[0,0,0,0,0],[0,0,0,0,0],[0,0,0,0,0]],
-                    '!': [[0,0,1,0,0],[0,0,1,0,0],[0,0,1,0,0],[0,0,0,0,0],[0,0,1,0,0]],
-                    '?': [[0,1,1,1,0],[1,0,0,0,1],[0,0,1,1,0],[0,0,0,0,0],[0,0,1,0,0]],
-                    '.': [[0,0,0,0,0],[0,0,0,0,0],[0,0,0,0,0],[0,0,0,0,0],[0,0,1,0,0]],
-                    ',': [[0,0,0,0,0],[0,0,0,0,0],[0,0,0,0,0],[0,0,1,0,0],[0,1,0,0,0]],
-                    ':': [[0,0,0,0,0],[0,0,1,0,0],[0,0,0,0,0],[0,0,1,0,0],[0,0,0,0,0]],
-                    '-': [[0,0,0,0,0],[0,0,0,0,0],[1,1,1,1,1],[0,0,0,0,0],[0,0,0,0,0]],
-                    '+': [[0,0,0,0,0],[0,0,1,0,0],[0,1,1,1,0],[0,0,1,0,0],[0,0,0,0,0]],
-                    '=': [[0,0,0,0,0],[1,1,1,1,1],[0,0,0,0,0],[1,1,1,1,1],[0,0,0,0,0]],
-                    '_': [[0,0,0,0,0],[0,0,0,0,0],[0,0,0,0,0],[0,0,0,0,0],[1,1,1,1,1]],
-                    '/': [[0,0,0,0,1],[0,0,0,1,0],[0,0,1,0,0],[0,1,0,0,0],[1,0,0,0,0]],
-                    '*': [[0,0,0,0,0],[1,0,1,0,1],[0,1,1,1,0],[1,0,1,0,1],[0,0,0,0,0]]
-                };
-
-                const pattern = patterns[char.toUpperCase()] || patterns['?'];
-                const dotW = w / 5;
-                const dotH = h / 5;
-
-                for (let row = 0; row < 5; row++) {
-                    for (let col = 0; col < 5; col++) {
-                        if (pattern[row][col]) {
-                            ctx.fillRect(
-                                x + col * dotW + 1,
-                                y + row * dotH + 1,
-                                dotW - 2,
-                                dotH - 2
-                            );
-                        }
-                    }
-                }
+                // Handle actual array results from LISP
+                if (Array.isArray(val)) val = parseFloat(val[0]) || 0;
+                if (typeof val !== 'number' || isNaN(val)) return '0';
+                // Format with up to 10 significant digits
+                let str = val.toPrecision(10).replace(/\.?0+$/, '');
+                if (!str.includes('.') && !str.includes('e')) str += '.';
+                return str;
             }
 
             function handleHP41CKey(key) {
+                if (!hp41) return;
                 const output = document.getElementById('calcOutput');
 
                 try {
@@ -3261,8 +3537,14 @@
                         return;
                     }
 
+                    // Handle alpha key
+                    if (key === 'alpha') {
+                        toggleAlpha();
+                        return;
+                    }
+
                     // Number keys
-                    if (/^[0-9]$/.test(key)) {
+                    if (/^[0-9]$/.test(key) && !hp41ShiftMode) {
                         hp41cInputBuffer += key;
                         hp41cEntryMode = true;
                         updateHP41CDisplay();
@@ -3270,7 +3552,7 @@
                     }
 
                     // Decimal point
-                    if (key === '.') {
+                    if (key === '.' && !hp41ShiftMode) {
                         if (!hp41cInputBuffer.includes('.')) {
                             hp41cInputBuffer += hp41cInputBuffer ? '.' : '0.';
                             hp41cEntryMode = true;
@@ -3279,445 +3561,480 @@
                         return;
                     }
 
+                    // Get actual key (shifted or not)
+                    const actualKey = hp41ShiftMode ? (HP41_SHIFT_MAP[key] || key) : key;
+
+                    // Clear shift after getting actual key
+                    if (hp41ShiftMode && actualKey !== key) {
+                        toggleShift();
+                    }
+
                     // If we were entering a number, push it first (except for some keys)
-                    if (hp41cEntryMode && hp41cInputBuffer && !['bsp', 'chs', 'eex'].includes(key)) {
+                    if (hp41cEntryMode && hp41cInputBuffer && !['bsp', 'chs', 'eex'].includes(actualKey)) {
                         const val = parseFloat(hp41cInputBuffer);
-                        lispExpr = `(stack-push ${val})`;
+                        lispExpr = hp41.lisp_push(val);
                         engine.eval(lispExpr);
-                        logCalcHistory(`ENTER: ${val} → (stack-push ${val})`);
+                        logCalcHistory(`ENTER: ${val} → ${lispExpr}`);
                         hp41cInputBuffer = '';
                         hp41cEntryMode = false;
                     }
 
-                    // Check if shift mode - use alternate function
-                    const actualKey = hp41cShiftMode ? getShiftedKey(key) : key;
-
-                    // Handle keys
+                    // Handle all operations - transpile to LISP and execute
                     switch (actualKey) {
+                        // Entry
                         case 'enter':
                             if (hp41cInputBuffer) {
                                 const val = parseFloat(hp41cInputBuffer);
-                                lispExpr = `(stack-push ${val})`;
-                                logCalcHistory(`ENTER: (stack-push ${val})`);
+                                lispExpr = hp41.lisp_push(val);
+                                logCalcHistory(`ENTER: ${val} → ${lispExpr}`);
                             } else {
-                                lispExpr = '(stack-push stack-x)';
+                                lispExpr = hp41.lisp_enter();
                                 logCalcHistory('ENTER: duplicate X');
                             }
                             hp41cInputBuffer = '';
                             hp41cEntryMode = false;
                             break;
-                        // Basic arithmetic
+
+                        case 'bsp':
+                            hp41cInputBuffer = hp41cInputBuffer.slice(0, -1);
+                            break;
+
+                        case 'eex':
+                            if (!hp41cInputBuffer.includes('e')) {
+                                hp41cInputBuffer += hp41cInputBuffer ? 'e' : '1e';
+                                hp41cEntryMode = true;
+                            }
+                            break;
+
+                        case 'chs':
+                            if (hp41cEntryMode && hp41cInputBuffer) {
+                                if (hp41cInputBuffer.includes('e')) {
+                                    // Toggle exponent sign
+                                    const parts = hp41cInputBuffer.split('e');
+                                    if (parts[1] && parts[1].startsWith('-')) {
+                                        hp41cInputBuffer = parts[0] + 'e' + parts[1].slice(1);
+                                    } else {
+                                        hp41cInputBuffer = parts[0] + 'e-' + (parts[1] || '');
+                                    }
+                                } else {
+                                    hp41cInputBuffer = hp41cInputBuffer.startsWith('-')
+                                        ? hp41cInputBuffer.slice(1)
+                                        : '-' + hp41cInputBuffer;
+                                }
+                            } else {
+                                lispExpr = hp41.lisp_chs();
+                                logCalcHistory('CHS: ' + lispExpr);
+                            }
+                            break;
+
+                        // Arithmetic - transpile to LISP
                         case 'add':
-                            lispExpr = '(rpn-add)';
-                            logCalcHistory('+ : (rpn-add) → Y + X');
+                            lispExpr = hp41.lisp_add();
+                            logCalcHistory('+ : ' + lispExpr + ' → Y + X');
                             break;
                         case 'sub':
-                            lispExpr = '(rpn-sub)';
-                            logCalcHistory('− : (rpn-sub) → Y - X');
+                            lispExpr = hp41.lisp_subtract();
+                            logCalcHistory('− : ' + lispExpr + ' → Y - X');
                             break;
                         case 'mul':
-                        case 'mul2':
-                            lispExpr = '(rpn-mul)';
-                            logCalcHistory('× : (rpn-mul) → Y * X');
+                            lispExpr = hp41.lisp_multiply();
+                            logCalcHistory('× : ' + lispExpr + ' → Y × X');
                             break;
                         case 'div':
-                        case 'div2':
-                            lispExpr = '(rpn-div)';
-                            logCalcHistory('÷ : (rpn-div) → Y / X');
+                            lispExpr = hp41.lisp_divide();
+                            logCalcHistory('÷ : ' + lispExpr + ' → Y ÷ X');
                             break;
-                        // Scientific functions
+                        case 'yx':
+                            lispExpr = hp41.lisp_power();
+                            logCalcHistory('y^x : ' + lispExpr);
+                            break;
+
+                        // Math functions - transpile to LISP
                         case 'sqrt':
-                            lispExpr = '(rpn-sqrt)';
-                            logCalcHistory('√x : (rpn-sqrt) → (sqrt X)');
+                            lispExpr = hp41.lisp_sqrt();
+                            logCalcHistory('√x : ' + lispExpr);
                             break;
-                        case 'x2': // shift of sqrt
+                        case 'x2':
                             lispExpr = '(setq last-x stack-x) (setq stack-x (* stack-x stack-x))';
-                            logCalcHistory('x² : X * X');
+                            logCalcHistory('x² : ' + lispExpr);
+                            break;
+                        case '1/x':
+                            lispExpr = hp41.lisp_inv();
+                            logCalcHistory('1/x : ' + lispExpr);
                             break;
                         case 'sin':
-                            lispExpr = '(rpn-sin)';
-                            logCalcHistory('SIN : (rpn-sin) → (sin X)');
+                            lispExpr = hp41.lisp_sin();
+                            logCalcHistory('SIN : ' + lispExpr);
+                            break;
+                        case 'cos':
+                            lispExpr = hp41.lisp_cos();
+                            logCalcHistory('COS : ' + lispExpr);
+                            break;
+                        case 'tan':
+                            lispExpr = hp41.lisp_tan();
+                            logCalcHistory('TAN : ' + lispExpr);
                             break;
                         case 'asin':
                             lispExpr = '(setq last-x stack-x) (setq stack-x (asin stack-x))';
-                            logCalcHistory('SIN⁻¹ : (asin X)');
-                            break;
-                        case 'cos':
-                            lispExpr = '(rpn-cos)';
-                            logCalcHistory('COS : (rpn-cos) → (cos X)');
+                            logCalcHistory('ASIN : ' + lispExpr);
                             break;
                         case 'acos':
                             lispExpr = '(setq last-x stack-x) (setq stack-x (acos stack-x))';
-                            logCalcHistory('COS⁻¹ : (acos X)');
-                            break;
-                        case 'tan':
-                            lispExpr = '(rpn-tan)';
-                            logCalcHistory('TAN : (rpn-tan) → (tan X)');
+                            logCalcHistory('ACOS : ' + lispExpr);
                             break;
                         case 'atan':
                             lispExpr = '(setq last-x stack-x) (setq stack-x (atan stack-x))';
-                            logCalcHistory('TAN⁻¹ : (atan X)');
+                            logCalcHistory('ATAN : ' + lispExpr);
                             break;
                         case 'log':
-                            lispExpr = '(rpn-log)';
-                            logCalcHistory('LOG : (rpn-log) → log10(X)');
-                            break;
-                        case '10x': // shift of log
-                            lispExpr = '(setq last-x stack-x) (setq stack-x (expt 10 stack-x))';
-                            logCalcHistory('10^x : (expt 10 X)');
+                            lispExpr = hp41.lisp_log();
+                            logCalcHistory('LOG : ' + lispExpr);
                             break;
                         case 'ln':
-                            lispExpr = '(rpn-ln)';
-                            logCalcHistory('LN : (rpn-ln) → (log X)');
+                            lispExpr = hp41.lisp_ln();
+                            logCalcHistory('LN : ' + lispExpr);
                             break;
-                        case 'ex': // shift of ln
+                        case '10x':
+                            lispExpr = '(setq last-x stack-x) (setq stack-x (expt 10 stack-x))';
+                            logCalcHistory('10^x : ' + lispExpr);
+                            break;
+                        case 'ex':
                             lispExpr = '(setq last-x stack-x) (setq stack-x (exp stack-x))';
-                            logCalcHistory('e^x : (exp X)');
+                            logCalcHistory('e^x : ' + lispExpr);
                             break;
-                        case '1/x':
-                            lispExpr = '(rpn-inv)';
-                            logCalcHistory('1/x : (rpn-inv) → (/ 1 X)');
-                            break;
-                        case 'yx': // shift of 1/x = y^x
-                            lispExpr = '(rpn-pow)';
-                            logCalcHistory('y^x : (rpn-pow) → (expt Y X)');
-                            break;
-                        case 'chs':
-                            if (hp41cEntryMode && hp41cInputBuffer) {
-                                // Toggle sign of input buffer
-                                if (hp41cInputBuffer.startsWith('-')) {
-                                    hp41cInputBuffer = hp41cInputBuffer.substring(1);
-                                } else {
-                                    hp41cInputBuffer = '-' + hp41cInputBuffer;
-                                }
-                                logCalcHistory('+/- : negate input');
-                                updateHP41CDisplay();
-                                return;
-                            } else {
-                                lispExpr = '(rpn-chs)';
-                                logCalcHistory('+/- : (rpn-chs) → negate X');
-                            }
-                            break;
-                        case 'eex':
-                            if (hp41cEntryMode) {
-                                hp41cInputBuffer += 'e';
-                                logCalcHistory('EEX : enter exponent');
-                                updateHP41CDisplay();
-                                return;
-                            }
-                            break;
-                        // Stack operations
-                        case 'xchg':
-                            lispExpr = '(stack-swap)';
-                            logCalcHistory('x⇔y : (stack-swap)');
-                            break;
-                        case 'roll':
-                            lispExpr = '(stack-roll-down)';
-                            logCalcHistory('R↓ : (stack-roll-down)');
-                            break;
-                        case 'clx':
-                            lispExpr = '(setq stack-x 0)';
-                            hp41cInputBuffer = '';
-                            logCalcHistory('CLx : clear X register');
+
+                        // Constants - transpile to LISP
+                        case 'pi':
+                            lispExpr = hp41.lisp_pi();
+                            logCalcHistory('π : ' + lispExpr);
                             break;
                         case 'lastx':
-                            lispExpr = '(stack-push last-x)';
-                            logCalcHistory('LAST x : recall last X');
+                            lispExpr = hp41.lisp_last_x();
+                            logCalcHistory('LAST X : ' + lispExpr);
                             break;
-                        // Constants
-                        case 'pi':
-                            lispExpr = '(rpn-pi)';
-                            logCalcHistory('π : (rpn-pi) → 3.14159...');
+
+                        // Stack operations - transpile to LISP
+                        case 'xchg':
+                            lispExpr = hp41.lisp_swap();
+                            logCalcHistory('x⇔y : ' + lispExpr);
                             break;
-                        // Backspace
-                        case 'bsp':
-                            if (hp41cInputBuffer.length > 0) {
-                                hp41cInputBuffer = hp41cInputBuffer.slice(0, -1);
-                            }
-                            updateHP41CDisplay();
-                            return;
-                        // Storage
-                        case 'sto':
-                            output.textContent = 'STO: Enter register 0-9';
-                            return;
-                        case 'rcl':
-                            output.textContent = 'RCL: Enter register 0-9';
-                            return;
-                        // Comparison functions (shifted operators)
-                        case 'xeqy': // x=y?
-                            lispExpr = '(if (= stack-x stack-y) 1 0)';
-                            logCalcHistory('x=y? : (= X Y) → ' + (engine.eval('(= stack-x stack-y)') ? '1 (true)' : '0 (false)'));
-                            output.textContent = 'x=y? → ' + (engine.eval('(= stack-x stack-y)') ? 'TRUE' : 'FALSE');
-                            return;
-                        case 'xley': // x≤y?
-                            lispExpr = '(if (<= stack-x stack-y) 1 0)';
-                            logCalcHistory('x≤y? : (<= X Y) → ' + (engine.eval('(<= stack-x stack-y)') ? '1 (true)' : '0 (false)'));
-                            output.textContent = 'x≤y? → ' + (engine.eval('(<= stack-x stack-y)') ? 'TRUE' : 'FALSE');
-                            return;
-                        case 'xgty': // x>y?
-                            lispExpr = '(if (> stack-x stack-y) 1 0)';
-                            logCalcHistory('x>y? : (> X Y) → ' + (engine.eval('(> stack-x stack-y)') ? '1 (true)' : '0 (false)'));
-                            output.textContent = 'x>y? → ' + (engine.eval('(> stack-x stack-y)') ? 'TRUE' : 'FALSE');
-                            return;
-                        case 'xeq0': // x=0?
-                            lispExpr = '(if (= stack-x 0) 1 0)';
-                            logCalcHistory('x=0? : (= X 0) → ' + (engine.eval('(= stack-x 0)') ? '1 (true)' : '0 (false)'));
-                            output.textContent = 'x=0? → ' + (engine.eval('(= stack-x 0)') ? 'TRUE' : 'FALSE');
-                            return;
-                        case 'xlt0': // x<0?
-                            lispExpr = '(if (< stack-x 0) 1 0)';
-                            logCalcHistory('x<0? : (< X 0) → ' + (engine.eval('(< stack-x 0)') ? '1 (true)' : '0 (false)'));
-                            output.textContent = 'x<0? → ' + (engine.eval('(< stack-x 0)') ? 'TRUE' : 'FALSE');
-                            return;
-                        // Percent
+                        case 'roll':
+                            lispExpr = hp41.lisp_roll_down();
+                            logCalcHistory('R↓ : ' + lispExpr);
+                            break;
+                        case 'clx':
+                        case 'clxa':
+                            lispExpr = hp41.lisp_clear_x();
+                            logCalcHistory('CLx : ' + lispExpr);
+                            break;
+
+                        // Conversions (not yet in LISP)
+                        case 'p2r': logCalcHistory('P→R: Not yet in LISP'); break;
+                        case 'r2p': logCalcHistory('R→P: Not yet in LISP'); break;
                         case 'percent':
                             lispExpr = '(setq last-x stack-x) (setq stack-x (* stack-y (/ stack-x 100)))';
-                            logCalcHistory('% : Y × (X/100)');
+                            logCalcHistory('% : ' + lispExpr);
                             break;
-                        // ALPHA mode
-                        case 'alpha':
-                            toggleAlpha();
-                            return;
-                        // Mode buttons (just acknowledge for now)
-                        case 'on':
-                        case 'user':
-                        case 'prgm':
-                        case 'xeq':
-                        case 'sst':
-                        case 'rs':
-                        case 'rns':
-                        case 'catalog':
-                        case 'isg':
-                        case 'rtn':
-                        case 'clxa':
-                        case 'clsigma':
-                        case 'sf':
-                        case 'cf':
-                        case 'fsq':
-                        case 'beep':
-                        case 'p2r':
-                        case 'r2p':
+
+                        // Display modes
                         case 'fix':
+                            const fixDigits = Math.floor(parseFloat(formatNumber(engine.eval('stack-x'))) || 4);
+                            hp41.set_fix(fixDigits);
+                            logCalcHistory('FIX ' + fixDigits);
+                            output.textContent = 'FIX ' + fixDigits;
+                            break;
                         case 'sci':
+                            const sciDigits = Math.floor(parseFloat(formatNumber(engine.eval('stack-x'))) || 4);
+                            hp41.set_sci(sciDigits);
+                            logCalcHistory('SCI ' + sciDigits);
+                            output.textContent = 'SCI ' + sciDigits;
+                            break;
                         case 'eng':
-                        case 'sigma-':
-                            output.textContent = `${actualKey.toUpperCase()}: Not implemented in demo`;
-                            if (hp41cShiftMode) toggleShift();
+                            const engDigits = Math.floor(parseFloat(formatNumber(engine.eval('stack-x'))) || 4);
+                            hp41.set_eng(engDigits);
+                            logCalcHistory('ENG ' + engDigits);
+                            output.textContent = 'ENG ' + engDigits;
+                            break;
+
+                        // Statistics (not yet in LISP)
+                        case 'sigma+': logCalcHistory('Σ+: Not yet in LISP'); break;
+                        case 'sigma-': logCalcHistory('Σ-: Not yet in LISP'); break;
+                        case 'clsigma': logCalcHistory('CLΣ: Not yet in LISP'); break;
+
+                        // Tests
+                        case 'xeqy':
+                            const xeqy = engine.eval('(= stack-x stack-y)');
+                            output.textContent = 'x=y? ' + (xeqy ? 'YES' : 'NO');
+                            updateHP41CDisplay();
                             return;
+                        case 'xley':
+                            const xley = engine.eval('(<= stack-x stack-y)');
+                            output.textContent = 'x≤y? ' + (xley ? 'YES' : 'NO');
+                            updateHP41CDisplay();
+                            return;
+                        case 'xgty':
+                            const xgty = engine.eval('(> stack-x stack-y)');
+                            output.textContent = 'x>y? ' + (xgty ? 'YES' : 'NO');
+                            updateHP41CDisplay();
+                            return;
+                        case 'xeq0':
+                            const xeq0 = engine.eval('(= stack-x 0)');
+                            output.textContent = 'x=0? ' + (xeq0 ? 'YES' : 'NO');
+                            updateHP41CDisplay();
+                            return;
+
+                        // BEEP
+                        case 'beep':
+                            try {
+                                const ctx = new (window.AudioContext || window.webkitAudioContext)();
+                                const osc = ctx.createOscillator();
+                                const gain = ctx.createGain();
+                                osc.connect(gain); gain.connect(ctx.destination);
+                                osc.frequency.value = 2000; osc.type = 'square'; gain.gain.value = 0.1;
+                                osc.start(); setTimeout(() => osc.stop(), 100);
+                            } catch(e) {}
+                            logCalcHistory('BEEP');
+                            output.textContent = 'BEEP!';
+                            return;
+
+                        // View
+                        case 'view':
+                            const viewX = formatNumber(engine.eval('stack-x'));
+                            output.textContent = 'X = ' + viewX;
+                            logCalcHistory('VIEW: ' + viewX);
+                            return;
+
+                        // Reset
+                        case 'on':
+                            lispExpr = hp41.lisp_clear_stack();
+                            logCalcHistory('ON: ' + lispExpr);
+                            hp41cInputBuffer = '';
+                            hp41cEntryMode = false;
+                            if (hp41Transpiler) {
+                                hp41Transpiler.reset();
+                            }
+                            output.textContent = 'Calculator ON';
+                            break;
+
+                        // PRGM mode toggle
+                        case 'prgm':
+                            if (!hp41Transpiler) {
+                                // Load program from editor if transpiler not initialized
+                                if (window.wasmBindings && window.wasmBindings.HP41Transpiler) {
+                                    hp41Transpiler = new window.wasmBindings.HP41Transpiler();
+                                    const code = document.getElementById('hp41ProgramCode').value;
+                                    if (code.trim()) {
+                                        hp41Transpiler.parse(code);
+                                    }
+                                }
+                            }
+                            if (hp41Transpiler) {
+                                const isPrgm = hp41Transpiler.toggle_prgm_mode();
+                                const prgmBtn = document.getElementById('prgmBtn');
+                                if (prgmBtn) {
+                                    prgmBtn.style.background = isPrgm ? '#ff8800' : '';
+                                    prgmBtn.style.color = isPrgm ? '#000' : '';
+                                }
+                                if (isPrgm) {
+                                    output.textContent = 'PRGM MODE - SST to step';
+                                    logCalcHistory('PRGM mode ON');
+                                } else {
+                                    output.textContent = 'Run mode';
+                                    logCalcHistory('PRGM mode OFF');
+                                }
+                            }
+                            break;
+
+                        // SST - Single Step
+                        case 'sst':
+                            if (hp41Transpiler && hp41Transpiler.instruction_count() > 0) {
+                                const instrDisplay = hp41Transpiler.get_current_instruction_display();
+                                const lisp = hp41Transpiler.sst();
+                                if (lisp && lisp.length > 0) {
+                                    // Execute the LISP for this instruction
+                                    try {
+                                        engine.eval(lisp);
+                                    } catch (e) {
+                                        console.log('SST LISP error:', e);
+                                    }
+                                }
+                                logCalcHistory('SST: ' + instrDisplay + ' → ' + lisp);
+                                output.textContent = instrDisplay;
+                            } else {
+                                output.textContent = 'No program - load in Program tab';
+                            }
+                            break;
+
+                        // BST - Back Step
+                        case 'bst':
+                            if (hp41Transpiler && hp41Transpiler.instruction_count() > 0) {
+                                hp41Transpiler.bst();
+                                const instrDisplay = hp41Transpiler.get_current_instruction_display();
+                                logCalcHistory('BST: ' + instrDisplay);
+                                output.textContent = instrDisplay;
+                            } else {
+                                output.textContent = 'No program';
+                            }
+                            break;
+
+                        // Not implemented
                         default:
-                            output.textContent = `Key "${actualKey}" not implemented`;
+                            output.textContent = actualKey.toUpperCase() + ': Not implemented';
                             return;
                     }
 
-                    // Clear shift after use (single-shot)
-                    if (hp41cShiftMode && actualKey !== key) {
-                        toggleShift();
-                    }
-
+                    // Execute the LISP expression
                     if (lispExpr) {
                         engine.eval(lispExpr);
                     }
-                    updateHP41CDisplay();
 
+                    updateHP41CDisplay();
                 } catch (e) {
                     output.textContent = 'Error: ' + e.message;
-                    logCalcHistory('ERROR: ' + e.message);
+                    console.error('HP41 error:', e);
                 }
-            }
-
-            // Map shifted keys to their alternate functions (gold labels)
-            function getShiftedKey(key) {
-                const shiftMap = {
-                    // Row 1 - function keys
-                    'sigma+': 'sigma-',
-                    '1/x': 'yx',
-                    'sqrt': 'x2',
-                    'log': '10x',
-                    'ln': 'ex',
-                    // Row 2 - more functions
-                    'xchg': 'clsigma',
-                    'roll': 'percent',
-                    'sin': 'asin',
-                    'cos': 'acos',
-                    'tan': 'atan',
-                    // Row 4 - enter row
-                    'enter': 'catalog',
-                    'chs': 'isg',
-                    'eex': 'rtn',
-                    'bsp': 'clxa',
-                    // Operators with comparison functions (blue labels)
-                    'sub': 'xeqy',      // − → x=y?
-                    'add': 'xley',      // + → x≤y?
-                    'mul': 'xgty',      // × → x>y?
-                    'mul2': 'xgty',     // × → x>y?
-                    'div': 'xlt0',      // ÷ → x<0?
-                    'div2': 'xeq0',     // ÷ → x=0?
-                    // Number keys with shifted functions
-                    '0': 'pi',
-                    '.': 'lastx',
-                    '7': 'sf',
-                    '8': 'cf',
-                    '9': 'fsq',
-                    '4': 'beep',
-                    '5': 'p2r',
-                    '6': 'r2p',
-                    '1': 'fix',
-                    '2': 'sci',
-                    '3': 'eng'
-                };
-                return shiftMap[key] || key;
             }
 
             function updateHP41CDisplay() {
                 try {
+                    // Check if in PRGM mode - show instruction instead of stack
+                    if (hp41Transpiler && hp41Transpiler.is_prgm_mode()) {
+                        const instrDisplay = hp41Transpiler.get_current_instruction_display();
+                        drawHP41CLCD(instrDisplay);
+
+                        // Show program context in stack view
+                        const pc = hp41Transpiler.get_pc();
+                        document.getElementById('stackT').textContent = 'PC: ' + (pc + 1);
+                        document.getElementById('stackZ').textContent = hp41Transpiler.get_instruction_at(pc > 0 ? pc - 1 : 0);
+                        document.getElementById('stackY').textContent = '>' + hp41Transpiler.get_instruction_at(pc).substring(1);
+                        return;
+                    }
+
                     // Get stack values from LISP
                     const x = hp41cEntryMode && hp41cInputBuffer
                         ? hp41cInputBuffer
-                        : engine.eval('(get-x)');
-                    const y = engine.eval('(get-y)');
-                    const z = engine.eval('(get-z)');
-                    const t = engine.eval('(get-t)');
+                        : formatNumber(engine.eval('stack-x'));
+                    const y = formatNumber(engine.eval('stack-y'));
+                    const z = formatNumber(engine.eval('stack-z'));
+                    const t = formatNumber(engine.eval('stack-t'));
 
                     // Update stack view
-                    document.getElementById('stackT').textContent = 'T: ' + formatNumber(t);
-                    document.getElementById('stackZ').textContent = 'Z: ' + formatNumber(z);
-                    document.getElementById('stackY').textContent = 'Y: ' + formatNumber(y);
+                    document.getElementById('stackT').textContent = 'T: ' + t;
+                    document.getElementById('stackZ').textContent = 'Z: ' + z;
+                    document.getElementById('stackY').textContent = 'Y: ' + y;
 
-                    // Draw LCD display and get the LISP code
-                    const lispDrawCode = drawHP41CLCD(hp41cEntryMode ? hp41cInputBuffer : x);
-
-                    // Log the LCD drawing code
-                    if (lispDrawCode) {
-                        logCalcLispCode(lispDrawCode);
-                    }
-
+                    // Draw LCD display
+                    const displayStr = hp41cEntryMode && hp41cInputBuffer ? hp41cInputBuffer : x;
+                    drawHP41CLCD(displayStr);
                 } catch (e) {
                     console.error('Display update error:', e);
                 }
             }
 
-            function logCalcLispCode(code) {
-                const history = document.getElementById('calcHistory');
-                // Update or create the LCD drawing section
-                let lcdSection = document.getElementById('lcdLispCode');
-                if (!lcdSection) {
-                    lcdSection = document.createElement('div');
-                    lcdSection.id = 'lcdLispCode';
-                    lcdSection.style.cssText = 'background:#0f0f1a; border:1px solid #333; padding:8px; margin-top:10px; border-radius:4px;';
-                    history.parentNode.insertBefore(lcdSection, history);
-                }
-                lcdSection.innerHTML = `<div style="color:#ff8800; font-size:10px; margin-bottom:5px;">LCD Drawing (LISP Templates):</div><pre style="color:#00ff88; font-size:9px; margin:0; white-space:pre-wrap;">${code}</pre>`;
-            }
+            // 14-segment character patterns from WASM
+            const HP41_CHARS = {
+                '0': [1,1,1,1,1,1,0,0,0,0,1,0,0,0],
+                '1': [0,1,1,0,0,0,0,0,0,0,0,0,0,0],
+                '2': [1,1,0,1,1,0,1,1,0,0,0,0,0,0],
+                '3': [1,1,1,1,0,0,1,1,0,0,0,0,0,0],
+                '4': [0,1,1,0,0,1,1,1,0,0,0,0,0,0],
+                '5': [1,0,1,1,0,1,1,1,0,0,0,0,0,0],
+                '6': [1,0,1,1,1,1,1,1,0,0,0,0,0,0],
+                '7': [1,1,1,0,0,0,0,0,0,0,0,0,0,0],
+                '8': [1,1,1,1,1,1,1,1,0,0,0,0,0,0],
+                '9': [1,1,1,1,0,1,1,1,0,0,0,0,0,0],
+                '-': [0,0,0,0,0,0,1,1,0,0,0,0,0,0],
+                '+': [0,0,0,0,0,0,1,1,0,1,0,0,1,0],
+                'E': [1,0,0,1,1,1,1,0,0,0,0,0,0,0],
+                ' ': [0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+                '.': [0,0,0,0,0,0,0,0,0,0,0,0,0,0]
+            };
 
-            function formatNumber(n) {
-                if (typeof n === 'string') return n;
-                const num = parseFloat(n);
-                if (isNaN(num)) return '0';
-                if (Math.abs(num) < 0.0000001 && num !== 0) return num.toExponential(4);
-                if (Math.abs(num) >= 10000000) return num.toExponential(4);
-                return num.toString().substring(0, 12);
-            }
-
-            // HP-41C LCD Drawing via LISP
-            // The digit templates are defined in LISP and we show the code!
-            function drawHP41CLCD(value) {
+            function drawHP41CLCD(displayStr) {
                 const canvas = document.getElementById('calcLcdCanvas');
                 if (!canvas) return;
                 const ctx = canvas.getContext('2d');
 
-                // Clear canvas - classic HP-41C LCD background
-                ctx.fillStyle = '#c8d4bc';
+                // Clear canvas - HP-41C LCD background
+                ctx.fillStyle = '#a8b890';
                 ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-                // Format the display value
-                let displayStr = formatNumber(value);
-                if (!displayStr.includes('.') && !displayStr.includes('e')) {
-                    displayStr += '.';
-                }
+                // Ensure we have a trailing decimal if none
+                let str = displayStr.toUpperCase();
+                if (!str.includes('.') && !str.includes('E')) str += '.';
 
-                // Build LISP code to draw the display
-                let lispCode = '; LCD Display Drawing\n';
+                // Character dimensions
+                const charWidth = 18;
+                const charHeight = 24;
+                const charSpacing = 24;
+                const maxChars = 12;
+                const startY = 4;
 
-                // Draw digits from left to right for display
-                const digitWidth = 18;
-                const digitHeight = 32;
-                const digitSpacing = 25;
-                const totalDigits = displayStr.replace(/\./g, '').length;
-                const startX = canvas.width - (totalDigits * digitSpacing) - 10;
-                const startY = 8;
+                // Calculate start position (right-aligned)
+                const charsWithoutDot = str.replace(/\./g, '').length;
+                const numChars = Math.min(charsWithoutDot, maxChars);
+                const startX = canvas.width - numChars * charSpacing - 8;
 
                 let xPos = startX;
-                for (let i = 0; i < displayStr.length; i++) {
-                    const ch = displayStr[i];
+                let charCount = 0;
+
+                for (let i = 0; i < str.length && charCount < maxChars; i++) {
+                    const ch = str[i];
 
                     if (ch === '.') {
                         // Draw decimal point
-                        ctx.fillStyle = '#1a1a1a';
+                        ctx.fillStyle = '#1a2a12';
                         ctx.beginPath();
-                        ctx.arc(xPos - 3, startY + digitHeight - 4, 3, 0, Math.PI * 2);
+                        ctx.arc(xPos - charSpacing/2 + 9, startY + charHeight - 3, 2.5, 0, Math.PI * 2);
                         ctx.fill();
-                        lispCode += `(lcd-dot ${Math.round(xPos - 3)} ${startY + digitHeight - 4})\n`;
                         continue;
                     }
 
-                    if (ch === '-') {
-                        drawLCDDigit(ctx, xPos, startY, digitWidth, digitHeight, '-');
-                        lispCode += `(lcd-minus ${Math.round(xPos)} ${startY})\n`;
-                    } else if (/[0-9]/.test(ch)) {
-                        drawLCDDigit(ctx, xPos, startY, digitWidth, digitHeight, parseInt(ch));
-                        lispCode += `(lcd-digit-${ch} ${Math.round(xPos)} ${startY})\n`;
-                    }
-                    xPos += digitSpacing;
-                }
-
-                // Show the LISP drawing code in the history
-                return lispCode;
-            }
-
-            function drawLCDDigit(ctx, x, y, w, h, digit) {
-                // Classic 7-segment patterns: [a,b,c,d,e,f,g]
-                // a=top, b=top-right, c=bottom-right, d=bottom, e=bottom-left, f=top-left, g=middle
-                const patterns = {
-                    0: [1,1,1,1,1,1,0],
-                    1: [0,1,1,0,0,0,0],
-                    2: [1,1,0,1,1,0,1],
-                    3: [1,1,1,1,0,0,1],
-                    4: [0,1,1,0,0,1,1],
-                    5: [1,0,1,1,0,1,1],
-                    6: [1,0,1,1,1,1,1],
-                    7: [1,1,1,0,0,0,0],
-                    8: [1,1,1,1,1,1,1],
-                    9: [1,1,1,1,0,1,1],
-                    '-': [0,0,0,0,0,0,1]
-                };
-
-                const pattern = patterns[digit] || patterns[8];
-                const segW = 3;  // segment thickness
-                const hh = h / 2;
-
-                // Draw each segment
-                const segments = [
-                    // a: top horizontal
-                    () => { ctx.fillRect(x + 4, y, w - 8, segW); },
-                    // b: top-right vertical
-                    () => { ctx.fillRect(x + w - segW - 1, y + 3, segW, hh - 5); },
-                    // c: bottom-right vertical
-                    () => { ctx.fillRect(x + w - segW - 1, y + hh + 2, segW, hh - 5); },
-                    // d: bottom horizontal
-                    () => { ctx.fillRect(x + 4, y + h - segW, w - 8, segW); },
-                    // e: bottom-left vertical
-                    () => { ctx.fillRect(x + 1, y + hh + 2, segW, hh - 5); },
-                    // f: top-left vertical
-                    () => { ctx.fillRect(x + 1, y + 3, segW, hh - 5); },
-                    // g: middle horizontal
-                    () => { ctx.fillRect(x + 4, y + hh - 1, w - 8, segW); }
-                ];
-
-                for (let i = 0; i < 7; i++) {
-                    ctx.fillStyle = pattern[i] ? '#1a1a1a' : '#b8c4ac';
-                    segments[i]();
+                    draw14Segment(ctx, xPos, startY, charWidth, charHeight, ch);
+                    xPos += charSpacing;
+                    charCount++;
                 }
             }
+
+            function draw14Segment(ctx, x, y, w, h, char) {
+                const pattern = HP41_CHARS[char] || HP41_CHARS[' '];
+                const onColor = '#1a2a12';
+                const sw = 2;
+                const hw = w / 2, hh = h / 2;
+                const cx = x + hw, cy = y + hh;
+                const gap = 1;
+
+                // Only draw segments that are ON
+                const drawSeg = (isOn, drawFn) => { if (isOn) { ctx.fillStyle = onColor; drawFn(); } };
+
+                drawSeg(pattern[0], () => ctx.fillRect(x + gap + 2, y, w - gap*2 - 4, sw));           // a: top
+                drawSeg(pattern[1], () => ctx.fillRect(x + w - sw - 1, y + gap + 1, sw, hh - gap*2 - 1)); // b: upper right
+                drawSeg(pattern[2], () => ctx.fillRect(x + w - sw - 1, cy + gap, sw, hh - gap*2 - 1));    // c: lower right
+                drawSeg(pattern[3], () => ctx.fillRect(x + gap + 2, y + h - sw, w - gap*2 - 4, sw));  // d: bottom
+                drawSeg(pattern[4], () => ctx.fillRect(x + 1, cy + gap, sw, hh - gap*2 - 1));         // e: lower left
+                drawSeg(pattern[5], () => ctx.fillRect(x + 1, y + gap + 1, sw, hh - gap*2 - 1));      // f: upper left
+                drawSeg(pattern[6], () => ctx.fillRect(x + gap + 2, cy - sw/2, hw - gap*2 - 2, sw));  // g1: mid left
+                drawSeg(pattern[7], () => ctx.fillRect(cx + gap, cy - sw/2, hw - gap*2 - 2, sw));     // g2: mid right
+                drawSeg(pattern[8], () => drawDiag(ctx, x + gap + 3, y + gap + 2, cx - gap - 1, cy - gap - 1, sw));  // h
+                drawSeg(pattern[9], () => ctx.fillRect(cx - sw/2, y + gap + 2, sw, hh - gap*2 - 2));  // i: upper mid
+                drawSeg(pattern[10], () => drawDiag(ctx, x + w - gap - 3, y + gap + 2, cx + gap + 1, cy - gap - 1, sw)); // j
+                drawSeg(pattern[11], () => drawDiag(ctx, x + gap + 3, y + h - gap - 2, cx - gap - 1, cy + gap + 1, sw)); // k
+                drawSeg(pattern[12], () => ctx.fillRect(cx - sw/2, cy + gap, sw, hh - gap*2 - 2));    // l: lower mid
+                drawSeg(pattern[13], () => drawDiag(ctx, x + w - gap - 3, y + h - gap - 2, cx + gap + 1, cy + gap + 1, sw)); // m
+            }
+
+            function drawDiag(ctx, x1, y1, x2, y2, thickness) {
+                ctx.save();
+                ctx.lineWidth = thickness;
+                ctx.lineCap = 'round';
+                ctx.strokeStyle = ctx.fillStyle;
+                ctx.beginPath();
+                ctx.moveTo(x1, y1);
+                ctx.lineTo(x2, y2);
+                ctx.stroke();
+                ctx.restore();
+            }
+
 
             function logCalcHistory(msg) {
                 const history = document.getElementById('calcHistory');
@@ -3914,6 +4231,18 @@
             // Load XLISP module
             async function loadXlisp() {
                 try {
+                    // Check if SharedArrayBuffer is available (requires COOP/COEP headers)
+                    const coopCoepAvailable = typeof SharedArrayBuffer !== 'undefined' && crossOriginIsolated;
+                    if (!coopCoepAvailable) {
+                        console.log('XLISP: SharedArrayBuffer not available (missing COOP/COEP headers)');
+                        console.log('  crossOriginIsolated:', crossOriginIsolated);
+                        console.log('  To enable: server must send Cross-Origin-Opener-Policy: same-origin');
+                        console.log('             and Cross-Origin-Embedder-Policy: require-corp');
+                        document.getElementById('xlispStatus').textContent = 'Needs COOP/COEP';
+                        document.getElementById('xlispPanel').title = 'XLISP requires Cross-Origin-Opener-Policy and Cross-Origin-Embedder-Policy headers. Works on acadlisp.de';
+                        return;
+                    }
+
                     // Dynamically import XLISP
                     const script = document.createElement('script');
                     script.src = 'xlisp.js';
@@ -3939,7 +4268,7 @@
                             document.getElementById('xlispStatus').textContent = 'Ready';
                             console.log('XLISP 3.3 engine initialized');
 
-                            // Try HTTP GET for version checking (requires COOP/COEP headers)
+                            // Try HTTP GET for version checking
                             try {
                                 const versionUrl = window.location.origin + '/version.txt';
                                 console.log('Checking remote version from:', versionUrl);
@@ -3955,7 +4284,7 @@
                                     }
                                 }
                             } catch (e) {
-                                console.log('Version check skipped (sync fetch requires COOP/COEP headers):', e.message);
+                                console.log('Version check skipped:', e.message);
                             }
                         } else {
                             document.getElementById('xlispStatus').textContent = 'Init failed';
@@ -3963,7 +4292,11 @@
                     }
                 } catch (e) {
                     console.log('XLISP not available:', e.message);
-                    document.getElementById('xlispStatus').textContent = 'Load failed';
+                    if (e.message.includes('SharedArrayBuffer') || e.message.includes('crossOriginIsolated')) {
+                        document.getElementById('xlispStatus').textContent = 'Needs COOP/COEP';
+                    } else {
+                        document.getElementById('xlispStatus').textContent = 'Load failed';
+                    }
                 }
             }
             loadXlisp();
