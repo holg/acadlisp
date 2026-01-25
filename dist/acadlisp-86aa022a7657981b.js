@@ -849,7 +849,6 @@ export class HP41Transpiler {
         wasm.__wbg_hp41transpiler_free(ptr, 0);
     }
     /**
-     * GTO label
      * @param {string} label
      * @returns {boolean}
      */
@@ -860,7 +859,6 @@ export class HP41Transpiler {
         return ret !== 0;
     }
     /**
-     * Is program running?
      * @returns {boolean}
      */
     is_running() {
@@ -868,15 +866,16 @@ export class HP41Transpiler {
         return ret !== 0;
     }
     /**
-     * Is in PRGM mode?
      * @returns {boolean}
      */
     is_prgm_mode() {
         const ret = wasm.hp41transpiler_is_prgm_mode(this.__wbg_ptr);
         return ret !== 0;
     }
+    op_roll_down() {
+        wasm.hp41transpiler_op_roll_down(this.__wbg_ptr);
+    }
     /**
-     * Get LISP code for current instruction (for SST execution)
      * @returns {string}
      */
     get_current_lisp() {
@@ -892,7 +891,6 @@ export class HP41Transpiler {
         }
     }
     /**
-     * Toggle PRGM mode
      * @returns {boolean}
      */
     toggle_prgm_mode() {
@@ -900,7 +898,6 @@ export class HP41Transpiler {
         return ret !== 0;
     }
     /**
-     * Get instruction count
      * @returns {number}
      */
     instruction_count() {
@@ -908,7 +905,6 @@ export class HP41Transpiler {
         return ret >>> 0;
     }
     /**
-     * Get instruction at specific line
      * @param {number} line
      * @returns {string}
      */
@@ -925,7 +921,6 @@ export class HP41Transpiler {
         }
     }
     /**
-     * Get all program lines for display
      * @returns {string}
      */
     get_program_listing() {
@@ -941,7 +936,6 @@ export class HP41Transpiler {
         }
     }
     /**
-     * Get instruction at current PC as display string (like HP-41C shows)
      * @returns {string}
      */
     get_current_instruction_display() {
@@ -956,9 +950,6 @@ export class HP41Transpiler {
             wasm.__wbindgen_free(deferred1_0, deferred1_1, 1);
         }
     }
-    /**
-     * BST - Back Step: move PC back one instruction
-     */
     bst() {
         wasm.hp41transpiler_bst(this.__wbg_ptr);
     }
@@ -968,15 +959,10 @@ export class HP41Transpiler {
         HP41TranspilerFinalization.register(this, this.__wbg_ptr, this);
         return this;
     }
-    /**
-     * Start running from current PC
-     */
     run() {
         wasm.hp41transpiler_run(this.__wbg_ptr);
     }
     /**
-     * SST - Single Step: execute current instruction and advance PC
-     * Returns: (lisp_code, next_pc, is_control_flow, target_label)
      * @returns {string}
      */
     sst() {
@@ -992,13 +978,52 @@ export class HP41Transpiler {
         }
     }
     /**
-     * Stop running
+     * @param {number} val
      */
+    push(val) {
+        wasm.hp41transpiler_push(this.__wbg_ptr, val);
+    }
     stop() {
         wasm.hp41transpiler_stop(this.__wbg_ptr);
     }
+    enter() {
+        wasm.hp41transpiler_enter(this.__wbg_ptr);
+    }
     /**
-     * Parse HP-41C program text
+     * @returns {number}
+     */
+    get_t() {
+        const ret = wasm.hp41transpiler_get_t(this.__wbg_ptr);
+        return ret;
+    }
+    /**
+     * @returns {number}
+     */
+    get_x() {
+        const ret = wasm.hp41transpiler_get_x(this.__wbg_ptr);
+        return ret;
+    }
+    /**
+     * @returns {number}
+     */
+    get_y() {
+        const ret = wasm.hp41transpiler_get_y(this.__wbg_ptr);
+        return ret;
+    }
+    /**
+     * @returns {number}
+     */
+    get_z() {
+        const ret = wasm.hp41transpiler_get_z(this.__wbg_ptr);
+        return ret;
+    }
+    op_ln() {
+        wasm.hp41transpiler_op_ln(this.__wbg_ptr);
+    }
+    op_pi() {
+        wasm.hp41transpiler_op_pi(this.__wbg_ptr);
+    }
+    /**
      * @param {string} input
      * @returns {string}
      */
@@ -1022,30 +1047,83 @@ export class HP41Transpiler {
             wasm.__wbindgen_free(deferred3_0, deferred3_1, 1);
         }
     }
-    /**
-     * Reset to beginning
-     */
     reset() {
         wasm.hp41transpiler_reset(this.__wbg_ptr);
     }
     /**
-     * Get current program counter
+     * @param {number} val
+     */
+    set_x(val) {
+        wasm.hp41transpiler_set_x(this.__wbg_ptr, val);
+    }
+    /**
      * @returns {number}
      */
     get_pc() {
         const ret = wasm.hp41transpiler_get_pc(this.__wbg_ptr);
         return ret >>> 0;
     }
+    op_add() {
+        wasm.hp41transpiler_op_add(this.__wbg_ptr);
+    }
+    op_chs() {
+        wasm.hp41transpiler_op_chs(this.__wbg_ptr);
+    }
+    op_clx() {
+        wasm.hp41transpiler_op_clx(this.__wbg_ptr);
+    }
+    op_cos() {
+        wasm.hp41transpiler_op_cos(this.__wbg_ptr);
+    }
+    op_div() {
+        wasm.hp41transpiler_op_div(this.__wbg_ptr);
+    }
+    op_exp() {
+        wasm.hp41transpiler_op_exp(this.__wbg_ptr);
+    }
+    op_inv() {
+        wasm.hp41transpiler_op_inv(this.__wbg_ptr);
+    }
+    op_log() {
+        wasm.hp41transpiler_op_log(this.__wbg_ptr);
+    }
+    op_mul() {
+        wasm.hp41transpiler_op_mul(this.__wbg_ptr);
+    }
+    op_pow() {
+        wasm.hp41transpiler_op_pow(this.__wbg_ptr);
+    }
+    op_sin() {
+        wasm.hp41transpiler_op_sin(this.__wbg_ptr);
+    }
+    op_sub() {
+        wasm.hp41transpiler_op_sub(this.__wbg_ptr);
+    }
+    op_tan() {
+        wasm.hp41transpiler_op_tan(this.__wbg_ptr);
+    }
     /**
-     * Set program counter
      * @param {number} pc
      */
     set_pc(pc) {
         wasm.hp41transpiler_goto_line(this.__wbg_ptr, pc);
     }
+    op_acos() {
+        wasm.hp41transpiler_op_acos(this.__wbg_ptr);
+    }
+    op_asin() {
+        wasm.hp41transpiler_op_asin(this.__wbg_ptr);
+    }
+    op_atan() {
+        wasm.hp41transpiler_op_atan(this.__wbg_ptr);
+    }
+    op_sqrt() {
+        wasm.hp41transpiler_op_sqrt(this.__wbg_ptr);
+    }
+    op_swap() {
+        wasm.hp41transpiler_op_swap(this.__wbg_ptr);
+    }
     /**
-     * Run all - collect all LISP to execute from current PC until RTN/END
-     * Returns a single string of LISP code that can be eval'd in one go
      * @param {number} max_steps
      * @returns {string}
      */
@@ -1062,7 +1140,6 @@ export class HP41Transpiler {
         }
     }
     /**
-     * Transpile to LISP
      * @returns {string}
      */
     to_lisp() {
@@ -1084,7 +1161,6 @@ export class HP41Transpiler {
         }
     }
     /**
-     * Get program name
      * @returns {string}
      */
     get_name() {
@@ -1099,12 +1175,30 @@ export class HP41Transpiler {
             wasm.__wbindgen_free(deferred1_0, deferred1_1, 1);
         }
     }
+    op_clear() {
+        wasm.hp41transpiler_op_clear(this.__wbg_ptr);
+    }
+    op_exp10() {
+        wasm.hp41transpiler_op_exp10(this.__wbg_ptr);
+    }
+    op_lastx() {
+        wasm.hp41transpiler_op_lastx(this.__wbg_ptr);
+    }
     /**
-     * GTO line number
+     * @returns {number}
+     */
+    get_lastx() {
+        const ret = wasm.hp41transpiler_get_lastx(this.__wbg_ptr);
+        return ret;
+    }
+    /**
      * @param {number} line
      */
     goto_line(line) {
         wasm.hp41transpiler_goto_line(this.__wbg_ptr, line);
+    }
+    op_square() {
+        wasm.hp41transpiler_op_square(this.__wbg_ptr);
     }
 }
 if (Symbol.dispose) HP41Transpiler.prototype[Symbol.dispose] = HP41Transpiler.prototype.free;

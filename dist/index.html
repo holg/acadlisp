@@ -137,10 +137,10 @@ async function __trunkInitializer(init, source, sourceSize, initializer, initWit
 }
 
 
-import init, * as bindings from './acadlisp-17883abc42d18c1d.js';
+import init, * as bindings from './acadlisp-86aa022a7657981b.js';
 import initializer from './c1fc701f3e76415e-initializer.js';
 
-const wasm = await __trunkInitializer(init, './acadlisp-17883abc42d18c1d_bg.wasm', 470949, initializer(), true);
+const wasm = await __trunkInitializer(init, './acadlisp-86aa022a7657981b_bg.wasm', 483942, initializer(), true);
 
 
 window.wasmBindings = bindings;
@@ -617,7 +617,7 @@ dispatchEvent(new CustomEvent("TrunkApplicationStarted", {detail: {wasm}}));
             border-radius: 2px;
         }
     </style>
-<link rel="modulepreload" href="./acadlisp-17883abc42d18c1d.js" crossorigin="anonymous" integrity="sha384-OG7Bk/yoSN3jbIUBnDuRISEbm4HJ79zThBuXyBr2WOZRVorHZPGOu1a9GMPKED01"><link rel="modulepreload" href="./c1fc701f3e76415e-initializer.js" crossorigin="anonymous" integrity="sha384-/winELV7hB5ZHfbaWp9tuCFKfD8vPL+HquEbkNpmxJmkdKQ+5MVkuDOJHotsSYYh"><link rel="preload" href="./acadlisp-17883abc42d18c1d_bg.wasm" crossorigin="anonymous" integrity="sha384-wVql1DujBgObFdj/cVsFTAl3qEnhqUe/bsejk7YmUFYHtgYnhDnWJH1noiN8KW/C" as="fetch" type="application/wasm"></head>
+<link rel="modulepreload" href="./acadlisp-86aa022a7657981b.js" crossorigin="anonymous" integrity="sha384-YV1bcuqruxW0dSPLtPpxbE7Dl83e89mRqnqceGXnBSwV0ZLh4nFDPa5Kfn+NrmBq"><link rel="modulepreload" href="./c1fc701f3e76415e-initializer.js" crossorigin="anonymous" integrity="sha384-/winELV7hB5ZHfbaWp9tuCFKfD8vPL+HquEbkNpmxJmkdKQ+5MVkuDOJHotsSYYh"><link rel="preload" href="./acadlisp-86aa022a7657981b_bg.wasm" crossorigin="anonymous" integrity="sha384-cWCvK13sh8J60mfNfqkHsL+EEue75RYPB2kmcIbh+ai5Pp8e58/oVA+VmtNY2qXw" as="fetch" type="application/wasm"></head>
 <body>
     <!-- SLIDE 1: Title -->
     <div class="slide active center" id="slide1">
@@ -1121,15 +1121,13 @@ RTN</textarea>
                         <canvas id="calcLcdCanvas" width="320" height="32" class="hp41-lcd" style="width:100%;"></canvas>
                     </div>
 
-                    <!-- Top: ON/USER ... SST/BST/PRGM/ALPHA -->
+                    <!-- Top: ON/USER ... PRGM/ALPHA -->
                     <div class="hp41-top-controls">
                         <div class="hp41-btn-group">
                             <button class="hp41-small-btn" data-key="on">ON</button>
                             <button class="hp41-small-btn" data-key="user">USER</button>
                         </div>
                         <div class="hp41-btn-group" style="gap:2px;">
-                            <button class="hp41-small-btn" data-key="sst" title="Single Step">SST</button>
-                            <button class="hp41-small-btn" data-key="bst" title="Back Step">BST</button>
                             <button class="hp41-small-btn" data-key="prgm" id="prgmBtn">PRGM</button>
                             <button class="hp41-small-btn alpha" data-key="alpha">ALPHA</button>
                         </div>
@@ -3164,6 +3162,9 @@ RTN</textarea>
             let hp41cEntryMode = false;
             // HP-41C Transpiler
             let hp41Transpiler = null;
+            // Program entry state
+            let programSteps = [];  // Array of instruction strings
+            let programPC = 0;      // Current program counter
 
             // Tab switching for calc code area
             window.switchCalcTab = function(tab) {
@@ -3287,10 +3288,15 @@ RTN`
                     if (!window.wasmBindings || !window.wasmBindings.HP41Calculator) {
                         throw new Error('HP41Calculator not found in WASM bindings');
                     }
-                    const { HP41Calculator } = window.wasmBindings;
+                    const { HP41Calculator, HP41Transpiler } = window.wasmBindings;
 
                     // Create WASM HP-41C calculator instance
                     hp41 = new HP41Calculator();
+
+                    // Create HP-41C Transpiler instance for PRGM mode
+                    if (HP41Transpiler) {
+                        hp41Transpiler = new HP41Transpiler();
+                    }
 
                     // Setup button handlers
                     setupHP41CButtons();
@@ -3581,8 +3587,79 @@ RTN`
                 'enter': 'catalog', 'chs': 'isg', 'eex': 'rtn', 'bsp': 'clxa',
                 'sub': 'xeqy', 'add': 'xley', 'mul': 'xgty', 'div': 'xeq0',
                 '0': 'pi', '.': 'lastx', '7': 'sf', '8': 'cf', '9': 'fsq',
-                '4': 'beep', '5': 'p2r', '6': 'r2p', '1': 'fix', '2': 'sci', '3': 'eng', 'rs': 'view'
+                '4': 'beep', '5': 'p2r', '6': 'r2p', '1': 'fix', '2': 'sci', '3': 'eng',
+                'rs': 'view', 'sst': 'bst',
+                'xeq': 'asn', 'sto': 'lbl', 'rcl': 'gto'
             };
+
+            // Execute a single program step using LISP engine
+            function executeStep(step) {
+                const s = step.toUpperCase().trim();
+                let lispExpr = '';
+
+                // Check if it's a number
+                if (/^-?[\d.]+([eE]-?\d+)?$/.test(s)) {
+                    lispExpr = hp41.lisp_push(parseFloat(s));
+                    engine.eval(lispExpr);
+                    return;
+                }
+
+                // Map instruction to LISP expression
+                switch (s) {
+                    case 'ENTER': case 'ENTER ^':
+                        lispExpr = hp41.lisp_enter();
+                        break;
+                    case '+': lispExpr = hp41.lisp_add(); break;
+                    case '-': lispExpr = hp41.lisp_subtract(); break;
+                    case '*': lispExpr = hp41.lisp_multiply(); break;
+                    case '/': lispExpr = hp41.lisp_divide(); break;
+                    case 'SQRT': lispExpr = hp41.lisp_sqrt(); break;
+                    case 'X^2': lispExpr = '(setq last-x stack-x) (setq stack-x (* stack-x stack-x))'; break;
+                    case '1/X': lispExpr = hp41.lisp_inv(); break;
+                    case 'Y^X': lispExpr = hp41.lisp_power(); break;
+                    case 'SIN': lispExpr = hp41.lisp_sin(); break;
+                    case 'COS': lispExpr = hp41.lisp_cos(); break;
+                    case 'TAN': lispExpr = hp41.lisp_tan(); break;
+                    case 'ASIN': lispExpr = '(setq last-x stack-x) (setq stack-x (asin stack-x))'; break;
+                    case 'ACOS': lispExpr = '(setq last-x stack-x) (setq stack-x (acos stack-x))'; break;
+                    case 'ATAN': lispExpr = '(setq last-x stack-x) (setq stack-x (atan stack-x))'; break;
+                    case 'LOG': lispExpr = hp41.lisp_log(); break;
+                    case 'LN': lispExpr = hp41.lisp_ln(); break;
+                    case '10^X': lispExpr = '(setq last-x stack-x) (setq stack-x (pow 10 stack-x))'; break;
+                    case 'E^X': lispExpr = '(setq last-x stack-x) (setq stack-x (exp stack-x))'; break;
+                    case 'PI': lispExpr = hp41.lisp_pi(); break;
+                    case 'LASTX': lispExpr = hp41.lisp_last_x(); break;
+                    case 'X<>Y': lispExpr = hp41.lisp_swap(); break;
+                    case 'R↓': case 'R_DOWN': lispExpr = hp41.lisp_roll_down(); break;
+                    case 'CHS': lispExpr = hp41.lisp_chs(); break;
+                    case 'CLX': lispExpr = hp41.lisp_clear_x(); break;
+                    case 'CLA': lispExpr = hp41.lisp_clear_x(); break;
+                    default:
+                        console.log('Unknown instruction:', s);
+                        return;
+                }
+
+                if (lispExpr) {
+                    engine.eval(lispExpr);
+                }
+            }
+
+            // Map key to HP-41C instruction string
+            function keyToInstruction(key, shifted) {
+                const map = {
+                    'add': '+', 'sub': '-', 'mul': '*', 'div': '/',
+                    'sqrt': 'SQRT', 'x2': 'X^2', '1/x': '1/X', 'yx': 'Y^X',
+                    'sin': 'SIN', 'cos': 'COS', 'tan': 'TAN',
+                    'asin': 'ASIN', 'acos': 'ACOS', 'atan': 'ATAN',
+                    'log': 'LOG', 'ln': 'LN', '10x': '10^X', 'ex': 'E^X',
+                    'pi': 'PI', 'lastx': 'LASTX',
+                    'xchg': 'X<>Y', 'roll': 'R↓',
+                    'enter': 'ENTER', 'chs': 'CHS',
+                    'clx': 'CLX', 'clxa': 'CLA',
+                    'sigma+': 'Σ+', 'sigma-': 'Σ-'
+                };
+                return map[key] || key.toUpperCase();
+            }
 
             // Format number for display
             function formatNumber(val) {
@@ -3609,7 +3686,7 @@ RTN`
                 try {
                     let lispExpr = '';
 
-                    // Handle shift key
+                    // Handle shift key (always works)
                     if (key === 'shift') {
                         toggleShift();
                         return;
@@ -3620,6 +3697,117 @@ RTN`
                         toggleAlpha();
                         return;
                     }
+
+                    // Handle PRGM toggle (always works)
+                    if (key === 'prgm') {
+                        if (!hp41Transpiler) {
+                            output.textContent = 'Transpiler not loaded';
+                            return;
+                        }
+                        const isPrgm = hp41Transpiler.toggle_prgm_mode();
+                        const prgmBtn = document.getElementById('prgmBtn');
+                        if (prgmBtn) {
+                            prgmBtn.style.background = isPrgm ? '#ff8800' : '';
+                            prgmBtn.style.color = isPrgm ? '#000' : '';
+                        }
+                        if (isPrgm) {
+                            output.textContent = 'PRGM MODE';
+                            logCalcHistory('PRGM mode ON');
+                        } else {
+                            output.textContent = 'RUN MODE';
+                            logCalcHistory('PRGM mode OFF');
+                            if (programSteps.length > 0) {
+                                logCalcHistory('Program: ' + programSteps.length + ' steps');
+                            }
+                        }
+                        updateHP41CDisplay();
+                        return;
+                    }
+
+                    // In PRGM mode: record instructions instead of executing
+                    if (hp41Transpiler && hp41Transpiler.is_prgm_mode()) {
+                        // Get actual key (shifted or not)
+                        const actualKey = hp41ShiftMode ? (HP41_SHIFT_MAP[key] || key) : key;
+                        const wasShifted = hp41ShiftMode;
+                        if (hp41ShiftMode) toggleShift();
+
+                        // Handle number entry in PRGM mode (only if NOT shifted)
+                        if (!wasShifted && /^[0-9]$/.test(key)) {
+                            hp41cInputBuffer += key;
+                            hp41cEntryMode = true;
+                            updateHP41CDisplay();
+                            return;
+                        }
+                        if (!wasShifted && key === '.' && !hp41cInputBuffer.includes('.')) {
+                            hp41cInputBuffer += hp41cInputBuffer ? '.' : '0.';
+                            hp41cEntryMode = true;
+                            updateHP41CDisplay();
+                            return;
+                        }
+
+                        // ENTER in PRGM mode: if we have a number, record it as instruction
+                        if (actualKey === 'enter' && hp41cInputBuffer) {
+                            programSteps.push(hp41cInputBuffer);
+                            programPC = programSteps.length;
+                            logCalcHistory(`${programPC.toString().padStart(2, '0')} ${hp41cInputBuffer}`);
+                            hp41cInputBuffer = '';
+                            hp41cEntryMode = false;
+                            updateHP41CDisplay();
+                            return;
+                        }
+
+                        // BSP in PRGM mode: delete last step
+                        if (actualKey === 'bsp') {
+                            if (hp41cInputBuffer) {
+                                hp41cInputBuffer = hp41cInputBuffer.slice(0, -1);
+                            } else if (programSteps.length > 0) {
+                                programSteps.pop();
+                                programPC = programSteps.length;
+                                logCalcHistory('Deleted step ' + (programPC + 1));
+                            }
+                            updateHP41CDisplay();
+                            return;
+                        }
+
+                        // SST in PRGM mode: step forward through program
+                        if (actualKey === 'sst') {
+                            if (programPC < programSteps.length) {
+                                programPC++;
+                            }
+                            updateHP41CDisplay();
+                            return;
+                        }
+
+                        // BST in PRGM mode: step backward through program
+                        if (actualKey === 'bst') {
+                            if (programPC > 0) {
+                                programPC--;
+                            }
+                            updateHP41CDisplay();
+                            return;
+                        }
+
+                        // Record the instruction
+                        const instr = keyToInstruction(actualKey, wasShifted);
+
+                        // If there's a pending number, record it first
+                        if (hp41cInputBuffer) {
+                            programSteps.push(hp41cInputBuffer);
+                            programPC++;
+                            logCalcHistory(`${programPC.toString().padStart(2, '0')} ${hp41cInputBuffer}`);
+                            hp41cInputBuffer = '';
+                            hp41cEntryMode = false;
+                        }
+
+                        programSteps.push(instr);
+                        programPC = programSteps.length;
+                        logCalcHistory(`${programPC.toString().padStart(2, '0')} ${instr}`);
+                        output.textContent = `${programPC.toString().padStart(2, '0')} ${instr}`;
+                        updateHP41CDisplay();
+                        return;
+                    }
+
+                    // Normal RUN mode below...
 
                     // Number keys
                     if (/^[0-9]$/.test(key) && !hp41ShiftMode) {
@@ -3888,70 +4076,69 @@ RTN`
                             logCalcHistory('ON: ' + lispExpr);
                             hp41cInputBuffer = '';
                             hp41cEntryMode = false;
+                            programPC = 0;
                             if (hp41Transpiler) {
                                 hp41Transpiler.reset();
                             }
                             output.textContent = 'Calculator ON';
                             break;
 
-                        // PRGM mode toggle
-                        case 'prgm':
-                            if (!hp41Transpiler) {
-                                // Load program from editor if transpiler not initialized
-                                if (window.wasmBindings && window.wasmBindings.HP41Transpiler) {
-                                    hp41Transpiler = new window.wasmBindings.HP41Transpiler();
-                                    const code = document.getElementById('hp41ProgramCode').value;
-                                    if (code.trim()) {
-                                        hp41Transpiler.parse(code);
-                                    }
-                                }
-                            }
-                            if (hp41Transpiler) {
-                                const isPrgm = hp41Transpiler.toggle_prgm_mode();
-                                const prgmBtn = document.getElementById('prgmBtn');
-                                if (prgmBtn) {
-                                    prgmBtn.style.background = isPrgm ? '#ff8800' : '';
-                                    prgmBtn.style.color = isPrgm ? '#000' : '';
-                                }
-                                if (isPrgm) {
-                                    output.textContent = 'PRGM MODE - SST to step';
-                                    logCalcHistory('PRGM mode ON');
-                                } else {
-                                    output.textContent = 'Run mode';
-                                    logCalcHistory('PRGM mode OFF');
-                                }
-                            }
-                            break;
-
-                        // SST - Single Step
-                        case 'sst':
-                            if (hp41Transpiler && hp41Transpiler.instruction_count() > 0) {
-                                const instrDisplay = hp41Transpiler.get_current_instruction_display();
-                                const lisp = hp41Transpiler.sst();
-                                if (lisp && lisp.length > 0) {
-                                    // Execute the LISP for this instruction
-                                    try {
-                                        engine.eval(lisp);
-                                    } catch (e) {
-                                        console.log('SST LISP error:', e);
-                                    }
-                                }
-                                logCalcHistory('SST: ' + instrDisplay + ' → ' + lisp);
-                                output.textContent = instrDisplay;
-                            } else {
-                                output.textContent = 'No program - load in Program tab';
-                            }
-                            break;
-
-                        // BST - Back Step
-                        case 'bst':
-                            if (hp41Transpiler && hp41Transpiler.instruction_count() > 0) {
-                                hp41Transpiler.bst();
-                                const instrDisplay = hp41Transpiler.get_current_instruction_display();
-                                logCalcHistory('BST: ' + instrDisplay);
-                                output.textContent = instrDisplay;
-                            } else {
+                        // R/S - Run/Stop program
+                        case 'rs':
+                            if (programSteps.length === 0) {
                                 output.textContent = 'No program';
+                                logCalcHistory('R/S: No program loaded');
+                                return;
+                            }
+                            try {
+                                output.textContent = 'Running...';
+                                logCalcHistory('R/S: Running program (' + programSteps.length + ' steps)');
+
+                                // Reset PC and execute each step directly on the HP41Calculator
+                                programPC = 0;
+                                for (let i = 0; i < programSteps.length; i++) {
+                                    const step = programSteps[i];
+                                    executeStep(step);
+                                    programPC++;
+                                }
+                                const resultX = formatNumber(engine.eval('stack-x'));
+                                output.textContent = 'Done. X = ' + resultX;
+                                logCalcHistory('Result: X = ' + resultX);
+                            } catch (e) {
+                                output.textContent = 'Error: ' + e.message;
+                                logCalcHistory('R/S Error: ' + e.message);
+                            }
+                            break;
+
+                        // SST in RUN mode - single step execution
+                        case 'sst':
+                            if (programSteps.length === 0) {
+                                output.textContent = 'No program';
+                                return;
+                            }
+                            try {
+                                if (programPC < programSteps.length) {
+                                    const instr = programSteps[programPC];
+                                    executeStep(instr);
+                                    output.textContent = (programPC + 1).toString().padStart(2, '0') + ' ' + instr;
+                                    logCalcHistory('SST: ' + instr + ' → X=' + formatNumber(engine.eval('stack-x')));
+                                    programPC++;
+                                } else {
+                                    output.textContent = 'End of program';
+                                    programPC = 0;  // Reset for next run
+                                }
+                            } catch (e) {
+                                output.textContent = 'SST Error: ' + e.message;
+                            }
+                            break;
+
+                        // BST in RUN mode - back step (just move PC back, don't execute)
+                        case 'bst':
+                            if (programSteps.length > 0 && programPC > 0) {
+                                programPC--;
+                                const instr = programSteps[programPC];
+                                output.textContent = (programPC + 1).toString().padStart(2, '0') + ' ' + instr;
+                                logCalcHistory('BST: PC=' + (programPC + 1));
                             }
                             break;
 
@@ -3977,18 +4164,34 @@ RTN`
                 try {
                     // Check if in PRGM mode - show instruction instead of stack
                     if (hp41Transpiler && hp41Transpiler.is_prgm_mode()) {
-                        const instrDisplay = hp41Transpiler.get_current_instruction_display();
-                        drawHP41CLCD(instrDisplay);
+                        // Show current program step at PC position
+                        let displayStr;
+                        if (hp41cEntryMode && hp41cInputBuffer) {
+                            // Entering a new value
+                            const stepNum = (programSteps.length + 1).toString().padStart(2, '0');
+                            displayStr = stepNum + ' ' + hp41cInputBuffer + '_';
+                        } else if (programPC < programSteps.length) {
+                            // Viewing existing step
+                            const stepNum = (programPC + 1).toString().padStart(2, '0');
+                            displayStr = stepNum + ' ' + programSteps[programPC];
+                        } else if (programSteps.length > 0) {
+                            // At end of program
+                            const stepNum = (programSteps.length + 1).toString().padStart(2, '0');
+                            displayStr = stepNum + ' .END.';
+                        } else {
+                            displayStr = '00 .END.';
+                        }
 
-                        // Show program context in stack view
-                        const pc = hp41Transpiler.get_pc();
-                        document.getElementById('stackT').textContent = 'PC: ' + (pc + 1);
-                        document.getElementById('stackZ').textContent = hp41Transpiler.get_instruction_at(pc > 0 ? pc - 1 : 0);
-                        document.getElementById('stackY').textContent = '>' + hp41Transpiler.get_instruction_at(pc).substring(1);
+                        drawHP41CLCD(displayStr);
+
+                        // Update stack view to show program info
+                        document.getElementById('stackT').textContent = 'PRGM';
+                        document.getElementById('stackZ').textContent = 'Steps: ' + programSteps.length;
+                        document.getElementById('stackY').textContent = 'PC: ' + (programPC + 1);
                         return;
                     }
 
-                    // Get stack values from LISP
+                    // Get stack values from LISP engine
                     const x = hp41cEntryMode && hp41cInputBuffer
                         ? hp41cInputBuffer
                         : formatNumber(engine.eval('stack-x'));
@@ -4009,7 +4212,7 @@ RTN`
                 }
             }
 
-            // 14-segment character patterns from WASM
+            // 14-segment character patterns (a,b,c,d,e,f,g1,g2,h,i,j,k,l,m)
             const HP41_CHARS = {
                 '0': [1,1,1,1,1,1,0,0,0,0,1,0,0,0],
                 '1': [0,1,1,0,0,0,0,0,0,0,0,0,0,0],
@@ -4021,9 +4224,42 @@ RTN`
                 '7': [1,1,1,0,0,0,0,0,0,0,0,0,0,0],
                 '8': [1,1,1,1,1,1,1,1,0,0,0,0,0,0],
                 '9': [1,1,1,1,0,1,1,1,0,0,0,0,0,0],
+                'A': [1,1,1,0,1,1,1,1,0,0,0,0,0,0],
+                'B': [1,1,1,1,0,0,0,1,0,1,0,0,1,0],
+                'C': [1,0,0,1,1,1,0,0,0,0,0,0,0,0],
+                'D': [1,1,1,1,0,0,0,0,0,1,0,0,1,0],
+                'E': [1,0,0,1,1,1,1,0,0,0,0,0,0,0],
+                'F': [1,0,0,0,1,1,1,0,0,0,0,0,0,0],
+                'G': [1,0,1,1,1,1,0,1,0,0,0,0,0,0],
+                'H': [0,1,1,0,1,1,1,1,0,0,0,0,0,0],
+                'I': [1,0,0,1,0,0,0,0,0,1,0,0,1,0],
+                'J': [0,1,1,1,1,0,0,0,0,0,0,0,0,0],
+                'K': [0,0,0,0,1,1,1,0,0,0,1,1,0,0],
+                'L': [0,0,0,1,1,1,0,0,0,0,0,0,0,0],
+                'M': [0,1,1,0,1,1,0,0,1,0,1,0,0,0],
+                'N': [0,1,1,0,1,1,0,0,1,0,0,1,0,0],
+                'O': [1,1,1,1,1,1,0,0,0,0,0,0,0,0],
+                'P': [1,1,0,0,1,1,1,1,0,0,0,0,0,0],
+                'Q': [1,1,1,1,1,1,0,0,0,0,0,1,0,0],
+                'R': [1,1,0,0,1,1,1,1,0,0,0,1,0,0],
+                'S': [1,0,1,1,0,1,1,1,0,0,0,0,0,0],
+                'T': [1,0,0,0,0,0,0,0,0,1,0,0,1,0],
+                'U': [0,1,1,1,1,1,0,0,0,0,0,0,0,0],
+                'V': [0,0,0,0,1,1,0,0,0,0,1,0,0,1],
+                'W': [0,1,1,0,1,1,0,0,0,0,0,1,0,1],
+                'X': [0,0,0,0,0,0,0,0,1,0,1,1,0,1],
+                'Y': [0,0,0,0,0,0,0,0,1,0,1,0,1,0],
+                'Z': [1,0,0,1,0,0,0,0,0,0,1,0,0,1],
                 '-': [0,0,0,0,0,0,1,1,0,0,0,0,0,0],
                 '+': [0,0,0,0,0,0,1,1,0,1,0,0,1,0],
-                'E': [1,0,0,1,1,1,1,0,0,0,0,0,0,0],
+                '*': [0,0,0,0,0,0,1,1,1,1,1,1,1,1],
+                '/': [0,0,0,0,0,0,0,0,0,0,1,0,0,1],
+                '^': [0,0,0,0,0,0,0,0,1,0,1,0,0,0],
+                '<': [0,0,0,0,0,0,0,0,0,0,1,1,0,0],
+                '>': [0,0,0,0,0,0,0,0,1,0,0,0,0,1],
+                '_': [0,0,0,1,0,0,0,0,0,0,0,0,0,0],
+                '↓': [0,0,0,0,0,0,0,0,0,0,0,1,1,1],
+                'Σ': [1,0,0,1,0,0,0,0,0,0,1,1,0,1],
                 ' ': [0,0,0,0,0,0,0,0,0,0,0,0,0,0],
                 '.': [0,0,0,0,0,0,0,0,0,0,0,0,0,0]
             };
@@ -4037,9 +4273,10 @@ RTN`
                 ctx.fillStyle = '#a8b890';
                 ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-                // Ensure we have a trailing decimal if none
                 let str = displayStr.toUpperCase();
-                if (!str.includes('.') && !str.includes('E')) str += '.';
+                // Only add trailing decimal for numbers (not in PRGM mode text)
+                const isNumeric = /^-?[\d.]+([eE]-?\d+)?$/.test(str.replace(/[._]/g, ''));
+                if (isNumeric && !str.includes('.') && !str.includes('E')) str += '.';
 
                 // Character dimensions
                 const charWidth = 18;
