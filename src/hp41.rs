@@ -729,7 +729,7 @@ impl HP41Stack {
     }
 
     /// Drop stack (after binary operation)
-    pub fn drop(&mut self) {
+    pub fn stack_drop(&mut self) {
         self.last_x = self.x;
         self.x = self.y;
         self.y = self.z;
@@ -799,7 +799,7 @@ impl HP41Stack {
 
     pub fn add(&mut self) {
         self.last_x = self.x;
-        self.x = self.y + self.x;
+        self.x += self.y;
         self.drop_no_lastx();
     }
 
@@ -811,7 +811,7 @@ impl HP41Stack {
 
     pub fn mul(&mut self) {
         self.last_x = self.x;
-        self.x = self.y * self.x;
+        self.x *= self.y;
         self.drop_no_lastx();
     }
 

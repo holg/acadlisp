@@ -10,6 +10,7 @@ use std::io::{BufRead, BufReader, Write};
 /// - RustLisp: AutoCAD-style, Y increases upward, large coordinates (0-1000+)
 /// - KiCad: Electronic symbol style, Y increases upward but centered at origin, small coords (-50 to 50)
 #[derive(Debug, Clone, Copy, PartialEq, Default)]
+#[allow(dead_code)]
 pub enum CadType {
     #[default]
     RustLisp,

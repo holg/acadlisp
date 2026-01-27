@@ -886,8 +886,8 @@ pub fn extract_key_from_png(png_data: &[u8]) -> Option<String> {
 
     // Read length (first 16 bits = 2 bytes, big-endian)
     let mut length: usize = 0;
-    for i in 0..16 {
-        length = (length << 1) | (bits[i] as usize);
+    for bit in bits.iter().take(16) {
+        length = (length << 1) | (*bit as usize);
     }
 
     if length == 0 || length > 256 || bits.len() < 16 + length * 8 {
@@ -3307,6 +3307,12 @@ pub struct HP41Calculator {
     input_buffer: String,
 }
 
+impl Default for HP41Calculator {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 #[wasm_bindgen]
 impl HP41Calculator {
     #[wasm_bindgen(constructor)]
@@ -3340,7 +3346,7 @@ impl HP41Calculator {
     }
 
     #[wasm_bindgen]
-    pub fn drop(&mut self) {
+    pub fn stack_drop(&mut self) {
         self.last_x = self.stack_x;
         self.stack_x = self.stack_y;
         self.stack_y = self.stack_z;
