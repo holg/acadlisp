@@ -18,11 +18,11 @@ name = "acadlisp-cli"
 path = "src/main.rs"
 
 [dependencies]
-wasm-bindgen = "0.2"
+wasm-bindgen = "0.2.114"
 flate2 = "1.0"
 
 [dependencies.web-sys]
-version = "0.3"
+version = "0.3.91"
 features = ["console", "Window", "Performance"]
 
 [profile.release]

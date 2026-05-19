@@ -21,7 +21,7 @@ mod kicad_tests;
 pub mod lexer;
 pub mod parser;
 
-pub use interpreter::{CadType, DrawEntity, DrawingState, Interpreter};
+pub use interpreter::{CadType, DrawEntity, DrawingState, ForeignContext, ForeignFn, Interpreter};
 pub use parser::Expr;
 
 // Only use fs, Path, and HashMap for non-WASM builds

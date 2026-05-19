@@ -5,6 +5,23 @@ use crate::parser::Expr;
 use std::collections::HashMap;
 use std::fs::File;
 use std::io::{BufRead, BufReader, Write};
+use std::sync::Arc;
+
+/// Context passed to foreign (extension) functions.
+///
+/// This avoids borrow conflicts with the Interpreter by only exposing
+/// the mutable fields that extensions typically need.
+pub struct ForeignContext<'a> {
+    pub output: &'a mut Vec<String>,
+    pub globals: &'a mut HashMap<String, Expr>,
+    pub drawing: &'a mut DrawingState,
+    /// Opaque user data set by the embedding application.
+    /// Downcast to your application-specific state type.
+    pub user_data: &'a mut dyn std::any::Any,
+}
+
+/// Type alias for foreign function closures.
+pub type ForeignFn = Arc<dyn Fn(&mut ForeignContext, &[Expr]) -> Expr + Send + Sync>;
 
 /// CAD type determines coordinate system and rendering behavior
 /// - RustLisp: AutoCAD-style, Y increases upward, large coordinates (0-1000+)
@@ -163,6 +180,10 @@ pub struct Interpreter {
     pub command_log: Vec<String>,
     // Output buffer for PRINC/PRINT
     pub output: Vec<String>,
+    // Foreign (extension) functions registered by embedding applications
+    pub foreign_fns: HashMap<String, ForeignFn>,
+    // Opaque user data for embedding applications
+    pub user_data: Box<dyn std::any::Any + Send>,
 }
 
 impl Interpreter {
@@ -176,7 +197,19 @@ impl Interpreter {
             drawing: DrawingState::new(),
             command_log: Vec::new(),
             output: Vec::new(),
+            foreign_fns: HashMap::new(),
+            user_data: Box::new(()),
         }
+    }
+
+    /// Register an external function callable from Lisp code.
+    /// The name is uppercased to match AutoLISP convention.
+    pub fn register_fn<F>(&mut self, name: &str, f: F)
+    where
+        F: Fn(&mut ForeignContext, &[Expr]) -> Expr + Send + Sync + 'static,
+    {
+        self.foreign_fns
+            .insert(name.to_uppercase(), Arc::new(f));
     }
 
     fn get_var(&self, name: &str) -> Expr {
@@ -257,6 +290,17 @@ impl Interpreter {
         // Check for user-defined function
         if let Some(func) = self.functions.get(func_name).cloned() {
             return self.call_user_function(&func, &evaled_args);
+        }
+
+        // Check for foreign (extension) functions
+        if let Some(f) = self.foreign_fns.get(func_name).cloned() {
+            let mut ctx = ForeignContext {
+                output: &mut self.output,
+                globals: &mut self.globals,
+                drawing: &mut self.drawing,
+                user_data: self.user_data.as_mut(),
+            };
+            return f(&mut ctx, &evaled_args);
         }
 
         // Built-in functions
