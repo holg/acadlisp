@@ -137,10 +137,10 @@ async function __trunkInitializer(init, source, sourceSize, initializer, initWit
 }
 
 
-import init, * as bindings from './acadlisp-9a16d4dc63f43ad2.js';
+import init, * as bindings from './acadlisp-86aa022a7657981b.js';
 import initializer from './c1fc701f3e76415e-initializer.js';
 
-const wasm = await __trunkInitializer(init, './acadlisp-9a16d4dc63f43ad2_bg.wasm', 294241, initializer(), true);
+const wasm = await __trunkInitializer(init, './acadlisp-86aa022a7657981b_bg.wasm', 483942, initializer(), true);
 
 
 window.wasmBindings = bindings;
@@ -149,6 +149,7 @@ window.wasmBindings = bindings;
 dispatchEvent(new CustomEvent("TrunkApplicationStarted", {detail: {wasm}}));
 
 </script>
+    
     
     
     
@@ -206,6 +207,7 @@ dispatchEvent(new CustomEvent("TrunkApplicationStarted", {detail: {wasm}}));
         }
         .nav button:hover { background: #00ff88; color: #000; }
         .nav .counter { color: #666; padding: 10px; }
+        .nav.collapsed { display: none; }
 
         /* Mobile Responsive */
         @media (max-width: 768px) {
@@ -272,8 +274,16 @@ dispatchEvent(new CustomEvent("TrunkApplicationStarted", {detail: {wasm}}));
             button#runBenchmark,
             button#runCode,
             button#plotFunction,
-            button#generateCSV {
+            button#generateCSV,
+            button#runLisp {
                 margin-bottom: 15px !important;
+            }
+            /* Export buttons container - ensure visible above nav */
+            #slide15 > div > div:nth-child(2) > div:last-child {
+                position: sticky !important;
+                bottom: 110px !important;
+                z-index: 200 !important;
+                margin-bottom: 120px !important;
             }
             /* SVG/Canvas drawing areas */
             .demo-right svg,
@@ -421,8 +431,193 @@ dispatchEvent(new CustomEvent("TrunkApplicationStarted", {detail: {wasm}}));
             max-height: 100%;
         }
         .stats { color: #666; font-size: 11px; padding: 10px; border-top: 1px solid #333; }
+
+        /* HP-41CX Calculator Styles - Authentic Look */
+        .hp41-body {
+            background: linear-gradient(180deg, #1a1816 0%, #0f0e0d 50%, #1a1816 100%);
+            border-radius: 8px 8px 16px 16px;
+            padding: 14px 10px 18px 10px;
+            box-shadow:
+                0 8px 30px rgba(0,0,0,0.7),
+                inset 0 1px 0 rgba(255,255,255,0.05);
+            width: 290px;
+            position: relative;
+        }
+
+        /* LCD */
+        .hp41-lcd-bezel {
+            background: #0a0908;
+            border-radius: 4px;
+            padding: 8px 10px;
+            margin-bottom: 8px;
+        }
+
+        .hp41-lcd {
+            background: linear-gradient(180deg, #b8c9a0 0%, #9ab888 100%);
+            border-radius: 2px;
+            height: 32px;
+            box-shadow: inset 0 1px 3px rgba(0,0,0,0.3);
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            padding: 0 8px;
+            font-family: 'Courier New', monospace;
+            font-size: 18px;
+            color: #1a2a12;
+            letter-spacing: 1px;
+        }
+
+        /* Top controls: ON/USER and PRGM/ALPHA grouped */
+        .hp41-top-controls {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            padding: 0 4px;
+        }
+
+        .hp41-btn-group {
+            display: flex;
+            gap: 2px;
+        }
+
+        .hp41-small-btn {
+            background: linear-gradient(180deg, #2a2826 0%, #1a1816 100%);
+            border: none;
+            border-radius: 2px;
+            color: #999;
+            font-size: 7px;
+            font-weight: 600;
+            padding: 3px 8px;
+            cursor: pointer;
+            box-shadow: 0 2px 0 #0a0908;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .hp41-small-btn:active {
+            transform: translateY(1px);
+            box-shadow: 0 1px 0 #0a0908;
+        }
+
+        .hp41-small-btn.alpha {
+            color: #5ba3d0;
+        }
+
+        /* Row group */
+        .hp41-row-group {
+            margin-bottom: 1px;
+        }
+
+        /* Gold labels on body */
+        .hp41-gold-labels {
+            display: grid;
+            gap: 3px;
+            margin-bottom: 1px;
+            padding: 0 2px;
+        }
+
+        .hp41-gold-labels.cols-5 { grid-template-columns: repeat(5, 1fr); }
+        .hp41-gold-labels.cols-4 { grid-template-columns: repeat(4, 1fr); gap: 8px; }
+        .hp41-gold-labels.enter-row { grid-template-columns: 2fr 1fr 1fr 1fr; gap: 3px; }
+
+        .hp41-gold-label {
+            color: #c9a030;
+            font-size: 6px;
+            font-weight: 600;
+            text-align: center;
+            height: 9px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* Button rows */
+        .hp41-btn-row {
+            display: grid;
+            gap: 3px;
+        }
+
+        .hp41-btn-row.cols-5 { grid-template-columns: repeat(5, 1fr); }
+        .hp41-btn-row.cols-4 { grid-template-columns: repeat(4, 1fr); gap: 8px; }
+        .hp41-btn-row.enter-row { grid-template-columns: 2fr 1fr 1fr 1fr; gap: 3px; }
+
+        /* Standard button */
+        .hp41-btn {
+            background: linear-gradient(180deg, #252220 0%, #151310 100%);
+            border: none;
+            border-radius: 3px;
+            color: #fff;
+            font-size: 9px;
+            font-weight: 500;
+            padding: 4px 1px 3px 1px;
+            cursor: pointer;
+            box-shadow:
+                0 2px 0 #080706,
+                inset 0 1px 0 rgba(255,255,255,0.08);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 28px;
+            gap: 1px;
+        }
+
+        .hp41-btn:active {
+            transform: translateY(1px);
+            box-shadow: 0 1px 0 #080706;
+        }
+
+        /* Taller buttons for bottom rows */
+        .hp41-btn.tall {
+            min-height: 38px;
+            padding: 5px 1px 4px 1px;
+        }
+
+        /* Orange shift */
+        .hp41-btn.shift {
+            background: linear-gradient(180deg, #d4842a 0%, #b86a18 100%);
+            box-shadow: 0 2px 0 #6a3a0c, inset 0 1px 0 rgba(255,255,255,0.2);
+        }
+
+        /* Labels */
+        .label-main {
+            font-size: 10px;
+            color: #fff;
+            font-weight: 500;
+        }
+
+        .label-alpha {
+            color: #5ba3d0;
+            font-size: 7px;
+            font-weight: 600;
+        }
+
+        /* Bottom number section separator */
+        .section-gap {
+            height: 6px;
+        }
+
+        /* Stack display */
+        .hp41-stack {
+            color: #444;
+            font-size: 7px;
+            margin-top: 6px;
+            padding: 3px 5px;
+            background: #080706;
+            border-radius: 2px;
+            font-family: 'Monaco', 'Consolas', monospace;
+        }
+
+        .hp41-stack .x-reg { color: #00cc66; }
+
+
+        #calcLcdCanvas {
+            image-rendering: pixelated;
+            image-rendering: crisp-edges;
+            border-radius: 2px;
+        }
     </style>
-<link rel="modulepreload" href="./acadlisp-9a16d4dc63f43ad2.js" crossorigin="anonymous" integrity="sha384-echXT3LkqWtjzPT1Q0rrA1zpYcD13WgyF3+B+gBAceDOq3K6dzqRjyOSvnx46wj5"><link rel="modulepreload" href="./c1fc701f3e76415e-initializer.js" crossorigin="anonymous" integrity="sha384-/winELV7hB5ZHfbaWp9tuCFKfD8vPL+HquEbkNpmxJmkdKQ+5MVkuDOJHotsSYYh"><link rel="preload" href="./acadlisp-9a16d4dc63f43ad2_bg.wasm" crossorigin="anonymous" integrity="sha384-esAd0Spc2ypo4TjQhzI8OD1oqfrMoBB2et9/LJ7nSf7Rg6OZK3H/lIwZX3IZ7tTC" as="fetch" type="application/wasm"></head>
+<link rel="modulepreload" href="./acadlisp-86aa022a7657981b.js" crossorigin="anonymous" integrity="sha384-YV1bcuqruxW0dSPLtPpxbE7Dl83e89mRqnqceGXnBSwV0ZLh4nFDPa5Kfn+NrmBq"><link rel="modulepreload" href="./c1fc701f3e76415e-initializer.js" crossorigin="anonymous" integrity="sha384-/winELV7hB5ZHfbaWp9tuCFKfD8vPL+HquEbkNpmxJmkdKQ+5MVkuDOJHotsSYYh"><link rel="preload" href="./acadlisp-86aa022a7657981b_bg.wasm" crossorigin="anonymous" integrity="sha384-cWCvK13sh8J60mfNfqkHsL+EEue75RYPB2kmcIbh+ai5Pp8e58/oVA+VmtNY2qXw" as="fetch" type="application/wasm"></head>
 <body>
     <!-- SLIDE 1: Title -->
     <div class="slide active center" id="slide1">
@@ -629,14 +824,32 @@ dispatchEvent(new CustomEvent("TrunkApplicationStarted", {detail: {wasm}}));
                 <h1>rust-autolisp <span class="count" id="count">0</span></h1>
                 <span class="small">CSV → TPL → DXF | Rust/WASM Engine</span>
             </div>
-            <div>
-                <button id="process" class="primary">▶ Verarbeiten</button>
+            <div style="display:flex; gap:5px; align-items:center; flex-wrap:wrap;">
+                <button id="process" class="primary">▶ Run</button>
+                <button id="debugDemo" style="background:#ff8800; border-color:#ff8800; color:#000;">🐛 Debug</button>
+                <button id="debugStepDemo" style="display:none; background:#00ff88; border-color:#00ff88; color:#000;">Step →</button>
+                <button id="debugStopDemo" style="display:none; background:#ff4444; border-color:#ff4444;">Stop</button>
                 <button id="exportAll">⬇ Export All DXF</button>
+                <button id="copyUrlDemo" style="background:#666; border-color:#888;" title="Copy shareable URL">📋 URL</button>
+                <label style="color:#888; font-size:11px; display:flex; align-items:center; gap:3px;" title="Encrypt & compress URL">
+                    <input type="checkbox" id="encDemo" checked style="margin:0;"> enc
+                </label>
+                <span style="color:#333; margin:0 10px;">|</span>
+                <button onclick="showSlide(13)" style="padding:8px 12px; background:#222;">← Back</button>
+                <button onclick="showSlide(15)" style="padding:8px 12px; background:#333;">Playground →</button>
+                <button onclick="showSlide(1)" style="padding:8px 12px; background:#222; border-color:#666;">⌂</button>
             </div>
         </div>
         <div class="demo-container">
             <div class="demo-left">
+                <div style="display:flex; gap:3px; margin-bottom:5px;">
+                    <button id="showCsv" class="primary" style="flex:1; font-size:10px; padding:5px;">CSV</button>
+                    <button id="showTemplates" style="flex:1; font-size:10px; padding:5px; background:#333;">Templates</button>
+                    <button id="showLispLib" style="flex:1; font-size:10px; padding:5px; background:#333;">Symbols</button>
+                </div>
                 <textarea id="csv"></textarea>
+                <textarea id="templateCode" style="display:none;"></textarea>
+                <textarea id="lispLibrary" style="display:none;"></textarea>
                 <div class="log" id="log">Loading WASM engine...</div>
             </div>
             <div class="demo-right">
@@ -648,7 +861,7 @@ dispatchEvent(new CustomEvent("TrunkApplicationStarted", {detail: {wasm}}));
                         <button id="exportDxf">⬇ DXF</button>
                     </div>
                     <div class="viewer-content" id="viewerContent">
-                        <p class="small">Click "Verarbeiten" to generate drawings from CSV</p>
+                        <p class="small">Click "Run" to generate drawings from CSV</p>
                     </div>
                     <div class="stats" id="stats"></div>
                 </div>
@@ -661,10 +874,24 @@ dispatchEvent(new CustomEvent("TrunkApplicationStarted", {detail: {wasm}}));
         <div style="display:flex; gap:15px; height:calc(100vh - 40px);">
             <!-- Left: LISP Editor -->
             <div style="flex:1; display:flex; flex-direction:column;">
-                <h2 style="color:#00aaff; font-size:14px; margin-bottom:10px;">AutoLISP Playground</h2>
-                <div style="margin-bottom:10px;">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+                    <h2 style="color:#00aaff; font-size:14px; margin:0;">AutoLISP Playground</h2>
+                    <div style="display:flex; gap:5px;">
+                        <button onclick="showSlide(14)" style="padding:8px 15px; background:#333; border-color:#00ff88;">← Demo</button>
+                        <button onclick="showSlide(16)" style="padding:8px 15px; background:#333; border-color:#00ff88;">Plotter →</button>
+                        <button onclick="showSlide(1)" style="padding:8px 15px; background:#222; border-color:#666;">⌂ Start</button>
+                    </div>
+                </div>
+                <div style="margin-bottom:10px; display:flex; gap:5px; flex-wrap:wrap; align-items:center;">
                     <button id="runLisp" class="primary">▶ Run</button>
+                    <button id="debugLisp" style="background:#ff8800; border-color:#ff8800; color:#000;">🐛 Debug</button>
+                    <button id="stepLisp" style="background:#00aaff; border-color:#00aaff; color:#000; display:none;">⏭ Step</button>
+                    <button id="stopDebug" style="background:#ff4444; border-color:#ff4444; color:#fff; display:none;">⏹ Stop</button>
                     <button id="clearLisp">Clear</button>
+                    <button id="copyUrlLisp" style="background:#666; border-color:#888;" title="Copy shareable URL to clipboard">📋 URL</button>
+                    <label style="color:#888; font-size:11px; display:flex; align-items:center; gap:3px;" title="Encrypt & compress URL">
+                        <input type="checkbox" id="encLisp" checked style="margin:0;"> enc
+                    </label>
                     <select id="examples" style="background:#222; color:#00ff88; border:1px solid #333; padding:5px;">
                         <option value="">-- Load Example --</option>
                         <option value="hello">Hello World</option>
@@ -673,9 +900,16 @@ dispatchEvent(new CustomEvent("TrunkApplicationStarted", {detail: {wasm}}));
                         <option value="spiral">Spiral</option>
                         <option value="schaltplan">Mini Schaltplan</option>
                         <option value="fractal">Recursive Tree</option>
+                        <option value="kicad_sym">KiCad Symbol</option>
+                        <option value="kicad_fp">KiCad Footprint</option>
+                        <option value="kicad_cake">KiCad Birthday Cake</option>
+                        <option value="kicad_newyear">KiCad New Year 2026</option>
+                        <option value="birthday">Happy Birthday Jose!</option>
+                        <option value="newyear2026">Happy New Year 2026!</option>
                     </select>
                 </div>
-                <textarea id="lispCode" style="flex:1; background:#1a1a2e; color:#00ff88; border:1px solid #333; padding:10px; font-family:monospace; font-size:12px;">; Try some AutoLISP!
+                <div style="flex:1; position:relative; min-height:200px;">
+                    <textarea id="lispCode" style="position:absolute; top:0; left:0; right:0; bottom:0; background:#1a1a2e; color:#00ff88; border:1px solid #333; padding:10px; font-family:monospace; font-size:12px; resize:none;">; Try some AutoLISP!
 ;
 ; Basic math
 (+ 1 2 3)
@@ -691,15 +925,19 @@ dispatchEvent(new CustomEvent("TrunkApplicationStarted", {detail: {wasm}}));
 (command "TEXT" '(10 80) 5 0 "Hello LISP!")
 
 (princ "\nDone!")</textarea>
+                    <div id="debugHighlight" style="position:absolute; top:0; left:0; right:0; bottom:0; pointer-events:none; padding:10px; font-family:monospace; font-size:12px; white-space:pre-wrap; overflow-y:auto; display:none; border:1px solid transparent;"></div>
+                </div>
                 <div id="lispOutput" style="background:#0a0a0f; border:1px solid #333; padding:10px; height:100px; font-size:11px; overflow-y:auto; margin-top:10px;"></div>
             </div>
             <!-- Middle: Drawing Output -->
             <div style="flex:1.5; display:flex; flex-direction:column;">
                 <h2 style="color:#00aaff; font-size:14px; margin-bottom:10px;">Drawing Output</h2>
-                <div id="lispDrawing" style="flex:1; background:#1a1a2e; border:1px solid #333; display:flex; align-items:center; justify-content:center; overflow:auto;"></div>
-                <div style="margin-top:10px; display:flex; gap:10px;">
+                <div id="lispDrawing" style="flex:1; min-height:300px; background:#0a0a15; border:1px solid #333; overflow:hidden; position:relative;"></div>
+                <div style="margin-top:10px; display:flex; gap:10px; flex-wrap:wrap; position:relative; z-index:200; background:#1a1a2e; padding:10px; border-radius:5px;">
                     <button id="exportPlaySvg">⬇ SVG</button>
                     <button id="exportPlayDxf">⬇ DXF</button>
+                    <button id="exportKicadSym" style="background:#ff8800; border-color:#ff8800; color:#000;">⬇ KiCad Sym</button>
+                    <button id="exportKicadMod" style="background:#ff8800; border-color:#ff8800; color:#000;">⬇ KiCad Mod</button>
                     <span id="playStats" style="color:#666; font-size:11px; padding:8px;"></span>
                 </div>
             </div>
@@ -740,41 +978,63 @@ dispatchEvent(new CustomEvent("TrunkApplicationStarted", {detail: {wasm}}));
     <!-- SLIDE 16: Function Plotter for Math Students -->
     <div class="slide" id="slide16" style="padding: 10px;">
         <div style="display:flex; gap:15px; height:calc(100vh - 40px);">
-            <!-- Left: Function Editor -->
+            <!-- Left: Function Editor / Calculator -->
             <div style="flex:1; display:flex; flex-direction:column;">
-                <h2 style="color:#ff8800; font-size:16px; margin-bottom:10px;">📐 LISP Function Plotter</h2>
-                <p style="color:#888; font-size:11px; margin-bottom:10px;">Define f(x) in LISP, plot it visually. Learn functional programming!</p>
-                <div style="margin-bottom:10px;">
-                    <button id="plotFunction" class="primary" style="background:#ff8800; border-color:#ff8800;">📈 Plot</button>
-                    <button id="clearPlot">Clear</button>
-                    <select id="plotExamples" style="background:#222; color:#00ff88; border:1px solid #333; padding:5px;">
-                        <option value="">-- Load Function --</option>
-                        <optgroup label="Analysis (Calculus)">
-                            <option value="integral">∫ Integral (Simpson)</option>
-                            <option value="derivative">d/dx Derivative</option>
-                            <option value="derivative2">d²/dx² Second Deriv</option>
-                        </optgroup>
-                        <optgroup label="Fourier / Transforms">
-                            <option value="fourier">Fourier: Square Wave</option>
-                            <option value="fourier-saw">Fourier: Sawtooth</option>
-                            <option value="convolution">Convolution</option>
-                            <option value="laplace">Laplace Transform</option>
-                        </optgroup>
-                        <optgroup label="Recursion Classics">
-                            <option value="taylor">Taylor Series sin(x)</option>
-                            <option value="fibonacci">Fibonacci</option>
-                            <option value="mandelbrot">Mandelbrot Fractal</option>
-                            <option value="newton">Newton's Method</option>
-                        </optgroup>
-                        <optgroup label="Basic Functions">
-                            <option value="sin">sin(x)</option>
-                            <option value="cos">cos(x)</option>
-                            <option value="parabola">x² (Parabola)</option>
-                            <option value="harmonic">Harmonic Series</option>
-                        </optgroup>
-                    </select>
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+                    <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+                        <h2 id="slide16Title" style="color:#ff8800; font-size:16px; margin:0;">📐 LISP Function Plotter</h2>
+                        <div id="modeToggle" style="display:flex; background:#222; border-radius:4px; overflow:hidden; border:2px solid #ff8800;">
+                            <button id="modePlotter" onclick="setSlide16Mode('plotter')" style="padding:6px 12px; background:#ff8800; color:#000; border:none; font-size:12px; font-weight:bold; cursor:pointer;">Plotter</button>
+                            <button id="modeCalc" onclick="setSlide16Mode('calc')" style="padding:6px 12px; background:#333; color:#ff8800; border:none; font-size:12px; font-weight:bold; cursor:pointer;">HP-41C</button>
+                        </div>
+                    </div>
+                    <div style="display:flex; gap:5px;">
+                        <button onclick="showSlide(15)" style="padding:8px 15px; background:#333; border-color:#00ff88;">← Playground</button>
+                        <button onclick="showSlide(17)" style="padding:8px 15px; background:#333; border-color:#00ff88;">Benchmark →</button>
+                        <button onclick="showSlide(1)" style="padding:8px 15px; background:#222; border-color:#666;">⌂</button>
+                    </div>
                 </div>
-                <textarea id="plotCode" style="flex:1; background:#1a1a2e; color:#00ff88; border:1px solid #333; padding:10px; font-family:monospace; font-size:12px;">; Define your function f(x)
+                <!-- PLOTTER MODE CONTENT -->
+                <div id="plotterContent">
+                    <p style="color:#888; font-size:11px; margin-bottom:10px;">Define f(x) in LISP, plot it visually. Learn functional programming!</p>
+                    <div style="margin-bottom:10px; display:flex; gap:5px; align-items:center; flex-wrap:wrap;">
+                        <button id="plotFunction" class="primary" style="background:#ff8800; border-color:#ff8800;">📈 Plot</button>
+                        <button id="debugPlot" style="background:#ff8800; border-color:#ff8800; color:#000;">🐛 Debug</button>
+                        <button id="debugStepPlot" style="display:none; background:#00ff88; border-color:#00ff88; color:#000;">Step →</button>
+                        <button id="debugStopPlot" style="display:none; background:#ff4444; border-color:#ff4444;">Stop</button>
+                        <button id="clearPlot">Clear</button>
+                        <button id="copyUrlPlot" style="background:#666; border-color:#888;" title="Copy shareable URL">📋 URL</button>
+                        <label style="color:#888; font-size:11px; display:flex; align-items:center; gap:3px;" title="Encrypt & compress URL">
+                            <input type="checkbox" id="encPlot" checked style="margin:0;"> enc
+                        </label>
+                        <select id="plotExamples" style="background:#222; color:#00ff88; border:1px solid #333; padding:5px;">
+                            <option value="">-- Load Function --</option>
+                            <optgroup label="Analysis (Calculus)">
+                                <option value="integral">∫ Integral (Simpson)</option>
+                                <option value="derivative">d/dx Derivative</option>
+                                <option value="derivative2">d²/dx² Second Deriv</option>
+                            </optgroup>
+                            <optgroup label="Fourier / Transforms">
+                                <option value="fourier">Fourier: Square Wave</option>
+                                <option value="fourier-saw">Fourier: Sawtooth</option>
+                                <option value="convolution">Convolution</option>
+                                <option value="laplace">Laplace Transform</option>
+                            </optgroup>
+                            <optgroup label="Recursion Classics">
+                                <option value="taylor">Taylor Series sin(x)</option>
+                                <option value="fibonacci">Fibonacci</option>
+                                <option value="mandelbrot">Mandelbrot Fractal</option>
+                                <option value="newton">Newton's Method</option>
+                            </optgroup>
+                            <optgroup label="Basic Functions">
+                                <option value="sin">sin(x)</option>
+                                <option value="cos">cos(x)</option>
+                                <option value="parabola">x² (Parabola)</option>
+                                <option value="harmonic">Harmonic Series</option>
+                            </optgroup>
+                        </select>
+                    </div>
+                    <textarea id="plotCode" style="flex:1; background:#1a1a2e; color:#00ff88; border:1px solid #333; padding:10px; font-family:monospace; font-size:12px; min-height:200px;">; Define your function f(x)
 ; The plotter will evaluate f(x) for x from -10 to 10
 
 (defun f (x)
@@ -787,10 +1047,57 @@ dispatchEvent(new CustomEvent("TrunkApplicationStarted", {detail: {wasm}}));
 ;   (sin (* 2 x))        ; frequency
 ;   (+ (sin x) (cos x))  ; combine functions
 ;   (* x (sin x))        ; modulation</textarea>
-                <div id="plotOutput" style="background:#0a0a0f; border:1px solid #333; padding:10px; height:80px; font-size:11px; overflow-y:auto; margin-top:10px;"></div>
+                    <div id="plotOutput" style="background:#0a0a0f; border:1px solid #333; padding:10px; height:80px; font-size:11px; overflow-y:auto; margin-top:10px;"></div>
+                </div>
+                <!-- HP-41C CODE AREA (left side in calc mode) -->
+                <div id="calcCodeArea" style="display:none; flex:1; flex-direction:column;">
+                    <!-- Tab buttons -->
+                    <div style="display:flex; gap:2px; margin-bottom:5px;">
+                        <button id="tabLog" onclick="switchCalcTab('log')" style="flex:1; padding:5px; background:#ff8800; color:#000; border:none; font-size:11px; font-weight:bold;">LISP Log</button>
+                        <button id="tabProgram" onclick="switchCalcTab('program')" style="flex:1; padding:5px; background:#333; color:#ff8800; border:none; font-size:11px;">HP-41C Program</button>
+                    </div>
+
+                    <!-- Log Tab -->
+                    <div id="calcLogTab" style="flex:1; display:flex; flex-direction:column;">
+                        <p style="color:#888; font-size:11px; margin-bottom:5px;">Every button press is LISP!</p>
+                        <div id="calcHistory" style="flex:1; background:#1a1a2e; border:1px solid #333; padding:10px; overflow-y:auto; font-family:monospace; font-size:11px;"></div>
+                        <div style="margin-top:10px; display:flex; gap:5px;">
+                            <button id="clearCalcHistory" style="background:#333; border-color:#666;">Clear</button>
+                            <button id="copyCalcUrl" style="background:#666; border-color:#888;" title="Copy calculator state URL">📋 URL</button>
+                        </div>
+                    </div>
+
+                    <!-- Program Tab -->
+                    <div id="calcProgramTab" style="flex:1; display:none; flex-direction:column;">
+                        <p style="color:#888; font-size:11px; margin-bottom:5px;">HP-41C Program Editor (transpiles to LISP)</p>
+                        <textarea id="hp41ProgramCode" style="flex:1; background:#1a1a2e; color:#00ff88; border:1px solid #333; padding:10px; font-family:monospace; font-size:11px; resize:none;" placeholder="; Example: Circle Area
+LBL &quot;AREA&quot;
+X^2
+PI
+*
+RTN">; Example: Factorial
+LBL "FACT"
+STO 00
+1
+LBL 01
+RCL 00
+*
+DSE 00
+GTO 01
+RTN</textarea>
+                        <div style="margin-top:10px; display:flex; gap:5px;">
+                            <button id="transpileHP41" style="background:#ff8800; color:#000; border:none; font-weight:bold;">Transpile to LISP</button>
+                            <button id="runHP41" style="background:#00ff88; color:#000; border:none;">Run</button>
+                            <button id="loadHP41Example" style="background:#333; border-color:#666;">Examples</button>
+                        </div>
+                        <div id="hp41TranspileOutput" style="background:#0a0a0f; border:1px solid #333; padding:8px; height:120px; font-size:10px; overflow-y:auto; margin-top:10px; font-family:monospace; color:#00ff88;"></div>
+                    </div>
+
+                    <div id="calcOutput" style="background:#0a0a0f; border:1px solid #333; padding:8px; height:50px; font-size:10px; overflow-y:auto; margin-top:10px; color:#888;">HP-41C LISP Calculator ready.</div>
+                </div>
             </div>
-            <!-- Middle: Plot Area -->
-            <div style="flex:1.8; display:flex; flex-direction:column;">
+            <!-- Middle: Plot Area / HP-41C Calculator -->
+            <div id="plotAreaContainer" style="flex:1.8; display:flex; flex-direction:column;">
                 <h2 style="color:#ff8800; font-size:14px; margin-bottom:10px;">Graph Output</h2>
                 <div id="plotArea" style="flex:1; background:#1a1a2e; border:1px solid #333; display:flex; align-items:center; justify-content:center; overflow:hidden;"></div>
                 <div style="margin-top:10px; display:flex; gap:10px; align-items:center;">
@@ -805,8 +1112,178 @@ dispatchEvent(new CustomEvent("TrunkApplicationStarted", {detail: {wasm}}));
                     <span id="plotStats" style="color:#666; font-size:11px; margin-left:auto;"></span>
                 </div>
             </div>
-            <!-- Right: Math Reference -->
-            <div style="width:280px; background:#111; border:1px solid #333; padding:15px; overflow-y:auto;">
+            <!-- HP-41CX Calculator (right side - output area in calc mode) -->
+            <div id="calcContainer" style="flex:1.8; display:none; flex-direction:column; max-width:300px;">
+                <!-- HP-41CX Body -->
+                <div id="hp41body" class="hp41-body">
+                    <!-- LCD -->
+                    <div class="hp41-lcd-bezel">
+                        <canvas id="calcLcdCanvas" width="320" height="32" class="hp41-lcd" style="width:100%;"></canvas>
+                    </div>
+
+                    <!-- Top: ON/USER ... PRGM/ALPHA -->
+                    <div class="hp41-top-controls">
+                        <div class="hp41-btn-group">
+                            <button class="hp41-small-btn" data-key="on">ON</button>
+                            <button class="hp41-small-btn" data-key="user">USER</button>
+                        </div>
+                        <div class="hp41-btn-group" style="gap:2px;">
+                            <button class="hp41-small-btn" data-key="prgm" id="prgmBtn">PRGM</button>
+                            <button class="hp41-small-btn alpha" data-key="alpha">ALPHA</button>
+                        </div>
+                    </div>
+
+                    <!-- ===== TOP SECTION: 5 keys per row ===== -->
+
+                    <!-- Row 1: Σ+ 1/x √x LOG LN -->
+                    <div class="hp41-row-group">
+                        <div class="hp41-gold-labels cols-5">
+                            <span class="hp41-gold-label">Σ−</span>
+                            <span class="hp41-gold-label">y^x</span>
+                            <span class="hp41-gold-label">x²</span>
+                            <span class="hp41-gold-label">10^x</span>
+                            <span class="hp41-gold-label">e^x</span>
+                        </div>
+                        <div class="hp41-btn-row cols-5">
+                            <button class="hp41-btn" data-key="sigma+"><span class="label-main">Σ+</span><span class="label-alpha">A</span></button>
+                            <button class="hp41-btn" data-key="1/x"><span class="label-main">1/x</span><span class="label-alpha">B</span></button>
+                            <button class="hp41-btn" data-key="sqrt"><span class="label-main">√x</span><span class="label-alpha">C</span></button>
+                            <button class="hp41-btn" data-key="log"><span class="label-main">LOG</span><span class="label-alpha">D</span></button>
+                            <button class="hp41-btn" data-key="ln"><span class="label-main">LN</span><span class="label-alpha">E</span></button>
+                        </div>
+                    </div>
+
+                    <!-- Row 2: x⇔y R↓ SIN COS TAN -->
+                    <div class="hp41-row-group">
+                        <div class="hp41-gold-labels cols-5">
+                            <span class="hp41-gold-label">CLΣ</span>
+                            <span class="hp41-gold-label">%</span>
+                            <span class="hp41-gold-label">SIN⁻¹</span>
+                            <span class="hp41-gold-label">COS⁻¹</span>
+                            <span class="hp41-gold-label">TAN⁻¹</span>
+                        </div>
+                        <div class="hp41-btn-row cols-5">
+                            <button class="hp41-btn" data-key="xchg"><span class="label-main">x⇔y</span><span class="label-alpha">F</span></button>
+                            <button class="hp41-btn" data-key="roll"><span class="label-main">R↓</span><span class="label-alpha">G</span></button>
+                            <button class="hp41-btn" data-key="sin"><span class="label-main">SIN</span><span class="label-alpha">H</span></button>
+                            <button class="hp41-btn" data-key="cos"><span class="label-main">COS</span><span class="label-alpha">I</span></button>
+                            <button class="hp41-btn" data-key="tan"><span class="label-main">TAN</span><span class="label-alpha">J</span></button>
+                        </div>
+                    </div>
+
+                    <!-- Row 3: shift XEQ STO RCL SST -->
+                    <div class="hp41-row-group">
+                        <div class="hp41-gold-labels cols-5">
+                            <span class="hp41-gold-label"></span>
+                            <span class="hp41-gold-label">ASN</span>
+                            <span class="hp41-gold-label">LBL</span>
+                            <span class="hp41-gold-label">GTO</span>
+                            <span class="hp41-gold-label">BST</span>
+                        </div>
+                        <div class="hp41-btn-row cols-5">
+                            <button class="hp41-btn shift" data-key="shift"></button>
+                            <button class="hp41-btn" data-key="xeq"><span class="label-main">XEQ</span><span class="label-alpha">K</span></button>
+                            <button class="hp41-btn" data-key="sto"><span class="label-main">STO</span><span class="label-alpha">L</span></button>
+                            <button class="hp41-btn" data-key="rcl"><span class="label-main">RCL</span><span class="label-alpha">M</span></button>
+                            <button class="hp41-btn" data-key="sst"><span class="label-main">SST</span><span class="label-alpha"></span></button>
+                        </div>
+                    </div>
+
+                    <!-- Row 4: ENTER CHS EEX ← -->
+                    <div class="hp41-row-group">
+                        <div class="hp41-gold-labels enter-row">
+                            <span class="hp41-gold-label">CATALOG</span>
+                            <span class="hp41-gold-label">ISG</span>
+                            <span class="hp41-gold-label">RTN</span>
+                            <span class="hp41-gold-label">CLX/A</span>
+                        </div>
+                        <div class="hp41-btn-row enter-row">
+                            <button class="hp41-btn" data-key="enter"><span class="label-main">ENTER ↑</span><span class="label-alpha">N</span></button>
+                            <button class="hp41-btn" data-key="chs"><span class="label-main">CHS</span><span class="label-alpha">O</span></button>
+                            <button class="hp41-btn" data-key="eex"><span class="label-main">EEX</span><span class="label-alpha">P</span></button>
+                            <button class="hp41-btn" data-key="bsp"><span class="label-main">←</span><span class="label-alpha"></span></button>
+                        </div>
+                    </div>
+
+                    <!-- ===== BOTTOM SECTION: 4 keys per row ===== -->
+                    <div class="section-gap"></div>
+
+                    <!-- Row 5: − 7 8 9 -->
+                    <div class="hp41-row-group">
+                        <div class="hp41-gold-labels cols-4">
+                            <span class="hp41-gold-label">x=y?</span>
+                            <span class="hp41-gold-label">SF</span>
+                            <span class="hp41-gold-label">CF</span>
+                            <span class="hp41-gold-label">FS?</span>
+                        </div>
+                        <div class="hp41-btn-row cols-4">
+                            <button class="hp41-btn tall" data-key="sub"><span class="label-main">−</span><span class="label-alpha">T</span></button>
+                            <button class="hp41-btn tall" data-key="7"><span class="label-main">7</span><span class="label-alpha">W</span></button>
+                            <button class="hp41-btn tall" data-key="8"><span class="label-main">8</span><span class="label-alpha">X</span></button>
+                            <button class="hp41-btn tall" data-key="9"><span class="label-main">9</span><span class="label-alpha">Y</span></button>
+                        </div>
+                    </div>
+
+                    <!-- Row 6: + 4 5 6 -->
+                    <div class="hp41-row-group">
+                        <div class="hp41-gold-labels cols-4">
+                            <span class="hp41-gold-label">x≤y?</span>
+                            <span class="hp41-gold-label">BEEP</span>
+                            <span class="hp41-gold-label">P→R</span>
+                            <span class="hp41-gold-label">R→P</span>
+                        </div>
+                        <div class="hp41-btn-row cols-4">
+                            <button class="hp41-btn tall" data-key="add"><span class="label-main">+</span><span class="label-alpha">Z</span></button>
+                            <button class="hp41-btn tall" data-key="4"><span class="label-main">4</span><span class="label-alpha">T</span></button>
+                            <button class="hp41-btn tall" data-key="5"><span class="label-main">5</span><span class="label-alpha">U</span></button>
+                            <button class="hp41-btn tall" data-key="6"><span class="label-main">6</span><span class="label-alpha">V</span></button>
+                        </div>
+                    </div>
+
+                    <!-- Row 7: × 1 2 3 -->
+                    <div class="hp41-row-group">
+                        <div class="hp41-gold-labels cols-4">
+                            <span class="hp41-gold-label">x&gt;y?</span>
+                            <span class="hp41-gold-label">FIX</span>
+                            <span class="hp41-gold-label">SCI</span>
+                            <span class="hp41-gold-label">ENG</span>
+                        </div>
+                        <div class="hp41-btn-row cols-4">
+                            <button class="hp41-btn tall" data-key="mul"><span class="label-main">×</span><span class="label-alpha">:</span></button>
+                            <button class="hp41-btn tall" data-key="1"><span class="label-main">1</span><span class="label-alpha">Q</span></button>
+                            <button class="hp41-btn tall" data-key="2"><span class="label-main">2</span><span class="label-alpha">R</span></button>
+                            <button class="hp41-btn tall" data-key="3"><span class="label-main">3</span><span class="label-alpha">S</span></button>
+                        </div>
+                    </div>
+
+                    <!-- Row 8: ÷ 0 . R/S -->
+                    <div class="hp41-row-group">
+                        <div class="hp41-gold-labels cols-4">
+                            <span class="hp41-gold-label">x=0?</span>
+                            <span class="hp41-gold-label">π</span>
+                            <span class="hp41-gold-label">LAST X</span>
+                            <span class="hp41-gold-label">VIEW</span>
+                        </div>
+                        <div class="hp41-btn-row cols-4">
+                            <button class="hp41-btn tall" data-key="div"><span class="label-main">÷</span><span class="label-alpha">?</span></button>
+                            <button class="hp41-btn tall" data-key="0"><span class="label-main">0</span><span class="label-alpha">SPACE</span></button>
+                            <button class="hp41-btn tall" data-key="."><span class="label-main">.</span><span class="label-alpha">,</span></button>
+                            <button class="hp41-btn tall" data-key="rs"><span class="label-main">R/S</span><span class="label-alpha"></span></button>
+                        </div>
+                    </div>
+
+                    <!-- Stack -->
+                    <div id="calcStackView" class="hp41-stack">
+                        <span id="stackT">T:0</span> &nbsp;
+                        <span id="stackZ">Z:0</span> &nbsp;
+                        <span id="stackY">Y:0</span> &nbsp;
+                        <span class="x-reg">X:display</span>
+                        <span id="calcShift" style="color:#ff8800; font-weight:bold; float:right;"></span>
+                    </div>
+                </div>
+            </div>
+            <!-- Right: Math Reference / Calculator Help -->
+            <div id="mathRefContainer" style="width:280px; background:#111; border:1px solid #333; padding:15px; overflow-y:auto;">
                 <h2 style="color:#ff8800; font-size:14px; margin-bottom:12px;">Analysis in LISP</h2>
                 <div style="font-size:10px; line-height:1.7;">
                     <p style="color:#ff8800;">∫ Integration:</p>
@@ -840,6 +1317,40 @@ dispatchEvent(new CustomEvent("TrunkApplicationStarted", {detail: {wasm}}));
                     </p>
                 </div>
             </div>
+            <div id="calcHelpContainer" style="width:280px; display:none; background:#111; border:1px solid #333; padding:15px; overflow-y:auto;">
+                <h2 style="color:#ff8800; font-size:14px; margin-bottom:12px;">HP-41C RPN Guide</h2>
+                <div style="font-size:10px; line-height:1.7;">
+                    <p style="color:#ff8800;">RPN (Reverse Polish):</p>
+                    <span style="color:#666;">No equals key! Operators act on stack.</span><br>
+                    <code style="color:#00ff88; font-size:9px;">2 ENTER 3 + → 5</code><br>
+                    <br>
+                    <p style="color:#ff8800;">4-Level Stack:</p>
+                    <span style="color:#00aaff;">X</span> = Display (bottom)<br>
+                    <span style="color:#00aaff;">Y</span> = Second operand<br>
+                    <span style="color:#00aaff;">Z</span> = Third level<br>
+                    <span style="color:#00aaff;">T</span> = Top (replicates)<br>
+                    <br>
+                    <p style="color:#ff8800;">Key Operations:</p>
+                    <span style="color:#00aaff;">ENTER</span> = Push X to stack<br>
+                    <span style="color:#00aaff;">x⇔y</span> = Swap X and Y<br>
+                    <span style="color:#00aaff;">R↓</span> = Roll stack down<br>
+                    <span style="color:#00aaff;">CLx</span> = Clear X register<br>
+                    <br>
+                    <p style="color:#ff8800;">Functions:</p>
+                    <span style="color:#666;">All evaluate via LISP!</span><br>
+                    <code style="color:#00ff88; font-size:9px;">(sin X) (cos X) (sqrt X)</code><br>
+                    <code style="color:#00ff88; font-size:9px;">(log X) (exp X) (expt Y X)</code><br>
+                    <br>
+                    <p style="color:#ff8800;">Example: 2^8</p>
+                    <code style="color:#00ff88; font-size:9px;">2 ENTER 8 y^x → 256</code><br>
+                    <br>
+                    <p style="color:#888; font-size:9px; border-top:1px solid #333; padding-top:8px;">
+                        HP-41C (1979) was a programmable<br>
+                        RPN calculator. This LISP version<br>
+                        shows the power of symbolic math!
+                    </p>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -848,7 +1359,13 @@ dispatchEvent(new CustomEvent("TrunkApplicationStarted", {detail: {wasm}}));
         <div class="benchmark-container" style="display:flex; gap:20px; height:calc(100vh - 60px);">
             <!-- Left: Benchmark Controls -->
             <div style="width:350px; display:flex; flex-direction:column; gap:15px;">
-                <h2 style="color:#ff4444; font-size:18px; margin:0;">Engine Benchmark</h2>
+                <div style="display:flex; justify-content:space-between; align-items:center;">
+                    <h2 style="color:#ff4444; font-size:18px; margin:0;">Engine Benchmark</h2>
+                    <div style="display:flex; gap:5px;">
+                        <button onclick="showSlide(16)" style="padding:6px 12px; background:#333; font-size:11px;">← Plotter</button>
+                        <button onclick="showSlide(1)" style="padding:6px 12px; background:#222; border-color:#666; font-size:11px;">⌂</button>
+                    </div>
+                </div>
                 <p style="color:#888; font-size:11px; margin:0;">Compare Rust/WASM vs XLISP (Emscripten)</p>
 
                 <div style="background:#111; border:1px solid #333; padding:15px;">
@@ -956,6 +1473,417 @@ dispatchEvent(new CustomEvent("TrunkApplicationStarted", {detail: {wasm}}));
     </div>
 
     <script type="module">
+        // ============================================
+        // URL Encoding with LZ compression + XOR encryption
+        // ============================================
+
+        // LZ-String compression (minified, from https://github.com/pieroxy/lz-string)
+        const LZString = (function() {
+            const f = String.fromCharCode;
+            const keyStrUriSafe = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+-$";
+            const baseReverseDic = {};
+
+            function getBaseValue(alphabet, character) {
+                if (!baseReverseDic[alphabet]) {
+                    baseReverseDic[alphabet] = {};
+                    for (let i = 0; i < alphabet.length; i++) {
+                        baseReverseDic[alphabet][alphabet.charAt(i)] = i;
+                    }
+                }
+                return baseReverseDic[alphabet][character];
+            }
+
+            function _compress(uncompressed, bitsPerChar, getCharFromInt) {
+                if (uncompressed == null) return "";
+                let i, value, context_dictionary = {}, context_dictionaryToCreate = {},
+                    context_c = "", context_wc = "", context_w = "", context_enlargeIn = 2,
+                    context_dictSize = 3, context_numBits = 2, context_data = [],
+                    context_data_val = 0, context_data_position = 0, ii;
+                for (ii = 0; ii < uncompressed.length; ii++) {
+                    context_c = uncompressed.charAt(ii);
+                    if (!Object.prototype.hasOwnProperty.call(context_dictionary, context_c)) {
+                        context_dictionary[context_c] = context_dictSize++;
+                        context_dictionaryToCreate[context_c] = true;
+                    }
+                    context_wc = context_w + context_c;
+                    if (Object.prototype.hasOwnProperty.call(context_dictionary, context_wc)) {
+                        context_w = context_wc;
+                    } else {
+                        if (Object.prototype.hasOwnProperty.call(context_dictionaryToCreate, context_w)) {
+                            if (context_w.charCodeAt(0) < 256) {
+                                for (i = 0; i < context_numBits; i++) {
+                                    context_data_val = (context_data_val << 1);
+                                    if (context_data_position == bitsPerChar - 1) {
+                                        context_data_position = 0;
+                                        context_data.push(getCharFromInt(context_data_val));
+                                        context_data_val = 0;
+                                    } else { context_data_position++; }
+                                }
+                                value = context_w.charCodeAt(0);
+                                for (i = 0; i < 8; i++) {
+                                    context_data_val = (context_data_val << 1) | (value & 1);
+                                    if (context_data_position == bitsPerChar - 1) {
+                                        context_data_position = 0;
+                                        context_data.push(getCharFromInt(context_data_val));
+                                        context_data_val = 0;
+                                    } else { context_data_position++; }
+                                    value = value >> 1;
+                                }
+                            } else {
+                                value = 1;
+                                for (i = 0; i < context_numBits; i++) {
+                                    context_data_val = (context_data_val << 1) | value;
+                                    if (context_data_position == bitsPerChar - 1) {
+                                        context_data_position = 0;
+                                        context_data.push(getCharFromInt(context_data_val));
+                                        context_data_val = 0;
+                                    } else { context_data_position++; }
+                                    value = 0;
+                                }
+                                value = context_w.charCodeAt(0);
+                                for (i = 0; i < 16; i++) {
+                                    context_data_val = (context_data_val << 1) | (value & 1);
+                                    if (context_data_position == bitsPerChar - 1) {
+                                        context_data_position = 0;
+                                        context_data.push(getCharFromInt(context_data_val));
+                                        context_data_val = 0;
+                                    } else { context_data_position++; }
+                                    value = value >> 1;
+                                }
+                            }
+                            context_enlargeIn--;
+                            if (context_enlargeIn == 0) {
+                                context_enlargeIn = Math.pow(2, context_numBits);
+                                context_numBits++;
+                            }
+                            delete context_dictionaryToCreate[context_w];
+                        } else {
+                            value = context_dictionary[context_w];
+                            for (i = 0; i < context_numBits; i++) {
+                                context_data_val = (context_data_val << 1) | (value & 1);
+                                if (context_data_position == bitsPerChar - 1) {
+                                    context_data_position = 0;
+                                    context_data.push(getCharFromInt(context_data_val));
+                                    context_data_val = 0;
+                                } else { context_data_position++; }
+                                value = value >> 1;
+                            }
+                        }
+                        context_enlargeIn--;
+                        if (context_enlargeIn == 0) {
+                            context_enlargeIn = Math.pow(2, context_numBits);
+                            context_numBits++;
+                        }
+                        context_dictionary[context_wc] = context_dictSize++;
+                        context_w = String(context_c);
+                    }
+                }
+                if (context_w !== "") {
+                    if (Object.prototype.hasOwnProperty.call(context_dictionaryToCreate, context_w)) {
+                        if (context_w.charCodeAt(0) < 256) {
+                            for (i = 0; i < context_numBits; i++) {
+                                context_data_val = (context_data_val << 1);
+                                if (context_data_position == bitsPerChar - 1) {
+                                    context_data_position = 0;
+                                    context_data.push(getCharFromInt(context_data_val));
+                                    context_data_val = 0;
+                                } else { context_data_position++; }
+                            }
+                            value = context_w.charCodeAt(0);
+                            for (i = 0; i < 8; i++) {
+                                context_data_val = (context_data_val << 1) | (value & 1);
+                                if (context_data_position == bitsPerChar - 1) {
+                                    context_data_position = 0;
+                                    context_data.push(getCharFromInt(context_data_val));
+                                    context_data_val = 0;
+                                } else { context_data_position++; }
+                                value = value >> 1;
+                            }
+                        } else {
+                            value = 1;
+                            for (i = 0; i < context_numBits; i++) {
+                                context_data_val = (context_data_val << 1) | value;
+                                if (context_data_position == bitsPerChar - 1) {
+                                    context_data_position = 0;
+                                    context_data.push(getCharFromInt(context_data_val));
+                                    context_data_val = 0;
+                                } else { context_data_position++; }
+                                value = 0;
+                            }
+                            value = context_w.charCodeAt(0);
+                            for (i = 0; i < 16; i++) {
+                                context_data_val = (context_data_val << 1) | (value & 1);
+                                if (context_data_position == bitsPerChar - 1) {
+                                    context_data_position = 0;
+                                    context_data.push(getCharFromInt(context_data_val));
+                                    context_data_val = 0;
+                                } else { context_data_position++; }
+                                value = value >> 1;
+                            }
+                        }
+                        context_enlargeIn--;
+                        if (context_enlargeIn == 0) {
+                            context_enlargeIn = Math.pow(2, context_numBits);
+                            context_numBits++;
+                        }
+                        delete context_dictionaryToCreate[context_w];
+                    } else {
+                        value = context_dictionary[context_w];
+                        for (i = 0; i < context_numBits; i++) {
+                            context_data_val = (context_data_val << 1) | (value & 1);
+                            if (context_data_position == bitsPerChar - 1) {
+                                context_data_position = 0;
+                                context_data.push(getCharFromInt(context_data_val));
+                                context_data_val = 0;
+                            } else { context_data_position++; }
+                            value = value >> 1;
+                        }
+                    }
+                    context_enlargeIn--;
+                    if (context_enlargeIn == 0) {
+                        context_enlargeIn = Math.pow(2, context_numBits);
+                        context_numBits++;
+                    }
+                }
+                value = 2;
+                for (i = 0; i < context_numBits; i++) {
+                    context_data_val = (context_data_val << 1) | (value & 1);
+                    if (context_data_position == bitsPerChar - 1) {
+                        context_data_position = 0;
+                        context_data.push(getCharFromInt(context_data_val));
+                        context_data_val = 0;
+                    } else { context_data_position++; }
+                    value = value >> 1;
+                }
+                while (true) {
+                    context_data_val = (context_data_val << 1);
+                    if (context_data_position == bitsPerChar - 1) {
+                        context_data.push(getCharFromInt(context_data_val));
+                        break;
+                    } else { context_data_position++; }
+                }
+                return context_data.join('');
+            }
+
+            function _decompress(length, resetValue, getNextValue) {
+                let dictionary = [], next, enlargeIn = 4, dictSize = 4, numBits = 3,
+                    entry = "", result = [], i, w, bits, resb, maxpower, power, c,
+                    data = { val: getNextValue(0), position: resetValue, index: 1 };
+                for (i = 0; i < 3; i += 1) { dictionary[i] = i; }
+                bits = 0; maxpower = Math.pow(2, 2); power = 1;
+                while (power != maxpower) {
+                    resb = data.val & data.position;
+                    data.position >>= 1;
+                    if (data.position == 0) { data.position = resetValue; data.val = getNextValue(data.index++); }
+                    bits |= (resb > 0 ? 1 : 0) * power;
+                    power <<= 1;
+                }
+                switch (next = bits) {
+                    case 0:
+                        bits = 0; maxpower = Math.pow(2, 8); power = 1;
+                        while (power != maxpower) {
+                            resb = data.val & data.position;
+                            data.position >>= 1;
+                            if (data.position == 0) { data.position = resetValue; data.val = getNextValue(data.index++); }
+                            bits |= (resb > 0 ? 1 : 0) * power;
+                            power <<= 1;
+                        }
+                        c = f(bits); break;
+                    case 1:
+                        bits = 0; maxpower = Math.pow(2, 16); power = 1;
+                        while (power != maxpower) {
+                            resb = data.val & data.position;
+                            data.position >>= 1;
+                            if (data.position == 0) { data.position = resetValue; data.val = getNextValue(data.index++); }
+                            bits |= (resb > 0 ? 1 : 0) * power;
+                            power <<= 1;
+                        }
+                        c = f(bits); break;
+                    case 2: return "";
+                }
+                dictionary[3] = c; w = c; result.push(c);
+                while (true) {
+                    if (data.index > length) { return ""; }
+                    bits = 0; maxpower = Math.pow(2, numBits); power = 1;
+                    while (power != maxpower) {
+                        resb = data.val & data.position;
+                        data.position >>= 1;
+                        if (data.position == 0) { data.position = resetValue; data.val = getNextValue(data.index++); }
+                        bits |= (resb > 0 ? 1 : 0) * power;
+                        power <<= 1;
+                    }
+                    switch (c = bits) {
+                        case 0:
+                            bits = 0; maxpower = Math.pow(2, 8); power = 1;
+                            while (power != maxpower) {
+                                resb = data.val & data.position;
+                                data.position >>= 1;
+                                if (data.position == 0) { data.position = resetValue; data.val = getNextValue(data.index++); }
+                                bits |= (resb > 0 ? 1 : 0) * power;
+                                power <<= 1;
+                            }
+                            dictionary[dictSize++] = f(bits);
+                            c = dictSize - 1; enlargeIn--; break;
+                        case 1:
+                            bits = 0; maxpower = Math.pow(2, 16); power = 1;
+                            while (power != maxpower) {
+                                resb = data.val & data.position;
+                                data.position >>= 1;
+                                if (data.position == 0) { data.position = resetValue; data.val = getNextValue(data.index++); }
+                                bits |= (resb > 0 ? 1 : 0) * power;
+                                power <<= 1;
+                            }
+                            dictionary[dictSize++] = f(bits);
+                            c = dictSize - 1; enlargeIn--; break;
+                        case 2: return result.join('');
+                    }
+                    if (enlargeIn == 0) { enlargeIn = Math.pow(2, numBits); numBits++; }
+                    if (dictionary[c]) { entry = dictionary[c]; }
+                    else { if (c === dictSize) { entry = w + w.charAt(0); } else { return null; } }
+                    result.push(entry);
+                    dictionary[dictSize++] = w + entry.charAt(0);
+                    enlargeIn--;
+                    if (enlargeIn == 0) { enlargeIn = Math.pow(2, numBits); numBits++; }
+                    w = entry;
+                }
+            }
+
+            return {
+                compressToEncodedURIComponent: function(input) {
+                    if (input == null) return "";
+                    return _compress(input, 6, function(a) { return keyStrUriSafe.charAt(a); });
+                },
+                decompressFromEncodedURIComponent: function(input) {
+                    if (input == null) return "";
+                    if (input == "") return null;
+                    input = input.replace(/ /g, "+");
+                    return _decompress(input.length, 32, function(index) { return getBaseValue(keyStrUriSafe, input.charAt(index)); });
+                }
+            };
+        })();
+
+        // ============================================
+        // Encryption - uses WASM functions from Rust
+        // ============================================
+        let ENCRYPT_KEY = null; // Will be loaded from logo.png via WASM
+
+        // Initialize encryption key from logo.png using WASM steganography
+        async function initEncryptionKey(wasmModule) {
+            try {
+                const response = await fetch('logo.png');
+                if (!response.ok) {
+                    console.log('Logo not found, using fallback key');
+                    ENCRYPT_KEY = wasmModule.get_default_key();
+                    return;
+                }
+                const arrayBuffer = await response.arrayBuffer();
+                const pngData = new Uint8Array(arrayBuffer);
+
+                // Extract key using WASM steganography
+                const extractedKey = wasmModule.extract_key_from_png(pngData);
+                if (extractedKey) {
+                    ENCRYPT_KEY = extractedKey;
+                    console.log('Key extracted from logo via WASM');
+                } else {
+                    ENCRYPT_KEY = wasmModule.get_default_key();
+                    console.log('Key extraction failed, using fallback');
+                }
+            } catch (e) {
+                console.log('Key init error, using fallback:', e.message);
+                ENCRYPT_KEY = 'HN2025'; // Hardcoded fallback
+            }
+        }
+
+        // XOR encryption - uses WASM if available, JS fallback
+        function xorEncrypt(text) {
+            const key = ENCRYPT_KEY || 'HN2025';
+            let result = '';
+            for (let i = 0; i < text.length; i++) {
+                result += String.fromCharCode(text.charCodeAt(i) ^ key.charCodeAt(i % key.length));
+            }
+            return result;
+        }
+        // XOR is symmetric - same function for decrypt
+        const xorDecrypt = xorEncrypt;
+
+        // Encode code for URL: encrypt + compress (WASM DEFLATE) + URL-safe
+        function encodeForUrl(code) {
+            const encrypted = xorEncrypt(code);
+
+            // Try WASM DEFLATE compression first (best compression)
+            if (window.wasmBindings && window.wasmBindings.compress_to_base64) {
+                const deflated = window.wasmBindings.compress_to_base64(encrypted);
+                if (deflated && deflated.length > 0) {
+                    // Compare with LZ
+                    const lz = LZString.compressToEncodedURIComponent(encrypted);
+                    if (lz && lz.length < deflated.length) {
+                        return 'L' + lz;
+                    }
+                    return 'Z' + deflated; // Z for DEFLATE/ZIP
+                }
+            }
+
+            // Fallback to LZ compression
+            const compressed = LZString.compressToEncodedURIComponent(encrypted);
+            if (compressed) {
+                return 'L' + compressed;
+            }
+
+            // Last resort: base64
+            const base64 = btoa(unescape(encodeURIComponent(encrypted)))
+                .replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+            return 'B' + base64;
+        }
+
+        // Decode code from URL: detect format, decompress/decode, decrypt
+        function decodeFromUrl(encoded) {
+            try {
+                if (!encoded || encoded.length < 2) return null;
+                const prefix = encoded.charAt(0);
+                const data = encoded.substring(1);
+
+                let decrypted;
+                if (prefix === 'Z') {
+                    // DEFLATE compressed (WASM)
+                    if (window.wasmBindings && window.wasmBindings.decompress_from_base64) {
+                        const decompressed = window.wasmBindings.decompress_from_base64(data);
+                        if (!decompressed) return null;
+                        decrypted = xorDecrypt(decompressed);
+                    } else {
+                        return null; // Can't decode without WASM
+                    }
+                } else if (prefix === 'L') {
+                    // LZ compressed
+                    const decompressed = LZString.decompressFromEncodedURIComponent(data);
+                    if (!decompressed) return null;
+                    decrypted = xorDecrypt(decompressed);
+                } else if (prefix === 'B') {
+                    // Base64 encoded
+                    let base64 = data.replace(/-/g, '+').replace(/_/g, '/');
+                    while (base64.length % 4) base64 += '=';
+                    const decoded = decodeURIComponent(escape(atob(base64)));
+                    decrypted = xorDecrypt(decoded);
+                } else {
+                    // Legacy format (no prefix) - try base64 first
+                    let base64 = encoded.replace(/-/g, '+').replace(/_/g, '/');
+                    while (base64.length % 4) base64 += '=';
+                    try {
+                        const decoded = decodeURIComponent(escape(atob(base64)));
+                        decrypted = xorDecrypt(decoded);
+                    } catch {
+                        // Try LZ as fallback
+                        const decompressed = LZString.decompressFromEncodedURIComponent(encoded);
+                        if (!decompressed) return null;
+                        decrypted = xorDecrypt(decompressed);
+                    }
+                }
+                return decrypted;
+            } catch (e) {
+                console.error('decodeFromUrl error:', e);
+                return null;
+            }
+        }
+
         // Slide navigation
         let currentSlide = 1;
         const totalSlides = 17;
@@ -967,7 +1895,17 @@ dispatchEvent(new CustomEvent("TrunkApplicationStarted", {detail: {wasm}}));
             document.getElementById(`slide${n}`).classList.add('active');
             document.getElementById('slideCounter').textContent = `${n} / ${totalSlides}`;
             currentSlide = n;
+
+            // Collapse nav on interactive slides (14-17) to give more space
+            const nav = document.querySelector('.nav');
+            if (n >= 14 && n <= 17) {
+                nav.classList.add('collapsed');
+            } else {
+                nav.classList.remove('collapsed');
+            }
         }
+        // Expose showSlide to global scope for onclick handlers
+        window.showSlide = showSlide;
 
         function startSlideshow() {
             if (slideshowRunning) {
@@ -1006,6 +1944,11 @@ dispatchEvent(new CustomEvent("TrunkApplicationStarted", {detail: {wasm}}));
         document.getElementById('skipToBenchmark').onclick = () => showSlide(17);
 
         document.addEventListener('keydown', (e) => {
+            // Don't handle navigation keys when focused on input elements
+            const tag = e.target.tagName.toLowerCase();
+            if (tag === 'textarea' || tag === 'input' || e.target.isContentEditable) {
+                return; // Let the input handle the key
+            }
             if (e.key === 'ArrowRight' || e.key === ' ') showSlide(Math.min(totalSlides, currentSlide + 1));
             if (e.key === 'ArrowLeft') showSlide(Math.max(1, currentSlide - 1));
         });
@@ -1074,10 +2017,110 @@ dispatchEvent(new CustomEvent("TrunkApplicationStarted", {detail: {wasm}}));
                 return;
             }
 
+            // LISP RPN Stack code (needs to be defined before use)
+            const rpnStackLispInit = `
+; HP-41C RPN Stack (4-level: X, Y, Z, T)
+(setq stack-x 0)
+(setq stack-y 0)
+(setq stack-z 0)
+(setq stack-t 0)
+(setq last-x 0)
+
+; Stack operations
+(defun stack-push (val)
+  (setq stack-t stack-z)
+  (setq stack-z stack-y)
+  (setq stack-y stack-x)
+  (setq stack-x val))
+
+(defun stack-drop ()
+  (setq last-x stack-x)
+  (setq stack-x stack-y)
+  (setq stack-y stack-z)
+  (setq stack-z stack-t))
+
+(defun stack-swap ()
+  (let ((tmp stack-x))
+    (setq stack-x stack-y)
+    (setq stack-y tmp)))
+
+(defun stack-roll-down ()
+  (let ((tmp stack-x))
+    (setq stack-x stack-y)
+    (setq stack-y stack-z)
+    (setq stack-z stack-t)
+    (setq stack-t tmp)))
+
+(defun stack-clear ()
+  (setq stack-x 0)
+  (setq stack-y 0)
+  (setq stack-z 0)
+  (setq stack-t 0))
+
+(defun stack-drop-no-lastx ()
+  (setq stack-y stack-z)
+  (setq stack-z stack-t))
+
+; Binary operations
+(defun rpn-add ()
+  (setq last-x stack-x)
+  (setq stack-x (+ stack-y stack-x))
+  (stack-drop-no-lastx))
+
+(defun rpn-sub ()
+  (setq last-x stack-x)
+  (setq stack-x (- stack-y stack-x))
+  (stack-drop-no-lastx))
+
+(defun rpn-mul ()
+  (setq last-x stack-x)
+  (setq stack-x (* stack-y stack-x))
+  (stack-drop-no-lastx))
+
+(defun rpn-div ()
+  (setq last-x stack-x)
+  (setq stack-x (/ stack-y stack-x))
+  (stack-drop-no-lastx))
+
+(defun rpn-pow ()
+  (setq last-x stack-x)
+  (setq stack-x (expt stack-y stack-x))
+  (stack-drop-no-lastx))
+
+; Unary operations
+(defun rpn-sqrt () (setq last-x stack-x) (setq stack-x (sqrt stack-x)))
+(defun rpn-sin () (setq last-x stack-x) (setq stack-x (sin stack-x)))
+(defun rpn-cos () (setq last-x stack-x) (setq stack-x (cos stack-x)))
+(defun rpn-tan () (setq last-x stack-x) (setq stack-x (/ (sin stack-x) (cos stack-x))))
+(defun rpn-log () (setq last-x stack-x) (setq stack-x (/ (log stack-x) (log 10))))
+(defun rpn-ln () (setq last-x stack-x) (setq stack-x (log stack-x)))
+(defun rpn-inv () (setq last-x stack-x) (setq stack-x (/ 1 stack-x)))
+(defun rpn-chs () (setq stack-x (- 0 stack-x)))
+(defun rpn-pi () (stack-push 3.14159265358979))
+
+; Get stack values
+(defun get-x () stack-x)
+(defun get-y () stack-y)
+(defun get-z () stack-z)
+(defun get-t () stack-t)
+`;
+
             let engine;
             try {
                 engine = new WasmEngine();
+                window.engine = engine; // Expose globally for debugging
                 console.log('WasmEngine created successfully');
+
+                // Initialize LISP RPN stack functions
+                try {
+                    engine.eval(rpnStackLispInit);
+                    console.log('LISP RPN stack initialized');
+                } catch (e) {
+                    console.error('Failed to init LISP RPN stack:', e);
+                }
+
+                // Initialize encryption key from logo.png via WASM steganography
+                initEncryptionKey(window.wasmBindings);
             } catch (e) {
                 console.error('Failed to create WasmEngine:', e);
                 alert('Failed to initialize WASM engine: ' + e.message);
@@ -1089,7 +2132,239 @@ dispatchEvent(new CustomEvent("TrunkApplicationStarted", {detail: {wasm}}));
             let currentDrawing = null;
 
             document.getElementById('csv').value = generateCSV();
-            log.textContent = 'Engine bereit. 50 Zeichnungen im CSV.';
+            document.getElementById('templateCode').value = getDefaultTemplates();
+            document.getElementById('lispLibrary').value = getDefaultLispLibrary();
+            log.textContent = 'Engine ready. Edit CSV, Templates or Symbols!';
+
+            // Tab switching for CSV / Templates / Symbols
+            function showTab(tab) {
+                document.getElementById('csv').style.display = tab === 'csv' ? 'block' : 'none';
+                document.getElementById('templateCode').style.display = tab === 'templates' ? 'block' : 'none';
+                document.getElementById('lispLibrary').style.display = tab === 'symbols' ? 'block' : 'none';
+                document.getElementById('showCsv').style.background = tab === 'csv' ? '' : '#333';
+                document.getElementById('showTemplates').style.background = tab === 'templates' ? '' : '#333';
+                document.getElementById('showLispLib').style.background = tab === 'symbols' ? '' : '#333';
+                if (tab === 'csv') document.getElementById('showCsv').classList.add('primary');
+                else document.getElementById('showCsv').classList.remove('primary');
+                if (tab === 'templates') document.getElementById('showTemplates').classList.add('primary');
+                else document.getElementById('showTemplates').classList.remove('primary');
+                if (tab === 'symbols') document.getElementById('showLispLib').classList.add('primary');
+                else document.getElementById('showLispLib').classList.remove('primary');
+            }
+            document.getElementById('showCsv').onclick = () => showTab('csv');
+            document.getElementById('showTemplates').onclick = () => showTab('templates');
+            document.getElementById('showLispLib').onclick = () => showTab('symbols');
+
+            function getDefaultTemplates() {
+                return `; ========================================
+; DRAWING TEMPLATES - Define what each template draws
+; Edit these to create new drawing types!
+; ========================================
+
+; --- MOTOR_ST: Motorsteuerung (Motor Control) ---
+(defun template-MOTOR_ST (name components)
+  (draw-frame)
+  (draw-schriftfeld name "MOTOR_ST")
+  (draw-wire-numbers)
+  (draw-3phase)
+  (draw-sicherung-3p 190)
+  (draw-motor)
+  (draw-control-circuit)
+  (draw-components-power components 165)
+  (draw-components-control components 180)
+  (draw-spule 120 "K1"))
+
+; --- STERN_DR: Stern-Dreieck-Anlauf (Star-Delta) ---
+(defun template-STERN_DR (name components)
+  (draw-frame)
+  (draw-schriftfeld name "STERN_DR")
+  (draw-wire-numbers)
+  (draw-3phase)
+  (draw-sicherung-3p 190)
+  (draw-motor)
+  (draw-control-circuit)
+  (draw-components-power components 165)
+  (draw-components-control components 180)
+  (draw-spule 120 "K1")
+  (draw-spule 100 "K2")
+  (draw-spule 80 "K3"))
+
+; --- WENDE: Wendeschaltung (Reversing) ---
+(defun template-WENDE (name components)
+  (draw-frame)
+  (draw-schriftfeld name "WENDE")
+  (draw-wire-numbers)
+  (draw-3phase)
+  (draw-sicherung-3p 190)
+  (draw-motor)
+  (draw-control-circuit)
+  (draw-components-power components 165)
+  (draw-components-control components 180)
+  (draw-spule 120 "K1")
+  (draw-spule 100 "K2"))
+
+; --- DIREKT: Direktsteuerung (Direct Control) ---
+(defun template-DIREKT (name components)
+  (draw-frame)
+  (draw-schriftfeld name "DIREKT")
+  (draw-wire-numbers)
+  (command "LINE" '(40 200) '(40 70) "")
+  (command "LINE" '(200 200) '(200 70) "")
+  (command "TEXT" '(35 203) 3 0 "+24V")
+  (command "TEXT" '(195 203) 3 0 "0V")
+  (draw-components-control components 180))
+
+; --- Helper: Draw power components ---
+(defun draw-components-power (components y)
+  (foreach comp components
+    (cond
+      ((member "Schuetz" (nth 1 comp))
+       (draw-schuetz y (car comp))
+       (setq y (- y 22)))
+      ((member "Motorschutz" (nth 1 comp))
+       (draw-motorschutz y (car comp))
+       (setq y (- y 22)))
+      ((member "Zeitrelais" (nth 1 comp))
+       (draw-zeitrelais y (car comp))
+       (setq y (- y 18))))))
+
+; --- Helper: Draw control components ---
+(defun draw-components-control (components y)
+  (foreach comp components
+    (cond
+      ((member "Taster" (nth 1 comp))
+       (draw-taster y (car comp))
+       (setq y (- y 20)))
+      ((member "Meldeleuchte" (nth 1 comp))
+       (draw-meldeleuchte y (car comp))
+       (setq y (- y 20))))))
+`;
+            }
+
+            function getDefaultLispLibrary() {
+                return `; ========================================
+; LISP SYMBOL LIBRARY - Elektrotechnik
+; Edit these to customize your drawings!
+; ========================================
+
+; --- FRAME: A4 Zeichnungsrahmen ---
+(defun draw-frame ()
+  (command "LINE" '(0 0) '(297 0) "")
+  (command "LINE" '(297 0) '(297 210) "")
+  (command "LINE" '(297 210) '(0 210) "")
+  (command "LINE" '(0 210) '(0 0) ""))
+
+; --- SCHRIFTFELD: Title block ---
+(defun draw-schriftfeld (name template)
+  (command "LINE" '(190 0) '(297 0) "")
+  (command "LINE" '(190 0) '(190 40) "")
+  (command "LINE" '(190 40) '(297 40) "")
+  (command "LINE" '(190 20) '(297 20) "")
+  (command "TEXT" '(195 30) 4 0 name)
+  (command "TEXT" '(195 10) 3 0 template)
+  (command "TEXT" '(195 3) 2 0 "Elektrotechnik Trahe"))
+
+; --- 3-PHASEN LEITUNGEN: L1, L2, L3 ---
+(defun draw-3phase ()
+  (command "LINE" '(40 200) '(40 70) "")
+  (command "LINE" '(80 200) '(80 70) "")
+  (command "LINE" '(120 200) '(120 70) "")
+  (command "TEXT" '(38 203) 3 0 "L1")
+  (command "TEXT" '(78 203) 3 0 "L2")
+  (command "TEXT" '(118 203) 3 0 "L3"))
+
+; --- SICHERUNG: Fuse symbol (3x) ---
+(defun draw-sicherung-3p (y)
+  (command "LINE" (list 36 y) (list 44 y) "")
+  (command "LINE" (list 36 (- y 2)) (list 44 (+ y 2)) "")
+  (command "LINE" (list 76 y) (list 84 y) "")
+  (command "LINE" (list 76 (- y 2)) (list 84 (+ y 2)) "")
+  (command "LINE" (list 116 y) (list 124 y) "")
+  (command "LINE" (list 116 (- y 2)) (list 124 (+ y 2)) ""))
+
+; --- SCHUETZ: Contactor symbol (3-pole) ---
+(defun draw-schuetz (y name)
+  (command "LINE" (list 36 (- y 3)) (list 44 (+ y 3)) "")
+  (command "LINE" (list 76 (- y 3)) (list 84 (+ y 3)) "")
+  (command "LINE" (list 116 (- y 3)) (list 124 (+ y 3)) "")
+  (command "LINE" (list 44 y) (list 76 y) "")
+  (command "LINE" (list 84 y) (list 116 y) "")
+  (command "TEXT" (list 130 y) 3 0 name))
+
+; --- MOTORSCHUTZSCHALTER: Motor protection ---
+(defun draw-motorschutz (y name)
+  (command "LINE" (list 37 y) (list 43 (- y 4)) "")
+  (command "LINE" (list 43 (- y 4)) (list 37 (- y 8)) "")
+  (command "LINE" (list 77 y) (list 83 (- y 4)) "")
+  (command "LINE" (list 83 (- y 4)) (list 77 (- y 8)) "")
+  (command "LINE" (list 117 y) (list 123 (- y 4)) "")
+  (command "LINE" (list 123 (- y 4)) (list 117 (- y 8)) "")
+  (command "LINE" (list 35 (+ y 2)) (list 125 (+ y 2)) "")
+  (command "LINE" (list 35 (- y 10)) (list 125 (- y 10)) "")
+  (command "TEXT" (list 130 y) 3 0 name))
+
+; --- ZEITRELAIS: Timer relay ---
+(defun draw-zeitrelais (y name)
+  (command "CIRCLE" (list 80 y) 6)
+  (command "TEXT" (list 77 (- y 2)) 3 0 "t")
+  (command "TEXT" (list 130 y) 3 0 name))
+
+; --- MOTOR: Drehstrommotor ---
+(defun draw-motor ()
+  (command "LINE" '(40 80) '(60 65) "")
+  (command "LINE" '(80 80) '(80 65) "")
+  (command "LINE" '(120 80) '(100 65) "")
+  (command "CIRCLE" '(80 50) 12)
+  (command "TEXT" '(76 47) 6 0 "M")
+  (command "LINE" '(80 38) '(80 30) "")
+  (command "LINE" '(75 30) '(85 30) ""))
+
+; --- STEUERSTROMKREIS: Control circuit ---
+(defun draw-control-circuit ()
+  (command "LINE" '(160 200) '(160 70) "")
+  (command "LINE" '(240 200) '(240 70) "")
+  (command "TEXT" '(158 203) 3 0 "L")
+  (command "TEXT" '(238 203) 3 0 "N"))
+
+; --- TASTER: Push button (NO) ---
+(defun draw-taster (y name)
+  (command "LINE" (list 160 y) (list 180 y) "")
+  (command "LINE" (list 180 (- y 5)) (list 200 y) "")
+  (command "LINE" (list 200 y) (list 220 y) "")
+  (command "TEXT" (list 185 (+ y 5)) 2 0 name))
+
+; --- TASTER-AUS: Push button (NC) ---
+(defun draw-taster-nc (y name)
+  (command "LINE" (list 160 y) (list 180 y) "")
+  (command "LINE" (list 180 y) (list 200 (- y 5)) "")
+  (command "LINE" (list 200 y) (list 220 y) "")
+  (command "TEXT" (list 185 (+ y 5)) 2 0 name))
+
+; --- MELDELEUCHTE: Indicator lamp ---
+(defun draw-meldeleuchte (y name)
+  (command "LINE" (list 160 y) (list 185 y) "")
+  (command "CIRCLE" (list 195 y) 8)
+  (command "LINE" (list 203 y) (list 240 y) "")
+  (command "TEXT" (list 210 (+ y 5)) 2 0 name))
+
+; --- SPULE: Coil/Relay ---
+(defun draw-spule (y name)
+  (command "LINE" (list 215 (+ y 8)) (list 225 (+ y 8)) "")
+  (command "LINE" (list 215 (+ y 8)) (list 215 (- y 8)) "")
+  (command "LINE" (list 225 (+ y 8)) (list 225 (- y 8)) "")
+  (command "LINE" (list 215 (- y 8)) (list 225 (- y 8)) "")
+  (command "TEXT" (list 217 y) 3 0 name))
+
+; --- DRAHT-NUMMERN: Wire numbers ---
+(defun draw-wire-numbers ()
+  (command "TEXT" '(8 180) 2 0 "1")
+  (command "TEXT" '(8 150) 2 0 "2")
+  (command "TEXT" '(8 120) 2 0 "3")
+  (command "TEXT" '(8 90) 2 0 "4")
+  (command "TEXT" '(8 60) 2 0 "5")
+  (command "TEXT" '(8 30) 2 0 "6"))
+`;
+            }
 
             function appendLog(msg) {
                 log.textContent += '\n' + msg;
@@ -1121,87 +2396,67 @@ dispatchEvent(new CustomEvent("TrunkApplicationStarted", {detail: {wasm}}));
             function generateDrawing(spec) {
                 engine.clear();
 
-                // Frame
-                engine.eval(`(command "LINE" '(0 0) '(297 0) "")`);
-                engine.eval(`(command "LINE" '(297 0) '(297 210) "")`);
-                engine.eval(`(command "LINE" '(297 210) '(0 210) "")`);
-                engine.eval(`(command "LINE" '(0 210) '(0 0) "")`);
+                // Load the LISP symbol library (defines all symbol functions)
+                const lispLib = document.getElementById('lispLibrary').value;
+                engine.eval(lispLib);
 
+                // Load the templates (defines template-MOTOR_ST, template-STERN_DR, etc.)
+                const templates = document.getElementById('templateCode').value;
+                engine.eval(templates);
+
+                // Draw base elements using LISP functions
+                engine.eval(`(draw-frame)`);
+                engine.eval(`(draw-schriftfeld "${spec.name}" "${spec.template}")`);
+                engine.eval(`(draw-wire-numbers)`);
+
+                // Use template-specific drawing based on spec.template
                 if (spec.template === 'MOTOR_ST' || spec.template === 'STERN_DR' || spec.template === 'WENDE') {
-                    // Power circuit
-                    engine.eval(`(command "LINE" '(40 200) '(40 70) "")`);
-                    engine.eval(`(command "LINE" '(80 200) '(80 70) "")`);
-                    engine.eval(`(command "LINE" '(120 200) '(120 70) "")`);
-                    engine.eval(`(command "TEXT" '(38 203) 3 0 "L1")`);
-                    engine.eval(`(command "TEXT" '(78 203) 3 0 "L2")`);
-                    engine.eval(`(command "TEXT" '(118 203) 3 0 "L3")`);
+                    // 3-phase motor control circuit
+                    engine.eval(`(draw-3phase)`);
+                    engine.eval(`(draw-sicherung-3p 190)`);
+                    engine.eval(`(draw-motor)`);
+                    engine.eval(`(draw-control-circuit)`);
 
-                    // Fuses
-                    engine.eval(`(command "LINE" '(36 190) '(44 190) "")`);
-                    engine.eval(`(command "LINE" '(36 188) '(44 192) "")`);
-                    engine.eval(`(command "LINE" '(76 190) '(84 190) "")`);
-                    engine.eval(`(command "LINE" '(76 188) '(84 192) "")`);
-                    engine.eval(`(command "LINE" '(116 190) '(124 190) "")`);
-                    engine.eval(`(command "LINE" '(116 188) '(124 192) "")`);
-
+                    // Draw components from CSV using LISP functions
                     let y = 165;
+                    let controlY = 180;
                     for (const comp of spec.components) {
                         if (comp.type.includes('Schuetz') || comp.type.includes('schuetz')) {
-                            engine.eval(`(command "LINE" '(36 ${y-3}) '(44 ${y+3}) "")`);
-                            engine.eval(`(command "LINE" '(76 ${y-3}) '(84 ${y+3}) "")`);
-                            engine.eval(`(command "LINE" '(116 ${y-3}) '(124 ${y+3}) "")`);
-                            engine.eval(`(command "LINE" '(44 ${y}) '(76 ${y}) "")`);
-                            engine.eval(`(command "LINE" '(84 ${y}) '(116 ${y}) "")`);
-                            engine.eval(`(command "TEXT" '(130 ${y}) 3 0 "${comp.name}")`);
+                            engine.eval(`(draw-schuetz ${y} "${comp.name}")`);
                             y -= 22;
                         } else if (comp.type.includes('Motorschutz')) {
-                            engine.eval(`(command "LINE" '(37 ${y}) '(43 ${y-4}) "")`);
-                            engine.eval(`(command "LINE" '(43 ${y-4}) '(37 ${y-8}) "")`);
-                            engine.eval(`(command "LINE" '(77 ${y}) '(83 ${y-4}) "")`);
-                            engine.eval(`(command "LINE" '(83 ${y-4}) '(77 ${y-8}) "")`);
-                            engine.eval(`(command "LINE" '(117 ${y}) '(123 ${y-4}) "")`);
-                            engine.eval(`(command "LINE" '(123 ${y-4}) '(117 ${y-8}) "")`);
-                            engine.eval(`(command "LINE" '(35 ${y+2}) '(125 ${y+2}) "")`);
-                            engine.eval(`(command "LINE" '(35 ${y-10}) '(125 ${y-10}) "")`);
-                            engine.eval(`(command "TEXT" '(130 ${y}) 3 0 "${comp.name}")`);
+                            engine.eval(`(draw-motorschutz ${y} "${comp.name}")`);
                             y -= 22;
                         } else if (comp.type.includes('Zeitrelais')) {
-                            engine.eval(`(command "CIRCLE" '(80 ${y}) 6)`);
-                            engine.eval(`(command "TEXT" '(77 ${y-2}) 3 0 "t")`);
-                            engine.eval(`(command "TEXT" '(130 ${y}) 3 0 "${comp.name}")`);
+                            engine.eval(`(draw-zeitrelais ${y} "${comp.name}")`);
                             y -= 18;
+                        } else if (comp.type.includes('Taster')) {
+                            if (comp.extra && comp.extra.includes('AUS')) {
+                                engine.eval(`(draw-taster-nc ${controlY} "${comp.name}")`);
+                            } else {
+                                engine.eval(`(draw-taster ${controlY} "${comp.name}")`);
+                            }
+                            controlY -= 20;
+                        } else if (comp.type.includes('Meldeleuchte')) {
+                            engine.eval(`(draw-meldeleuchte ${controlY} "${comp.name}")`);
+                            controlY -= 20;
                         }
                     }
 
-                    // Motor
-                    engine.eval(`(command "LINE" '(40 80) '(60 65) "")`);
-                    engine.eval(`(command "LINE" '(80 80) '(80 65) "")`);
-                    engine.eval(`(command "LINE" '(120 80) '(100 65) "")`);
-                    engine.eval(`(command "CIRCLE" '(80 50) 12)`);
-                    engine.eval(`(command "TEXT" '(76 47) 6 0 "M")`);
-                    engine.eval(`(command "LINE" '(80 38) '(80 30) "")`);
-                    engine.eval(`(command "LINE" '(75 30) '(85 30) "")`);
-
-                    // Control circuit
-                    engine.eval(`(command "LINE" '(160 200) '(160 70) "")`);
-                    engine.eval(`(command "LINE" '(240 200) '(240 70) "")`);
-                    engine.eval(`(command "LINE" '(160 180) '(175 180) "")`);
-                    engine.eval(`(command "LINE" '(175 182) '(185 178) "")`);
-                    engine.eval(`(command "LINE" '(185 180) '(200 180) "")`);
-                    engine.eval(`(command "LINE" '(200 175) '(210 180) "")`);
-                    engine.eval(`(command "LINE" '(210 180) '(220 180) "")`);
-                    engine.eval(`(command "LINE" '(220 180) '(220 130) "")`);
-                    engine.eval(`(command "LINE" '(215 130) '(225 130) "")`);
-                    engine.eval(`(command "LINE" '(215 130) '(215 115) "")`);
-                    engine.eval(`(command "LINE" '(225 130) '(225 115) "")`);
-                    engine.eval(`(command "LINE" '(215 115) '(225 115) "")`);
-                    engine.eval(`(command "TEXT" '(217 120) 3 0 "K1")`);
-                    engine.eval(`(command "LINE" '(220 115) '(220 100) "")`);
-                    engine.eval(`(command "LINE" '(220 100) '(240 100) "")`);
-                    engine.eval(`(command "TEXT" '(178 185) 2 0 "S0")`);
-                    engine.eval(`(command "TEXT" '(203 185) 2 0 "S1")`);
+                    // Draw relay coils based on template
+                    if (spec.template === 'STERN_DR') {
+                        engine.eval(`(draw-spule 120 "K1")`);
+                        engine.eval(`(draw-spule 100 "K2")`);
+                        engine.eval(`(draw-spule 80 "K3")`);
+                    } else if (spec.template === 'WENDE') {
+                        engine.eval(`(draw-spule 120 "K1")`);
+                        engine.eval(`(draw-spule 100 "K2")`);
+                    } else {
+                        engine.eval(`(draw-spule 120 "K1")`);
+                    }
 
                 } else if (spec.template === 'DIREKT') {
+                    // Simple DC control circuit
                     engine.eval(`(command "LINE" '(40 200) '(40 70) "")`);
                     engine.eval(`(command "LINE" '(200 200) '(200 70) "")`);
                     engine.eval(`(command "TEXT" '(35 203) 3 0 "+24V")`);
@@ -1210,45 +2465,14 @@ dispatchEvent(new CustomEvent("TrunkApplicationStarted", {detail: {wasm}}));
                     let y = 180;
                     for (const comp of spec.components) {
                         if (comp.type.includes('Taster')) {
-                            engine.eval(`(command "LINE" '(40 ${y}) '(80 ${y}) "")`);
-                            engine.eval(`(command "LINE" '(80 ${y-5}) '(100 ${y}) "")`);
-                            engine.eval(`(command "LINE" '(100 ${y}) '(140 ${y}) "")`);
-                            engine.eval(`(command "TEXT" '(85 ${y+6}) 3 0 "${comp.name}")`);
+                            engine.eval(`(draw-taster ${y} "${comp.name}")`);
                             y -= 25;
                         } else if (comp.type.includes('Meldeleuchte')) {
-                            engine.eval(`(command "LINE" '(40 ${y}) '(100 ${y}) "")`);
-                            engine.eval(`(command "CIRCLE" '(120 ${y}) 8)`);
-                            engine.eval(`(command "LINE" '(128 ${y}) '(200 ${y}) "")`);
-                            engine.eval(`(command "TEXT" '(130 ${y+6}) 3 0 "${comp.name}")`);
+                            engine.eval(`(draw-meldeleuchte ${y} "${comp.name}")`);
                             y -= 25;
                         }
                     }
                 }
-
-                // Wire numbers
-                for (let i = 1; i <= 6; i++) {
-                    engine.eval(`(command "TEXT" '(8 ${210 - i*30}) 2 0 "${i}")`);
-                }
-
-                // Schriftfeld
-                const sx = 190, sy = 0;
-                engine.eval(`(command "LINE" '(${sx} ${sy}) '(297 ${sy}) "")`);
-                engine.eval(`(command "LINE" '(297 ${sy}) '(297 ${sy+50}) "")`);
-                engine.eval(`(command "LINE" '(297 ${sy+50}) '(${sx} ${sy+50}) "")`);
-                engine.eval(`(command "LINE" '(${sx} ${sy+50}) '(${sx} ${sy}) "")`);
-                engine.eval(`(command "LINE" '(${sx} ${sy+40}) '(297 ${sy+40}) "")`);
-                engine.eval(`(command "LINE" '(${sx} ${sy+30}) '(297 ${sy+30}) "")`);
-                engine.eval(`(command "LINE" '(${sx} ${sy+20}) '(297 ${sy+20}) "")`);
-                engine.eval(`(command "LINE" '(${sx} ${sy+10}) '(297 ${sy+10}) "")`);
-                engine.eval(`(command "LINE" '(${sx+55} ${sy+30}) '(${sx+55} ${sy}) "")`);
-                engine.eval(`(command "TEXT" '(${sx+2} ${sy+42}) 3.5 0 "Elektrotechnik Trahe GmbH")`);
-                engine.eval(`(command "TEXT" '(${sx+2} ${sy+32}) 2.5 0 "84579 Unterneukirchen")`);
-                engine.eval(`(command "TEXT" '(${sx+2} ${sy+22}) 5 0 "${spec.name}")`);
-                engine.eval(`(command "TEXT" '(${sx+57} ${sy+22}) 2.5 0 "${spec.template}")`);
-                engine.eval(`(command "TEXT" '(${sx+2} ${sy+12}) 2 0 "gez. HT")`);
-                engine.eval(`(command "TEXT" '(${sx+30} ${sy+12}) 2 0 "03.91")`);
-                engine.eval(`(command "TEXT" '(${sx+57} ${sy+12}) 2 0 "Blatt 1")`);
-                engine.eval(`(command "TEXT" '(${sx+2} ${sy+2}) 2 0 "gepr.")`);
 
                 return {
                     svg: engine.get_entities_svg(),
@@ -1288,7 +2512,7 @@ dispatchEvent(new CustomEvent("TrunkApplicationStarted", {detail: {wasm}}));
                 const csv = document.getElementById('csv').value;
                 const startTime = performance.now();
 
-                log.textContent = 'Verarbeite CSV...';
+                log.textContent = 'Processing CSV...';
                 const specs = parseCSV(csv);
                 drawings = [];
 
@@ -1301,11 +2525,77 @@ dispatchEvent(new CustomEvent("TrunkApplicationStarted", {detail: {wasm}}));
                 }
 
                 const elapsed = (performance.now() - startTime).toFixed(1);
-                appendLog(`\n${specs.length} Zeichnungen in ${elapsed}ms`);
+                appendLog(`\n${specs.length} drawings in ${elapsed}ms`);
 
                 updateGallery();
                 if (drawings.length > 0) selectDrawing(0);
             };
+
+            // Demo debug mode - step through each drawing
+            let demoDebugMode = false;
+            let demoDebugSpecs = [];
+            let demoDebugIndex = 0;
+
+            document.getElementById('debugDemo').onclick = () => {
+                const csv = document.getElementById('csv').value;
+                demoDebugSpecs = parseCSV(csv);
+
+                if (demoDebugSpecs.length === 0) {
+                    log.textContent = 'No entries in CSV to debug';
+                    return;
+                }
+
+                demoDebugIndex = 0;
+                demoDebugMode = true;
+                drawings = [];
+
+                document.getElementById('count').textContent = demoDebugSpecs.length;
+
+                // Show step buttons, hide other buttons
+                document.getElementById('debugDemo').style.display = 'none';
+                document.getElementById('debugStepDemo').style.display = 'inline-block';
+                document.getElementById('debugStopDemo').style.display = 'inline-block';
+                document.getElementById('process').style.display = 'none';
+
+                log.textContent = `Debug mode: ${demoDebugSpecs.length} drawings\nClick "Step" to generate each drawing`;
+                updateGallery();
+            };
+
+            document.getElementById('debugStepDemo').onclick = () => {
+                if (!demoDebugMode || demoDebugIndex >= demoDebugSpecs.length) return;
+
+                const spec = demoDebugSpecs[demoDebugIndex];
+
+                try {
+                    const result = generateDrawing(spec);
+                    drawings.push({ spec, ...result });
+                    appendLog(`[${demoDebugIndex + 1}/${demoDebugSpecs.length}] ${spec.name} - ${result.entities} entities`);
+
+                    updateGallery();
+                    selectDrawing(drawings.length - 1);
+                } catch (e) {
+                    appendLog(`[${demoDebugIndex + 1}/${demoDebugSpecs.length}] Error: ${e.message}`);
+                }
+
+                demoDebugIndex++;
+                if (demoDebugIndex >= demoDebugSpecs.length) {
+                    appendLog(`\nDebug complete! ${drawings.length} drawings generated.`);
+                    stopDemoDebug();
+                }
+            };
+
+            document.getElementById('debugStopDemo').onclick = stopDemoDebug;
+
+            function stopDemoDebug() {
+                demoDebugMode = false;
+                demoDebugSpecs = [];
+                demoDebugIndex = 0;
+
+                document.getElementById('debugDemo').style.display = 'inline-block';
+                document.getElementById('debugStepDemo').style.display = 'none';
+                document.getElementById('debugStopDemo').style.display = 'none';
+                document.getElementById('process').style.display = 'inline-block';
+            }
 
             // DXF generation is now in Rust (engine.get_entities_dxf())
 
@@ -1390,6 +2680,159 @@ dispatchEvent(new CustomEvent("TrunkApplicationStarted", {detail: {wasm}}));
             });
             console.log('Playground initialized, engine ready:', !!engine);
 
+            // Function to run the LISP code in the playground
+            function runPlaygroundCode() {
+                try {
+                    const code = document.getElementById('lispCode').value;
+                    const startTime = performance.now();
+
+                    engine.clear();
+                    const result = engine.eval(code);
+                    playSvg = engine.get_entities_svg();
+                    const output = engine.get_output();
+                    const count = engine.entity_count();
+
+                    const elapsed = (performance.now() - startTime).toFixed(2);
+
+                    console.log('Run result:', { count, outputLen: output.length, svgLen: playSvg.length });
+
+                    document.getElementById('lispOutput').textContent = output || '(no output)';
+                    document.getElementById('lispDrawing').innerHTML = playSvg;
+                    document.getElementById('playStats').textContent = `${count} entities in ${elapsed}ms`;
+                } catch (err) {
+                    document.getElementById('lispOutput').textContent = 'Error: ' + err.message;
+                    console.error('Run error:', err);
+                }
+            }
+
+            // Handle URL parameters for all interactive slides
+            const urlParams = new URLSearchParams(window.location.search);
+            const autoRun = urlParams.get('run') !== 'false'; // Auto-run unless ?run=false
+
+            // New unified format: ?type=<type>&data=<compressed> or ?type=<type>&plain=<urlencoded>
+            const urlType = urlParams.get('type');
+            const urlData = urlParams.get('data');      // Encrypted + compressed
+            const urlPlain = urlParams.get('plain');    // Plain URL-encoded
+
+            // Legacy parameters for backwards compatibility
+            const compressedCode = urlParams.get('code');    // Legacy: compressed + encrypted
+            const playgroundCode = urlParams.get('playground'); // Legacy: raw URL-encoded
+            const exampleParam = urlParams.get('example');
+            const lispParam = urlParams.get('lsp'); // Alternative short parameter
+            const demoCode = urlParams.get('demo'); // Legacy demo
+            const plotCode = urlParams.get('plot'); // Legacy plot
+            const plotFormula = urlParams.get('formula'); // Simple formula
+            const hp41Code = urlParams.get('hp41'); // Future HP41
+
+            // Handle new unified type+data/plain format
+            console.log('URL params:', { urlType, urlData: urlData?.substring(0, 50), urlPlain: urlPlain?.substring(0, 50) });
+            if (urlType && (urlData || urlPlain)) {
+                // Decode: encrypted or plain
+                const decoded = urlData ? decodeFromUrl(urlData) : urlPlain;
+                console.log('Decoded result:', decoded ? decoded.substring(0, 100) + '...' : 'null/empty');
+                if (decoded) {
+                    switch (urlType) {
+                        case 'lisp':
+                            document.getElementById('lispCode').value = decoded;
+                            showSlide(15);
+                            console.log('Loaded LISP code from URL');
+                            if (autoRun) setTimeout(runPlaygroundCode, 100);
+                            break;
+                        case 'workflow':
+                            document.getElementById('csv').value = decoded;
+                            showSlide(14);
+                            console.log('Loaded workflow CSV from URL');
+                            break;
+                        case 'plotter':
+                            document.getElementById('plotCode').value = decoded;
+                            showSlide(16);
+                            console.log('Loaded plotter code from URL');
+                            if (autoRun) setTimeout(() => document.getElementById('plotFunction').click(), 100);
+                            break;
+                        case 'hp41':
+                            console.log('HP41CV mode - coming soon!');
+                            // Will decode and load HP41 program when implemented
+                            break;
+                    }
+                }
+            }
+            // Legacy: Handle demo slide
+            else if (demoCode) {
+                const csv = decodeFromUrl(demoCode);
+                if (csv) {
+                    document.getElementById('csv').value = csv;
+                    showSlide(14);
+                    console.log('Loaded demo CSV from URL (legacy)');
+                }
+            }
+            // Legacy: Handle plotter slide
+            else if (plotCode) {
+                const code = decodeFromUrl(plotCode);
+                if (code) {
+                    document.getElementById('plotCode').value = code;
+                    showSlide(16);
+                    console.log('Loaded plot code from URL (legacy)');
+                    if (autoRun) setTimeout(() => document.getElementById('plotFunction').click(), 100);
+                }
+            } else if (plotFormula) {
+                // Simple formula: ?formula=sin(x)*cos(x/2)
+                const code = `; Function from URL
+(defun f (x)
+  ${plotFormula})`;
+                document.getElementById('plotCode').value = code;
+                showSlide(16);
+                console.log('Loaded plot formula from URL:', plotFormula);
+                if (autoRun) setTimeout(() => document.getElementById('plotFunction').click(), 100);
+            }
+            // Future: HP41CV calculator (legacy param)
+            else if (hp41Code) {
+                console.log('HP41CV mode - coming soon!');
+            }
+            // Handle playground slide (legacy formats)
+            else if (compressedCode) {
+                // New format: compressed + encrypted code
+                const code = decodeFromUrl(compressedCode);
+                if (code) {
+                    document.getElementById('lispCode').value = code;
+                    showSlide(15); // Navigate to playground slide
+                    console.log('Loaded compressed code from URL');
+                    if (autoRun) {
+                        setTimeout(runPlaygroundCode, 100);
+                    }
+                } else {
+                    console.error('Failed to decode compressed code');
+                }
+            } else if (playgroundCode || lispParam) {
+                // Legacy format: raw URL-encoded code
+                const code = playgroundCode || lispParam;
+                document.getElementById('lispCode').value = code;
+                showSlide(15); // Navigate to playground slide
+                console.log('Loaded code from URL parameter');
+                if (autoRun) {
+                    setTimeout(runPlaygroundCode, 100);
+                }
+            } else if (exampleParam) {
+                // First try as a named example
+                const code = engine.get_example(exampleParam);
+                if (code && !code.startsWith('; Unknown')) {
+                    document.getElementById('lispCode').value = code;
+                    document.getElementById('examples').value = exampleParam;
+                    showSlide(15); // Navigate to playground slide
+                    console.log('Loaded example from URL:', exampleParam);
+                    if (autoRun) {
+                        setTimeout(runPlaygroundCode, 100);
+                    }
+                } else {
+                    // If not a known example, treat it as raw LSP code
+                    document.getElementById('lispCode').value = exampleParam;
+                    showSlide(15); // Navigate to playground slide
+                    console.log('Loaded raw code from example parameter');
+                    if (autoRun) {
+                        setTimeout(runPlaygroundCode, 100);
+                    }
+                }
+            }
+
             document.getElementById('examples').onchange = (e) => {
                 try {
                     if (e.target.value) {
@@ -1405,33 +2848,188 @@ dispatchEvent(new CustomEvent("TrunkApplicationStarted", {detail: {wasm}}));
                 }
             };
 
-            document.getElementById('runLisp').onclick = () => {
-                try {
-                    const code = document.getElementById('lispCode').value;
-                    const startTime = performance.now();
+            document.getElementById('runLisp').onclick = runPlaygroundCode;
 
-                    engine.clear();
-                    const result = engine.eval(code);
-                    playSvg = engine.get_entities_svg();
-                    const output = engine.get_output();
-                    const count = engine.entity_count();
+            // Debug mode state
+            let debugMode = false;
+            let debugExpressions = [];
+            let debugIndex = 0;
 
-                    const elapsed = (performance.now() - startTime).toFixed(2);
+            // Parse LISP code into top-level expressions
+            function parseLispExpressions(code) {
+                const expressions = [];
+                let i = 0;
+                let start = 0;
+                let depth = 0;
+                let inString = false;
+                let inComment = false;
 
-                    console.log('Run result:', { count, outputLen: output.length, svgLen: playSvg.length });
-                    console.log('SVG preview:', playSvg.substring(0, 200));
+                while (i < code.length) {
+                    const ch = code[i];
 
-                    document.getElementById('lispOutput').textContent = output || '(no output)';
+                    if (inComment) {
+                        if (ch === '\n') inComment = false;
+                        i++;
+                        continue;
+                    }
 
-                    const drawingDiv = document.getElementById('lispDrawing');
-                    drawingDiv.innerHTML = playSvg;
-                    console.log('Drawing div innerHTML set, children:', drawingDiv.children.length);
+                    if (ch === ';' && !inString) {
+                        inComment = true;
+                        i++;
+                        continue;
+                    }
 
-                    document.getElementById('playStats').textContent = `${count} entities | ${elapsed}ms`;
-                } catch (e) {
-                    console.error('Playground error:', e);
-                    document.getElementById('lispOutput').textContent = 'Error: ' + e.message;
+                    if (ch === '"' && (i === 0 || code[i-1] !== '\\')) {
+                        inString = !inString;
+                    }
+
+                    if (!inString) {
+                        if (ch === '(') {
+                            if (depth === 0) start = i;
+                            depth++;
+                        } else if (ch === ')') {
+                            depth--;
+                            if (depth === 0) {
+                                const expr = code.substring(start, i + 1).trim();
+                                if (expr) {
+                                    expressions.push({
+                                        code: expr,
+                                        start: start,
+                                        end: i + 1
+                                    });
+                                }
+                            }
+                        }
+                    }
+                    i++;
                 }
+                return expressions;
+            }
+
+            // Highlight current expression in the code
+            function highlightExpression(exprIndex) {
+                const codeEl = document.getElementById('lispCode');
+                const highlightEl = document.getElementById('debugHighlight');
+                const code = codeEl.value;
+
+                if (exprIndex < 0 || exprIndex >= debugExpressions.length) {
+                    highlightEl.style.display = 'none';
+                    codeEl.style.color = '#00ff88';
+                    return;
+                }
+
+                const expr = debugExpressions[exprIndex];
+
+                // Create highlighted HTML
+                const before = code.substring(0, expr.start);
+                const current = code.substring(expr.start, expr.end);
+                const after = code.substring(expr.end);
+
+                highlightEl.innerHTML =
+                    '<span style="color:#666;">' + escapeHtml(before) + '</span>' +
+                    '<span id="debugCurrentExpr" style="background:#ff8800; color:#000; padding:2px;">' + escapeHtml(current) + '</span>' +
+                    '<span style="color:#666;">' + escapeHtml(after) + '</span>';
+
+                highlightEl.style.display = 'block';
+                codeEl.style.color = 'transparent';
+                codeEl.style.caretColor = '#00ff88';
+
+                // Scroll textarea to show current expression
+                // Calculate approximate line number based on newlines before the expression
+                const linesBefore = before.split('\n').length - 1;
+                const lineHeight = 16; // approximate line height in pixels
+                const scrollTarget = linesBefore * lineHeight - 50; // 50px padding from top
+                codeEl.scrollTop = Math.max(0, scrollTarget);
+                highlightEl.scrollTop = codeEl.scrollTop;
+            }
+
+            function escapeHtml(text) {
+                return text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+            }
+
+            // Sync scroll between textarea and highlight overlay
+            document.getElementById('lispCode').addEventListener('scroll', () => {
+                const highlightEl = document.getElementById('debugHighlight');
+                if (highlightEl.style.display !== 'none') {
+                    highlightEl.scrollTop = document.getElementById('lispCode').scrollTop;
+                }
+            });
+
+            // Enter debug mode
+            document.getElementById('debugLisp').onclick = () => {
+                const code = document.getElementById('lispCode').value;
+                debugExpressions = parseLispExpressions(code);
+
+                if (debugExpressions.length === 0) {
+                    document.getElementById('lispOutput').textContent = 'No expressions to debug';
+                    return;
+                }
+
+                debugMode = true;
+                debugIndex = 0;
+                engine.clear();
+
+                // Show debug controls, hide normal run
+                document.getElementById('debugLisp').style.display = 'none';
+                document.getElementById('runLisp').style.display = 'none';
+                document.getElementById('stepLisp').style.display = 'inline-block';
+                document.getElementById('stopDebug').style.display = 'inline-block';
+
+                highlightExpression(0);
+                document.getElementById('lispOutput').textContent =
+                    `Debug mode: ${debugExpressions.length} expressions\nPress Step to execute expression ${debugIndex + 1}`;
+                document.getElementById('playStats').textContent = `Step 0/${debugExpressions.length}`;
+            };
+
+            // Step through one expression
+            document.getElementById('stepLisp').onclick = () => {
+                if (!debugMode || debugIndex >= debugExpressions.length) return;
+
+                const expr = debugExpressions[debugIndex];
+                try {
+                    const result = engine.eval(expr.code);
+                    const output = engine.get_output();
+                    playSvg = engine.get_entities_svg();
+
+                    document.getElementById('lispOutput').textContent =
+                        `[${debugIndex + 1}/${debugExpressions.length}] ${expr.code.substring(0, 50)}...\n` +
+                        (output || '(no output)') + '\n=> ' + (result || 'nil');
+                    document.getElementById('lispDrawing').innerHTML = playSvg;
+                    document.getElementById('playStats').textContent =
+                        `Step ${debugIndex + 1}/${debugExpressions.length} | ${engine.entity_count()} entities`;
+                } catch (e) {
+                    document.getElementById('lispOutput').textContent = `Error at step ${debugIndex + 1}: ${e.message}`;
+                }
+
+                debugIndex++;
+
+                if (debugIndex >= debugExpressions.length) {
+                    // Debug complete
+                    highlightExpression(-1);
+                    document.getElementById('lispOutput').textContent += '\n\n✓ Debug complete!';
+                    document.getElementById('stepLisp').textContent = '✓ Done';
+                    document.getElementById('stepLisp').disabled = true;
+                } else {
+                    highlightExpression(debugIndex);
+                }
+            };
+
+            // Stop debug mode
+            document.getElementById('stopDebug').onclick = () => {
+                debugMode = false;
+                debugExpressions = [];
+                debugIndex = 0;
+
+                // Restore UI
+                document.getElementById('debugLisp').style.display = 'inline-block';
+                document.getElementById('runLisp').style.display = 'inline-block';
+                document.getElementById('stepLisp').style.display = 'none';
+                document.getElementById('stopDebug').style.display = 'none';
+                document.getElementById('stepLisp').textContent = '⏭ Step';
+                document.getElementById('stepLisp').disabled = false;
+
+                highlightExpression(-1);
+                document.getElementById('lispOutput').textContent = 'Debug stopped';
             };
 
             document.getElementById('clearLisp').onclick = () => {
@@ -1440,6 +3038,56 @@ dispatchEvent(new CustomEvent("TrunkApplicationStarted", {detail: {wasm}}));
                 document.getElementById('lispDrawing').innerHTML = '';
                 document.getElementById('playStats').textContent = '';
                 playSvg = '';
+            };
+
+            // Helper function for copy URL buttons
+            // type: 'lisp', 'workflow', 'plotter', 'hp41'
+            // encCheckboxId: ID of the encryption checkbox
+            async function copyUrl(btnId, type, content, encCheckboxId) {
+                const useEnc = document.getElementById(encCheckboxId).checked;
+                let url;
+                let savings = 0;
+
+                if (useEnc) {
+                    // Encrypted + compressed
+                    const encoded = encodeForUrl(content);
+                    url = window.location.origin + window.location.pathname + '?type=' + type + '&data=' + encoded;
+                    const origLen = encodeURIComponent(content).length;
+                    savings = Math.round((1 - encoded.length / origLen) * 100);
+                } else {
+                    // Plain URL-encoded (readable but longer)
+                    const encoded = encodeURIComponent(content);
+                    url = window.location.origin + window.location.pathname + '?type=' + type + '&plain=' + encoded;
+                }
+
+                try {
+                    await navigator.clipboard.writeText(url);
+                    const btn = document.getElementById(btnId);
+                    const origText = btn.textContent;
+                    btn.textContent = useEnc ? `✓ ${savings}% smaller!` : '✓ Copied!';
+                    btn.style.background = '#00ff88';
+                    btn.style.color = '#000';
+                    setTimeout(() => {
+                        btn.textContent = origText;
+                        btn.style.background = '#666';
+                        btn.style.color = '';
+                    }, 2000);
+                } catch (e) {
+                    prompt('Copy this URL:', url);
+                }
+            }
+
+            // Copy URL buttons for each slide
+            document.getElementById('copyUrlLisp').onclick = () => {
+                copyUrl('copyUrlLisp', 'lisp', document.getElementById('lispCode').value, 'encLisp');
+            };
+
+            document.getElementById('copyUrlDemo').onclick = () => {
+                copyUrl('copyUrlDemo', 'workflow', document.getElementById('csv').value, 'encDemo');
+            };
+
+            document.getElementById('copyUrlPlot').onclick = () => {
+                copyUrl('copyUrlPlot', 'plotter', document.getElementById('plotCode').value, 'encPlot');
             };
 
             document.getElementById('exportPlaySvg').onclick = () => {
@@ -1453,9 +3101,1268 @@ dispatchEvent(new CustomEvent("TrunkApplicationStarted", {detail: {wasm}}));
                 downloadFile(dxf, 'drawing.dxf', 'application/dxf');
             };
 
+            document.getElementById('exportKicadSym').onclick = () => {
+                if (engine.entity_count() === 0) { appendLog('Nothing to export'); return; }
+                const sym = engine.get_kicad_sym('MyLibrary', 'MySymbol');
+                downloadFile(sym, 'symbol.kicad_sym', 'text/plain');
+            };
+
+            document.getElementById('exportKicadMod').onclick = () => {
+                if (engine.entity_count() === 0) { appendLog('Nothing to export'); return; }
+                const mod = engine.get_kicad_mod('MyFootprint');
+                downloadFile(mod, 'footprint.kicad_mod', 'text/plain');
+            };
+
             // ============================================
-            // SLIDE 16: Function Plotter
-            // All logic in Rust WASM!
+            // SLIDE 16: Function Plotter + HP-41C Calculator
+            // All logic in Rust WASM + LISP!
+            // ============================================
+
+            // Mode toggle between Plotter and HP-41C Calculator
+            let slide16Mode = 'plotter';
+
+            window.setSlide16Mode = function(mode) {
+                slide16Mode = mode;
+                const isCalc = mode === 'calc';
+
+                // Toggle button styles
+                document.getElementById('modePlotter').style.background = isCalc ? '#333' : '#ff8800';
+                document.getElementById('modePlotter').style.color = isCalc ? '#888' : '#000';
+                document.getElementById('modeCalc').style.background = isCalc ? '#ff8800' : '#333';
+                document.getElementById('modeCalc').style.color = isCalc ? '#000' : '#888';
+
+                // Toggle title
+                document.getElementById('slide16Title').innerHTML = isCalc
+                    ? '🔢 HP-41C LISP Calculator'
+                    : '📐 LISP Function Plotter';
+
+                // Toggle content visibility
+                document.getElementById('plotterContent').style.display = isCalc ? 'none' : 'block';
+                document.getElementById('calcCodeArea').style.display = isCalc ? 'flex' : 'none';
+                document.getElementById('plotAreaContainer').style.display = isCalc ? 'none' : 'flex';
+                document.getElementById('calcContainer').style.display = isCalc ? 'flex' : 'none';
+                document.getElementById('mathRefContainer').style.display = isCalc ? 'none' : 'block';
+                document.getElementById('calcHelpContainer').style.display = isCalc ? 'block' : 'none';
+
+                if (isCalc) {
+                    initHP41C();
+                }
+            };
+
+            // ============================================
+            // HP-41C Calculator - WASM Powered
+            // ============================================
+
+            let hp41 = null;  // WASM HP41Calculator instance (for transpilation)
+            let hp41ShiftMode = false;
+            let hp41AlphaMode = false;
+            let hp41AlphaBuffer = '';
+            // Entry state (JS-side for display, LISP for calculation)
+            let hp41cInputBuffer = '';
+            let hp41cEntryMode = false;
+            // HP-41C Transpiler
+            let hp41Transpiler = null;
+            // Program entry state
+            let programSteps = [];  // Array of instruction strings
+            let programPC = 0;      // Current program counter
+
+            // Tab switching for calc code area
+            window.switchCalcTab = function(tab) {
+                const logTab = document.getElementById('calcLogTab');
+                const programTab = document.getElementById('calcProgramTab');
+                const tabLog = document.getElementById('tabLog');
+                const tabProgram = document.getElementById('tabProgram');
+
+                if (tab === 'log') {
+                    logTab.style.display = 'flex';
+                    programTab.style.display = 'none';
+                    tabLog.style.background = '#ff8800';
+                    tabLog.style.color = '#000';
+                    tabProgram.style.background = '#333';
+                    tabProgram.style.color = '#ff8800';
+                } else {
+                    logTab.style.display = 'none';
+                    programTab.style.display = 'flex';
+                    tabLog.style.background = '#333';
+                    tabLog.style.color = '#ff8800';
+                    tabProgram.style.background = '#ff8800';
+                    tabProgram.style.color = '#000';
+                }
+            };
+
+            // HP-41C Program examples
+            const HP41_EXAMPLES = {
+                'FACT': `; Factorial (n!)
+; Enter n, then XEQ "FACT"
+LBL "FACT"
+STO 00
+1
+LBL 01
+RCL 00
+*
+DSE 00
+GTO 01
+RTN`,
+                'AREA': `; Circle Area
+; Enter radius, then XEQ "AREA"
+LBL "AREA"
+X^2
+PI
+*
+RTN`,
+                'QUAD': `; Quadratic Formula
+; Y=a, X=b, enter c then XEQ
+LBL "QUAD"
+STO 02         ; c
+X<>Y
+STO 01         ; b
+X<>Y
+STO 00         ; a
+RCL 01
+X^2
+RCL 00
+RCL 02
+*
+4
+*
+-
+SQRT
+STO 03         ; discriminant
+RCL 01
+CHS
+RCL 03
++
+RCL 00
+2
+*
+/
+RTN`,
+                'FIB': `; Fibonacci
+; Enter n, then XEQ "FIB"
+LBL "FIB"
+STO 00         ; n
+0
+1
+LBL 01
+X<>Y
++
+DSE 00
+GTO 01
+RTN`,
+                'PRIME': `; Prime test
+; Enter n, XEQ "PRIME"
+; Returns 1 if prime, 0 if not
+LBL "PRIME"
+STO 00
+2
+STO 01
+LBL 01
+RCL 00
+RCL 01
+MOD
+X=0?
+GTO 02         ; not prime
+RCL 01
+1
++
+STO 01
+X^2
+RCL 00
+X>Y?
+GTO 01
+1              ; is prime
+RTN
+LBL 02
+0              ; not prime
+RTN`
+            };
+
+            function initHP41C() {
+                if (hp41) {
+                    updateHP41CDisplay();
+                    return;
+                }
+
+                try {
+                    // Get HP41Calculator from WASM bindings
+                    if (!window.wasmBindings || !window.wasmBindings.HP41Calculator) {
+                        throw new Error('HP41Calculator not found in WASM bindings');
+                    }
+                    const { HP41Calculator, HP41Transpiler } = window.wasmBindings;
+
+                    // Create WASM HP-41C calculator instance
+                    hp41 = new HP41Calculator();
+
+                    // Create HP-41C Transpiler instance for PRGM mode
+                    if (HP41Transpiler) {
+                        hp41Transpiler = new HP41Transpiler();
+                    }
+
+                    // Setup button handlers
+                    setupHP41CButtons();
+
+                    // Initial display update
+                    updateHP41CDisplay();
+
+                    document.getElementById('calcOutput').textContent = 'HP-41C Ready (WASM)';
+                    logCalcHistory('HP-41C initialized (Rust/WASM powered)');
+                } catch (e) {
+                    document.getElementById('calcOutput').textContent = 'Error: ' + e.message;
+                    console.error('HP41C init error:', e);
+                }
+            }
+
+            function setupHP41CButtons() {
+                document.querySelectorAll('.hp41-btn, .hp41-small-btn').forEach(btn => {
+                    btn.onclick = () => handleHP41CKey(btn.dataset.key);
+                });
+
+                document.getElementById('clearCalcHistory').onclick = () => {
+                    document.getElementById('calcHistory').innerHTML = '';
+                };
+
+                // HP-41C Transpiler buttons
+                document.getElementById('transpileHP41').onclick = () => {
+                    const code = document.getElementById('hp41ProgramCode').value;
+                    const output = document.getElementById('hp41TranspileOutput');
+
+                    try {
+                        // Initialize transpiler if needed
+                        if (!hp41Transpiler && window.wasmBindings && window.wasmBindings.HP41Transpiler) {
+                            hp41Transpiler = new window.wasmBindings.HP41Transpiler();
+                        }
+
+                        if (!hp41Transpiler) {
+                            output.textContent = 'Error: HP41Transpiler not available';
+                            return;
+                        }
+
+                        // Parse the program
+                        const parseResult = hp41Transpiler.parse(code);
+                        output.textContent = parseResult + '\n\n';
+
+                        // Transpile to LISP
+                        const lisp = hp41Transpiler.to_lisp();
+                        output.textContent += lisp;
+                        output.style.color = '#00ff88';
+
+                        logCalcHistory('Transpiled HP-41C program: ' + hp41Transpiler.get_name());
+                    } catch (e) {
+                        output.textContent = 'Error: ' + e.message;
+                        output.style.color = '#ff4444';
+                    }
+                };
+
+                document.getElementById('runHP41').onclick = () => {
+                    const output = document.getElementById('hp41TranspileOutput');
+
+                    try {
+                        if (!hp41Transpiler || hp41Transpiler.instruction_count() === 0) {
+                            output.textContent = 'Please transpile first';
+                            return;
+                        }
+
+                        // Reset and run all in Rust - returns LISP to execute
+                        hp41Transpiler.reset();
+                        const lisp = hp41Transpiler.run_all(1000);
+
+                        if (lisp && lisp.length > 0) {
+                            output.textContent += '\n\n; Generated LISP:\n' + lisp;
+                            engine.eval(lisp);
+                        }
+
+                        const result = formatNumber(engine.eval('stack-x'));
+                        output.textContent += '\n\n; Result (stack-x): ' + result;
+                        logCalcHistory('Ran ' + hp41Transpiler.get_name() + ': ' + lisp + ' => ' + result);
+                        updateHP41CDisplay();
+                    } catch (e) {
+                        output.textContent += '\n\nError: ' + e.message;
+                        output.style.color = '#ff4444';
+                    }
+                };
+
+                document.getElementById('loadHP41Example').onclick = () => {
+                    const examples = Object.keys(HP41_EXAMPLES);
+                    const current = document.getElementById('hp41ProgramCode').value;
+                    let currentIndex = examples.findIndex(name =>
+                        current.includes(`LBL "${name}"`) || current.includes(`LBL '${name}'`)
+                    );
+                    const nextIndex = (currentIndex + 1) % examples.length;
+                    const nextName = examples[nextIndex];
+
+                    document.getElementById('hp41ProgramCode').value = HP41_EXAMPLES[nextName];
+                    document.getElementById('hp41TranspileOutput').textContent = `; Loaded example: ${nextName}\n; Click "Transpile to LISP" to convert`;
+                };
+
+                // Keyboard input support
+                document.addEventListener('keydown', (e) => {
+                    // Only handle if calc mode is active
+                    if (slide16Mode !== 'calc') return;
+
+                    // Don't capture if typing in a text field
+                    if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+
+                    // ALPHA mode - capture all printable characters
+                    if (hp41AlphaMode) {
+                        if (e.key === 'Escape') {
+                            toggleAlpha(); // Exit ALPHA mode
+                            e.preventDefault();
+                            return;
+                        }
+                        if (e.key === 'Enter') {
+                            // Display the text on LCD
+                            drawAlphaText(hp41cAlphaBuffer);
+                            logCalcHistory('ALPHA display: "' + hp41cAlphaBuffer + '"');
+                            e.preventDefault();
+                            return;
+                        }
+                        if (e.key === 'Backspace') {
+                            hp41cAlphaBuffer = hp41cAlphaBuffer.slice(0, -1);
+                            drawAlphaText(hp41cAlphaBuffer + '_');
+                            e.preventDefault();
+                            return;
+                        }
+                        // Copy with Ctrl+C / Cmd+C
+                        if ((e.ctrlKey || e.metaKey) && e.key === 'c') {
+                            copyLCDToClipboard();
+                            return;
+                        }
+                        // Printable character
+                        if (e.key.length === 1 && !e.ctrlKey && !e.metaKey) {
+                            hp41cAlphaBuffer += e.key.toUpperCase();
+                            if (hp41cAlphaBuffer.length > 12) {
+                                hp41cAlphaBuffer = hp41cAlphaBuffer.slice(-12);
+                            }
+                            drawAlphaText(hp41cAlphaBuffer + '_');
+                            e.preventDefault();
+                            return;
+                        }
+                        return;
+                    }
+
+                    let key = null;
+
+                    // Copy with Ctrl+C / Cmd+C
+                    if ((e.ctrlKey || e.metaKey) && e.key === 'c') {
+                        copyLCDToClipboard();
+                        return;
+                    }
+
+                    // Number keys
+                    if (e.key >= '0' && e.key <= '9') {
+                        key = e.key;
+                        e.preventDefault();
+                    }
+                    // Decimal point
+                    else if (e.key === '.' || e.key === ',') {
+                        key = '.';
+                        e.preventDefault();
+                    }
+                    // Enter key
+                    else if (e.key === 'Enter') {
+                        key = 'enter';
+                        e.preventDefault();
+                    }
+                    // Backspace
+                    else if (e.key === 'Backspace') {
+                        key = 'bsp';
+                        e.preventDefault();
+                    }
+                    // Escape = clear
+                    else if (e.key === 'Escape') {
+                        key = 'clx';
+                    }
+                    // Operators
+                    else if (e.key === '+') {
+                        key = 'add';
+                    }
+                    else if (e.key === '-') {
+                        key = 'sub';
+                    }
+                    else if (e.key === '*') {
+                        key = 'mul';
+                    }
+                    else if (e.key === '/') {
+                        key = 'div';
+                        e.preventDefault();
+                    }
+                    // Functions
+                    else if (e.key === 's' || e.key === 'S') {
+                        key = hp41ShiftMode ? 'asin' : 'sin';
+                    }
+                    else if (e.key === 'c' || e.key === 'C') {
+                        key = hp41ShiftMode ? 'acos' : 'cos';
+                    }
+                    else if (e.key === 't' || e.key === 'T') {
+                        key = hp41ShiftMode ? 'atan' : 'tan';
+                    }
+                    else if (e.key === 'l' || e.key === 'L') {
+                        key = hp41ShiftMode ? '10x' : 'log';
+                    }
+                    else if (e.key === 'n' || e.key === 'N') {
+                        key = hp41ShiftMode ? 'ex' : 'ln';
+                    }
+                    else if (e.key === 'r' || e.key === 'R') {
+                        key = 'sqrt';
+                    }
+                    else if (e.key === 'i' || e.key === 'I') {
+                        key = '1/x';
+                    }
+                    else if (e.key === 'p' || e.key === 'P') {
+                        key = 'pi';
+                    }
+                    else if (e.key === 'x' || e.key === 'X') {
+                        key = 'xchg';
+                    }
+                    else if (e.key === 'd' || e.key === 'D') {
+                        key = 'roll';
+                    }
+                    // Shift key (use Tab)
+                    else if (e.key === 'Tab') {
+                        key = 'shift';
+                        e.preventDefault();
+                    }
+                    // Alpha mode (use `)
+                    else if (e.key === '`' || e.key === 'a' || e.key === 'A') {
+                        key = 'alpha';
+                    }
+                    // Power (^)
+                    else if (e.key === '^') {
+                        key = 'yx';
+                    }
+
+                    if (key) {
+                        handleHP41CKey(key);
+                    }
+                });
+            }
+
+            function toggleShift() {
+                hp41ShiftMode = !hp41ShiftMode;
+                const shiftBtn = document.querySelector('.hp41-btn.shift');
+                if (shiftBtn) {
+                    shiftBtn.style.background = hp41ShiftMode
+                        ? 'linear-gradient(180deg, #ffaa44 0%, #dd8822 100%)'
+                        : 'linear-gradient(180deg, #d4842a 0%, #b86a18 100%)';
+                    shiftBtn.style.boxShadow = hp41ShiftMode ? '0 0 10px #ffaa44' : '0 2px 0 #6a3a0c, inset 0 1px 0 rgba(255,255,255,0.2)';
+                }
+                document.getElementById('calcShift').textContent = hp41ShiftMode ? 'SHIFT' : '';
+                logCalcHistory(hp41ShiftMode ? 'SHIFT ON' : 'SHIFT OFF');
+            }
+
+            function toggleAlpha() {
+                hp41AlphaMode = !hp41AlphaMode;
+                hp41AlphaBuffer = '';
+                const alphaBtn = document.querySelector('.hp41-small-btn.alpha');
+                if (alphaBtn) {
+                    alphaBtn.style.background = hp41AlphaMode
+                        ? 'linear-gradient(180deg, #44aa44 0%, #228822 100%)'
+                        : 'linear-gradient(180deg, #2a2826 0%, #1a1816 100%)';
+                    alphaBtn.style.color = hp41AlphaMode ? '#fff' : '#5ba3d0';
+                }
+                if (hp41AlphaMode) {
+                    logCalcHistory('ALPHA mode ON');
+                    document.getElementById('calcOutput').textContent = 'ALPHA: Type text, Enter to display';
+                } else {
+                    logCalcHistory('ALPHA mode OFF');
+                    updateHP41CDisplay();
+                }
+            }
+
+            // Copy LCD content to clipboard
+            function copyLCDToClipboard() {
+                if (!hp41) return;
+                const displayStr = hp41.is_entry_mode() ? hp41.get_input_buffer() : hp41.format_display();
+                navigator.clipboard.writeText(displayStr).then(() => {
+                    logCalcHistory('Copied: ' + displayStr);
+                }).catch(err => {
+                    console.error('Copy failed:', err);
+                });
+            }
+
+            // Shift key mappings (gold labels)
+            const HP41_SHIFT_MAP = {
+                'sigma+': 'sigma-', '1/x': 'yx', 'sqrt': 'x2', 'log': '10x', 'ln': 'ex',
+                'xchg': 'clsigma', 'roll': 'percent', 'sin': 'asin', 'cos': 'acos', 'tan': 'atan',
+                'enter': 'catalog', 'chs': 'isg', 'eex': 'rtn', 'bsp': 'clxa',
+                'sub': 'xeqy', 'add': 'xley', 'mul': 'xgty', 'div': 'xeq0',
+                '0': 'pi', '.': 'lastx', '7': 'sf', '8': 'cf', '9': 'fsq',
+                '4': 'beep', '5': 'p2r', '6': 'r2p', '1': 'fix', '2': 'sci', '3': 'eng',
+                'rs': 'view', 'sst': 'bst',
+                'xeq': 'asn', 'sto': 'lbl', 'rcl': 'gto'
+            };
+
+            // Execute a single program step using LISP engine
+            function executeStep(step) {
+                const s = step.toUpperCase().trim();
+                let lispExpr = '';
+
+                // Check if it's a number
+                if (/^-?[\d.]+([eE]-?\d+)?$/.test(s)) {
+                    lispExpr = hp41.lisp_push(parseFloat(s));
+                    engine.eval(lispExpr);
+                    return;
+                }
+
+                // Map instruction to LISP expression
+                switch (s) {
+                    case 'ENTER': case 'ENTER ^':
+                        lispExpr = hp41.lisp_enter();
+                        break;
+                    case '+': lispExpr = hp41.lisp_add(); break;
+                    case '-': lispExpr = hp41.lisp_subtract(); break;
+                    case '*': lispExpr = hp41.lisp_multiply(); break;
+                    case '/': lispExpr = hp41.lisp_divide(); break;
+                    case 'SQRT': lispExpr = hp41.lisp_sqrt(); break;
+                    case 'X^2': lispExpr = '(setq last-x stack-x) (setq stack-x (* stack-x stack-x))'; break;
+                    case '1/X': lispExpr = hp41.lisp_inv(); break;
+                    case 'Y^X': lispExpr = hp41.lisp_power(); break;
+                    case 'SIN': lispExpr = hp41.lisp_sin(); break;
+                    case 'COS': lispExpr = hp41.lisp_cos(); break;
+                    case 'TAN': lispExpr = hp41.lisp_tan(); break;
+                    case 'ASIN': lispExpr = '(setq last-x stack-x) (setq stack-x (asin stack-x))'; break;
+                    case 'ACOS': lispExpr = '(setq last-x stack-x) (setq stack-x (acos stack-x))'; break;
+                    case 'ATAN': lispExpr = '(setq last-x stack-x) (setq stack-x (atan stack-x))'; break;
+                    case 'LOG': lispExpr = hp41.lisp_log(); break;
+                    case 'LN': lispExpr = hp41.lisp_ln(); break;
+                    case '10^X': lispExpr = '(setq last-x stack-x) (setq stack-x (pow 10 stack-x))'; break;
+                    case 'E^X': lispExpr = '(setq last-x stack-x) (setq stack-x (exp stack-x))'; break;
+                    case 'PI': lispExpr = hp41.lisp_pi(); break;
+                    case 'LASTX': lispExpr = hp41.lisp_last_x(); break;
+                    case 'X<>Y': lispExpr = hp41.lisp_swap(); break;
+                    case 'R↓': case 'R_DOWN': lispExpr = hp41.lisp_roll_down(); break;
+                    case 'CHS': lispExpr = hp41.lisp_chs(); break;
+                    case 'CLX': lispExpr = hp41.lisp_clear_x(); break;
+                    case 'CLA': lispExpr = hp41.lisp_clear_x(); break;
+                    default:
+                        console.log('Unknown instruction:', s);
+                        return;
+                }
+
+                if (lispExpr) {
+                    engine.eval(lispExpr);
+                }
+            }
+
+            // Map key to HP-41C instruction string
+            function keyToInstruction(key, shifted) {
+                const map = {
+                    'add': '+', 'sub': '-', 'mul': '*', 'div': '/',
+                    'sqrt': 'SQRT', 'x2': 'X^2', '1/x': '1/X', 'yx': 'Y^X',
+                    'sin': 'SIN', 'cos': 'COS', 'tan': 'TAN',
+                    'asin': 'ASIN', 'acos': 'ACOS', 'atan': 'ATAN',
+                    'log': 'LOG', 'ln': 'LN', '10x': '10^X', 'ex': 'E^X',
+                    'pi': 'PI', 'lastx': 'LASTX',
+                    'xchg': 'X<>Y', 'roll': 'R↓',
+                    'enter': 'ENTER', 'chs': 'CHS',
+                    'clx': 'CLX', 'clxa': 'CLA',
+                    'sigma+': 'Σ+', 'sigma-': 'Σ-'
+                };
+                return map[key] || key.toUpperCase();
+            }
+
+            // Format number for display
+            function formatNumber(val) {
+                if (val === null || val === undefined) return '0';
+                // Handle string that looks like array: '["5"]' or '["3.14"]'
+                if (typeof val === 'string') {
+                    // Remove array brackets if present
+                    val = val.replace(/^\[["']?|["']?\]$/g, '').replace(/^["']|["']$/g, '');
+                    val = parseFloat(val) || 0;
+                }
+                // Handle actual array results from LISP
+                if (Array.isArray(val)) val = parseFloat(val[0]) || 0;
+                if (typeof val !== 'number' || isNaN(val)) return '0';
+                // Format with up to 10 significant digits
+                let str = val.toPrecision(10).replace(/\.?0+$/, '');
+                if (!str.includes('.') && !str.includes('e')) str += '.';
+                return str;
+            }
+
+            function handleHP41CKey(key) {
+                if (!hp41) return;
+                const output = document.getElementById('calcOutput');
+
+                try {
+                    let lispExpr = '';
+
+                    // Handle shift key (always works)
+                    if (key === 'shift') {
+                        toggleShift();
+                        return;
+                    }
+
+                    // Handle alpha key
+                    if (key === 'alpha') {
+                        toggleAlpha();
+                        return;
+                    }
+
+                    // Handle PRGM toggle (always works)
+                    if (key === 'prgm') {
+                        if (!hp41Transpiler) {
+                            output.textContent = 'Transpiler not loaded';
+                            return;
+                        }
+                        const isPrgm = hp41Transpiler.toggle_prgm_mode();
+                        const prgmBtn = document.getElementById('prgmBtn');
+                        if (prgmBtn) {
+                            prgmBtn.style.background = isPrgm ? '#ff8800' : '';
+                            prgmBtn.style.color = isPrgm ? '#000' : '';
+                        }
+                        if (isPrgm) {
+                            output.textContent = 'PRGM MODE';
+                            logCalcHistory('PRGM mode ON');
+                        } else {
+                            output.textContent = 'RUN MODE';
+                            logCalcHistory('PRGM mode OFF');
+                            if (programSteps.length > 0) {
+                                logCalcHistory('Program: ' + programSteps.length + ' steps');
+                            }
+                        }
+                        updateHP41CDisplay();
+                        return;
+                    }
+
+                    // In PRGM mode: record instructions instead of executing
+                    if (hp41Transpiler && hp41Transpiler.is_prgm_mode()) {
+                        // Get actual key (shifted or not)
+                        const actualKey = hp41ShiftMode ? (HP41_SHIFT_MAP[key] || key) : key;
+                        const wasShifted = hp41ShiftMode;
+                        if (hp41ShiftMode) toggleShift();
+
+                        // Handle number entry in PRGM mode (only if NOT shifted)
+                        if (!wasShifted && /^[0-9]$/.test(key)) {
+                            hp41cInputBuffer += key;
+                            hp41cEntryMode = true;
+                            updateHP41CDisplay();
+                            return;
+                        }
+                        if (!wasShifted && key === '.' && !hp41cInputBuffer.includes('.')) {
+                            hp41cInputBuffer += hp41cInputBuffer ? '.' : '0.';
+                            hp41cEntryMode = true;
+                            updateHP41CDisplay();
+                            return;
+                        }
+
+                        // ENTER in PRGM mode: if we have a number, record it as instruction
+                        if (actualKey === 'enter' && hp41cInputBuffer) {
+                            programSteps.push(hp41cInputBuffer);
+                            programPC = programSteps.length;
+                            logCalcHistory(`${programPC.toString().padStart(2, '0')} ${hp41cInputBuffer}`);
+                            hp41cInputBuffer = '';
+                            hp41cEntryMode = false;
+                            updateHP41CDisplay();
+                            return;
+                        }
+
+                        // BSP in PRGM mode: delete last step
+                        if (actualKey === 'bsp') {
+                            if (hp41cInputBuffer) {
+                                hp41cInputBuffer = hp41cInputBuffer.slice(0, -1);
+                            } else if (programSteps.length > 0) {
+                                programSteps.pop();
+                                programPC = programSteps.length;
+                                logCalcHistory('Deleted step ' + (programPC + 1));
+                            }
+                            updateHP41CDisplay();
+                            return;
+                        }
+
+                        // SST in PRGM mode: step forward through program
+                        if (actualKey === 'sst') {
+                            if (programPC < programSteps.length) {
+                                programPC++;
+                            }
+                            updateHP41CDisplay();
+                            return;
+                        }
+
+                        // BST in PRGM mode: step backward through program
+                        if (actualKey === 'bst') {
+                            if (programPC > 0) {
+                                programPC--;
+                            }
+                            updateHP41CDisplay();
+                            return;
+                        }
+
+                        // Record the instruction
+                        const instr = keyToInstruction(actualKey, wasShifted);
+
+                        // If there's a pending number, record it first
+                        if (hp41cInputBuffer) {
+                            programSteps.push(hp41cInputBuffer);
+                            programPC++;
+                            logCalcHistory(`${programPC.toString().padStart(2, '0')} ${hp41cInputBuffer}`);
+                            hp41cInputBuffer = '';
+                            hp41cEntryMode = false;
+                        }
+
+                        programSteps.push(instr);
+                        programPC = programSteps.length;
+                        logCalcHistory(`${programPC.toString().padStart(2, '0')} ${instr}`);
+                        output.textContent = `${programPC.toString().padStart(2, '0')} ${instr}`;
+                        updateHP41CDisplay();
+                        return;
+                    }
+
+                    // Normal RUN mode below...
+
+                    // Number keys
+                    if (/^[0-9]$/.test(key) && !hp41ShiftMode) {
+                        hp41cInputBuffer += key;
+                        hp41cEntryMode = true;
+                        updateHP41CDisplay();
+                        return;
+                    }
+
+                    // Decimal point
+                    if (key === '.' && !hp41ShiftMode) {
+                        if (!hp41cInputBuffer.includes('.')) {
+                            hp41cInputBuffer += hp41cInputBuffer ? '.' : '0.';
+                            hp41cEntryMode = true;
+                        }
+                        updateHP41CDisplay();
+                        return;
+                    }
+
+                    // Get actual key (shifted or not)
+                    const actualKey = hp41ShiftMode ? (HP41_SHIFT_MAP[key] || key) : key;
+
+                    // Clear shift after getting actual key
+                    if (hp41ShiftMode && actualKey !== key) {
+                        toggleShift();
+                    }
+
+                    // If we were entering a number, push it first (except for some keys)
+                    if (hp41cEntryMode && hp41cInputBuffer && !['bsp', 'chs', 'eex'].includes(actualKey)) {
+                        const val = parseFloat(hp41cInputBuffer);
+                        lispExpr = hp41.lisp_push(val);
+                        engine.eval(lispExpr);
+                        logCalcHistory(`ENTER: ${val} → ${lispExpr}`);
+                        hp41cInputBuffer = '';
+                        hp41cEntryMode = false;
+                    }
+
+                    // Handle all operations - transpile to LISP and execute
+                    switch (actualKey) {
+                        // Entry
+                        case 'enter':
+                            if (hp41cInputBuffer) {
+                                const val = parseFloat(hp41cInputBuffer);
+                                lispExpr = hp41.lisp_push(val);
+                                logCalcHistory(`ENTER: ${val} → ${lispExpr}`);
+                            } else {
+                                lispExpr = hp41.lisp_enter();
+                                logCalcHistory('ENTER: duplicate X');
+                            }
+                            hp41cInputBuffer = '';
+                            hp41cEntryMode = false;
+                            break;
+
+                        case 'bsp':
+                            hp41cInputBuffer = hp41cInputBuffer.slice(0, -1);
+                            break;
+
+                        case 'eex':
+                            if (!hp41cInputBuffer.includes('e')) {
+                                hp41cInputBuffer += hp41cInputBuffer ? 'e' : '1e';
+                                hp41cEntryMode = true;
+                            }
+                            break;
+
+                        case 'chs':
+                            if (hp41cEntryMode && hp41cInputBuffer) {
+                                if (hp41cInputBuffer.includes('e')) {
+                                    // Toggle exponent sign
+                                    const parts = hp41cInputBuffer.split('e');
+                                    if (parts[1] && parts[1].startsWith('-')) {
+                                        hp41cInputBuffer = parts[0] + 'e' + parts[1].slice(1);
+                                    } else {
+                                        hp41cInputBuffer = parts[0] + 'e-' + (parts[1] || '');
+                                    }
+                                } else {
+                                    hp41cInputBuffer = hp41cInputBuffer.startsWith('-')
+                                        ? hp41cInputBuffer.slice(1)
+                                        : '-' + hp41cInputBuffer;
+                                }
+                            } else {
+                                lispExpr = hp41.lisp_chs();
+                                logCalcHistory('CHS: ' + lispExpr);
+                            }
+                            break;
+
+                        // Arithmetic - transpile to LISP
+                        case 'add':
+                            lispExpr = hp41.lisp_add();
+                            logCalcHistory('+ : ' + lispExpr + ' → Y + X');
+                            break;
+                        case 'sub':
+                            lispExpr = hp41.lisp_subtract();
+                            logCalcHistory('− : ' + lispExpr + ' → Y - X');
+                            break;
+                        case 'mul':
+                            lispExpr = hp41.lisp_multiply();
+                            logCalcHistory('× : ' + lispExpr + ' → Y × X');
+                            break;
+                        case 'div':
+                            lispExpr = hp41.lisp_divide();
+                            logCalcHistory('÷ : ' + lispExpr + ' → Y ÷ X');
+                            break;
+                        case 'yx':
+                            lispExpr = hp41.lisp_power();
+                            logCalcHistory('y^x : ' + lispExpr);
+                            break;
+
+                        // Math functions - transpile to LISP
+                        case 'sqrt':
+                            lispExpr = hp41.lisp_sqrt();
+                            logCalcHistory('√x : ' + lispExpr);
+                            break;
+                        case 'x2':
+                            lispExpr = '(setq last-x stack-x) (setq stack-x (* stack-x stack-x))';
+                            logCalcHistory('x² : ' + lispExpr);
+                            break;
+                        case '1/x':
+                            lispExpr = hp41.lisp_inv();
+                            logCalcHistory('1/x : ' + lispExpr);
+                            break;
+                        case 'sin':
+                            lispExpr = hp41.lisp_sin();
+                            logCalcHistory('SIN : ' + lispExpr);
+                            break;
+                        case 'cos':
+                            lispExpr = hp41.lisp_cos();
+                            logCalcHistory('COS : ' + lispExpr);
+                            break;
+                        case 'tan':
+                            lispExpr = hp41.lisp_tan();
+                            logCalcHistory('TAN : ' + lispExpr);
+                            break;
+                        case 'asin':
+                            lispExpr = '(setq last-x stack-x) (setq stack-x (asin stack-x))';
+                            logCalcHistory('ASIN : ' + lispExpr);
+                            break;
+                        case 'acos':
+                            lispExpr = '(setq last-x stack-x) (setq stack-x (acos stack-x))';
+                            logCalcHistory('ACOS : ' + lispExpr);
+                            break;
+                        case 'atan':
+                            lispExpr = '(setq last-x stack-x) (setq stack-x (atan stack-x))';
+                            logCalcHistory('ATAN : ' + lispExpr);
+                            break;
+                        case 'log':
+                            lispExpr = hp41.lisp_log();
+                            logCalcHistory('LOG : ' + lispExpr);
+                            break;
+                        case 'ln':
+                            lispExpr = hp41.lisp_ln();
+                            logCalcHistory('LN : ' + lispExpr);
+                            break;
+                        case '10x':
+                            lispExpr = '(setq last-x stack-x) (setq stack-x (expt 10 stack-x))';
+                            logCalcHistory('10^x : ' + lispExpr);
+                            break;
+                        case 'ex':
+                            lispExpr = '(setq last-x stack-x) (setq stack-x (exp stack-x))';
+                            logCalcHistory('e^x : ' + lispExpr);
+                            break;
+
+                        // Constants - transpile to LISP
+                        case 'pi':
+                            lispExpr = hp41.lisp_pi();
+                            logCalcHistory('π : ' + lispExpr);
+                            break;
+                        case 'lastx':
+                            lispExpr = hp41.lisp_last_x();
+                            logCalcHistory('LAST X : ' + lispExpr);
+                            break;
+
+                        // Stack operations - transpile to LISP
+                        case 'xchg':
+                            lispExpr = hp41.lisp_swap();
+                            logCalcHistory('x⇔y : ' + lispExpr);
+                            break;
+                        case 'roll':
+                            lispExpr = hp41.lisp_roll_down();
+                            logCalcHistory('R↓ : ' + lispExpr);
+                            break;
+                        case 'clx':
+                        case 'clxa':
+                            lispExpr = hp41.lisp_clear_x();
+                            logCalcHistory('CLx : ' + lispExpr);
+                            break;
+
+                        // Conversions (not yet in LISP)
+                        case 'p2r': logCalcHistory('P→R: Not yet in LISP'); break;
+                        case 'r2p': logCalcHistory('R→P: Not yet in LISP'); break;
+                        case 'percent':
+                            lispExpr = '(setq last-x stack-x) (setq stack-x (* stack-y (/ stack-x 100)))';
+                            logCalcHistory('% : ' + lispExpr);
+                            break;
+
+                        // Display modes
+                        case 'fix':
+                            const fixDigits = Math.floor(parseFloat(formatNumber(engine.eval('stack-x'))) || 4);
+                            hp41.set_fix(fixDigits);
+                            logCalcHistory('FIX ' + fixDigits);
+                            output.textContent = 'FIX ' + fixDigits;
+                            break;
+                        case 'sci':
+                            const sciDigits = Math.floor(parseFloat(formatNumber(engine.eval('stack-x'))) || 4);
+                            hp41.set_sci(sciDigits);
+                            logCalcHistory('SCI ' + sciDigits);
+                            output.textContent = 'SCI ' + sciDigits;
+                            break;
+                        case 'eng':
+                            const engDigits = Math.floor(parseFloat(formatNumber(engine.eval('stack-x'))) || 4);
+                            hp41.set_eng(engDigits);
+                            logCalcHistory('ENG ' + engDigits);
+                            output.textContent = 'ENG ' + engDigits;
+                            break;
+
+                        // Statistics (not yet in LISP)
+                        case 'sigma+': logCalcHistory('Σ+: Not yet in LISP'); break;
+                        case 'sigma-': logCalcHistory('Σ-: Not yet in LISP'); break;
+                        case 'clsigma': logCalcHistory('CLΣ: Not yet in LISP'); break;
+
+                        // Tests
+                        case 'xeqy':
+                            const xeqy = engine.eval('(= stack-x stack-y)');
+                            output.textContent = 'x=y? ' + (xeqy ? 'YES' : 'NO');
+                            updateHP41CDisplay();
+                            return;
+                        case 'xley':
+                            const xley = engine.eval('(<= stack-x stack-y)');
+                            output.textContent = 'x≤y? ' + (xley ? 'YES' : 'NO');
+                            updateHP41CDisplay();
+                            return;
+                        case 'xgty':
+                            const xgty = engine.eval('(> stack-x stack-y)');
+                            output.textContent = 'x>y? ' + (xgty ? 'YES' : 'NO');
+                            updateHP41CDisplay();
+                            return;
+                        case 'xeq0':
+                            const xeq0 = engine.eval('(= stack-x 0)');
+                            output.textContent = 'x=0? ' + (xeq0 ? 'YES' : 'NO');
+                            updateHP41CDisplay();
+                            return;
+
+                        // BEEP
+                        case 'beep':
+                            try {
+                                const ctx = new (window.AudioContext || window.webkitAudioContext)();
+                                const osc = ctx.createOscillator();
+                                const gain = ctx.createGain();
+                                osc.connect(gain); gain.connect(ctx.destination);
+                                osc.frequency.value = 2000; osc.type = 'square'; gain.gain.value = 0.1;
+                                osc.start(); setTimeout(() => osc.stop(), 100);
+                            } catch(e) {}
+                            logCalcHistory('BEEP');
+                            output.textContent = 'BEEP!';
+                            return;
+
+                        // View
+                        case 'view':
+                            const viewX = formatNumber(engine.eval('stack-x'));
+                            output.textContent = 'X = ' + viewX;
+                            logCalcHistory('VIEW: ' + viewX);
+                            return;
+
+                        // Reset
+                        case 'on':
+                            lispExpr = hp41.lisp_clear_stack();
+                            logCalcHistory('ON: ' + lispExpr);
+                            hp41cInputBuffer = '';
+                            hp41cEntryMode = false;
+                            programPC = 0;
+                            if (hp41Transpiler) {
+                                hp41Transpiler.reset();
+                            }
+                            output.textContent = 'Calculator ON';
+                            break;
+
+                        // R/S - Run/Stop program
+                        case 'rs':
+                            if (programSteps.length === 0) {
+                                output.textContent = 'No program';
+                                logCalcHistory('R/S: No program loaded');
+                                return;
+                            }
+                            try {
+                                output.textContent = 'Running...';
+                                logCalcHistory('R/S: Running program (' + programSteps.length + ' steps)');
+
+                                // Reset PC and execute each step directly on the HP41Calculator
+                                programPC = 0;
+                                for (let i = 0; i < programSteps.length; i++) {
+                                    const step = programSteps[i];
+                                    executeStep(step);
+                                    programPC++;
+                                }
+                                const resultX = formatNumber(engine.eval('stack-x'));
+                                output.textContent = 'Done. X = ' + resultX;
+                                logCalcHistory('Result: X = ' + resultX);
+                            } catch (e) {
+                                output.textContent = 'Error: ' + e.message;
+                                logCalcHistory('R/S Error: ' + e.message);
+                            }
+                            break;
+
+                        // SST in RUN mode - single step execution
+                        case 'sst':
+                            if (programSteps.length === 0) {
+                                output.textContent = 'No program';
+                                return;
+                            }
+                            try {
+                                if (programPC < programSteps.length) {
+                                    const instr = programSteps[programPC];
+                                    executeStep(instr);
+                                    output.textContent = (programPC + 1).toString().padStart(2, '0') + ' ' + instr;
+                                    logCalcHistory('SST: ' + instr + ' → X=' + formatNumber(engine.eval('stack-x')));
+                                    programPC++;
+                                } else {
+                                    output.textContent = 'End of program';
+                                    programPC = 0;  // Reset for next run
+                                }
+                            } catch (e) {
+                                output.textContent = 'SST Error: ' + e.message;
+                            }
+                            break;
+
+                        // BST in RUN mode - back step (just move PC back, don't execute)
+                        case 'bst':
+                            if (programSteps.length > 0 && programPC > 0) {
+                                programPC--;
+                                const instr = programSteps[programPC];
+                                output.textContent = (programPC + 1).toString().padStart(2, '0') + ' ' + instr;
+                                logCalcHistory('BST: PC=' + (programPC + 1));
+                            }
+                            break;
+
+                        // Not implemented
+                        default:
+                            output.textContent = actualKey.toUpperCase() + ': Not implemented';
+                            return;
+                    }
+
+                    // Execute the LISP expression
+                    if (lispExpr) {
+                        engine.eval(lispExpr);
+                    }
+
+                    updateHP41CDisplay();
+                } catch (e) {
+                    output.textContent = 'Error: ' + e.message;
+                    console.error('HP41 error:', e);
+                }
+            }
+
+            function updateHP41CDisplay() {
+                try {
+                    // Check if in PRGM mode - show instruction instead of stack
+                    if (hp41Transpiler && hp41Transpiler.is_prgm_mode()) {
+                        // Show current program step at PC position
+                        let displayStr;
+                        if (hp41cEntryMode && hp41cInputBuffer) {
+                            // Entering a new value
+                            const stepNum = (programSteps.length + 1).toString().padStart(2, '0');
+                            displayStr = stepNum + ' ' + hp41cInputBuffer + '_';
+                        } else if (programPC < programSteps.length) {
+                            // Viewing existing step
+                            const stepNum = (programPC + 1).toString().padStart(2, '0');
+                            displayStr = stepNum + ' ' + programSteps[programPC];
+                        } else if (programSteps.length > 0) {
+                            // At end of program
+                            const stepNum = (programSteps.length + 1).toString().padStart(2, '0');
+                            displayStr = stepNum + ' .END.';
+                        } else {
+                            displayStr = '00 .END.';
+                        }
+
+                        drawHP41CLCD(displayStr);
+
+                        // Update stack view to show program info
+                        document.getElementById('stackT').textContent = 'PRGM';
+                        document.getElementById('stackZ').textContent = 'Steps: ' + programSteps.length;
+                        document.getElementById('stackY').textContent = 'PC: ' + (programPC + 1);
+                        return;
+                    }
+
+                    // Get stack values from LISP engine
+                    const x = hp41cEntryMode && hp41cInputBuffer
+                        ? hp41cInputBuffer
+                        : formatNumber(engine.eval('stack-x'));
+                    const y = formatNumber(engine.eval('stack-y'));
+                    const z = formatNumber(engine.eval('stack-z'));
+                    const t = formatNumber(engine.eval('stack-t'));
+
+                    // Update stack view
+                    document.getElementById('stackT').textContent = 'T: ' + t;
+                    document.getElementById('stackZ').textContent = 'Z: ' + z;
+                    document.getElementById('stackY').textContent = 'Y: ' + y;
+
+                    // Draw LCD display
+                    const displayStr = hp41cEntryMode && hp41cInputBuffer ? hp41cInputBuffer : x;
+                    drawHP41CLCD(displayStr);
+                } catch (e) {
+                    console.error('Display update error:', e);
+                }
+            }
+
+            // 14-segment character patterns (a,b,c,d,e,f,g1,g2,h,i,j,k,l,m)
+            const HP41_CHARS = {
+                '0': [1,1,1,1,1,1,0,0,0,0,1,0,0,0],
+                '1': [0,1,1,0,0,0,0,0,0,0,0,0,0,0],
+                '2': [1,1,0,1,1,0,1,1,0,0,0,0,0,0],
+                '3': [1,1,1,1,0,0,1,1,0,0,0,0,0,0],
+                '4': [0,1,1,0,0,1,1,1,0,0,0,0,0,0],
+                '5': [1,0,1,1,0,1,1,1,0,0,0,0,0,0],
+                '6': [1,0,1,1,1,1,1,1,0,0,0,0,0,0],
+                '7': [1,1,1,0,0,0,0,0,0,0,0,0,0,0],
+                '8': [1,1,1,1,1,1,1,1,0,0,0,0,0,0],
+                '9': [1,1,1,1,0,1,1,1,0,0,0,0,0,0],
+                'A': [1,1,1,0,1,1,1,1,0,0,0,0,0,0],
+                'B': [1,1,1,1,0,0,0,1,0,1,0,0,1,0],
+                'C': [1,0,0,1,1,1,0,0,0,0,0,0,0,0],
+                'D': [1,1,1,1,0,0,0,0,0,1,0,0,1,0],
+                'E': [1,0,0,1,1,1,1,0,0,0,0,0,0,0],
+                'F': [1,0,0,0,1,1,1,0,0,0,0,0,0,0],
+                'G': [1,0,1,1,1,1,0,1,0,0,0,0,0,0],
+                'H': [0,1,1,0,1,1,1,1,0,0,0,0,0,0],
+                'I': [1,0,0,1,0,0,0,0,0,1,0,0,1,0],
+                'J': [0,1,1,1,1,0,0,0,0,0,0,0,0,0],
+                'K': [0,0,0,0,1,1,1,0,0,0,1,1,0,0],
+                'L': [0,0,0,1,1,1,0,0,0,0,0,0,0,0],
+                'M': [0,1,1,0,1,1,0,0,1,0,1,0,0,0],
+                'N': [0,1,1,0,1,1,0,0,1,0,0,1,0,0],
+                'O': [1,1,1,1,1,1,0,0,0,0,0,0,0,0],
+                'P': [1,1,0,0,1,1,1,1,0,0,0,0,0,0],
+                'Q': [1,1,1,1,1,1,0,0,0,0,0,1,0,0],
+                'R': [1,1,0,0,1,1,1,1,0,0,0,1,0,0],
+                'S': [1,0,1,1,0,1,1,1,0,0,0,0,0,0],
+                'T': [1,0,0,0,0,0,0,0,0,1,0,0,1,0],
+                'U': [0,1,1,1,1,1,0,0,0,0,0,0,0,0],
+                'V': [0,0,0,0,1,1,0,0,0,0,1,0,0,1],
+                'W': [0,1,1,0,1,1,0,0,0,0,0,1,0,1],
+                'X': [0,0,0,0,0,0,0,0,1,0,1,1,0,1],
+                'Y': [0,0,0,0,0,0,0,0,1,0,1,0,1,0],
+                'Z': [1,0,0,1,0,0,0,0,0,0,1,0,0,1],
+                '-': [0,0,0,0,0,0,1,1,0,0,0,0,0,0],
+                '+': [0,0,0,0,0,0,1,1,0,1,0,0,1,0],
+                '*': [0,0,0,0,0,0,1,1,1,1,1,1,1,1],
+                '/': [0,0,0,0,0,0,0,0,0,0,1,0,0,1],
+                '^': [0,0,0,0,0,0,0,0,1,0,1,0,0,0],
+                '<': [0,0,0,0,0,0,0,0,0,0,1,1,0,0],
+                '>': [0,0,0,0,0,0,0,0,1,0,0,0,0,1],
+                '_': [0,0,0,1,0,0,0,0,0,0,0,0,0,0],
+                '↓': [0,0,0,0,0,0,0,0,0,0,0,1,1,1],
+                'Σ': [1,0,0,1,0,0,0,0,0,0,1,1,0,1],
+                ' ': [0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+                '.': [0,0,0,0,0,0,0,0,0,0,0,0,0,0]
+            };
+
+            function drawHP41CLCD(displayStr) {
+                const canvas = document.getElementById('calcLcdCanvas');
+                if (!canvas) return;
+                const ctx = canvas.getContext('2d');
+
+                // Clear canvas - HP-41C LCD background
+                ctx.fillStyle = '#a8b890';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+                let str = displayStr.toUpperCase();
+                // Only add trailing decimal for numbers (not in PRGM mode text)
+                const isNumeric = /^-?[\d.]+([eE]-?\d+)?$/.test(str.replace(/[._]/g, ''));
+                if (isNumeric && !str.includes('.') && !str.includes('E')) str += '.';
+
+                // Character dimensions
+                const charWidth = 18;
+                const charHeight = 24;
+                const charSpacing = 24;
+                const maxChars = 12;
+                const startY = 4;
+
+                // Calculate start position (right-aligned)
+                const charsWithoutDot = str.replace(/\./g, '').length;
+                const numChars = Math.min(charsWithoutDot, maxChars);
+                const startX = canvas.width - numChars * charSpacing - 8;
+
+                let xPos = startX;
+                let charCount = 0;
+
+                for (let i = 0; i < str.length && charCount < maxChars; i++) {
+                    const ch = str[i];
+
+                    if (ch === '.') {
+                        // Draw decimal point
+                        ctx.fillStyle = '#1a2a12';
+                        ctx.beginPath();
+                        ctx.arc(xPos - charSpacing/2 + 9, startY + charHeight - 3, 2.5, 0, Math.PI * 2);
+                        ctx.fill();
+                        continue;
+                    }
+
+                    draw14Segment(ctx, xPos, startY, charWidth, charHeight, ch);
+                    xPos += charSpacing;
+                    charCount++;
+                }
+            }
+
+            function draw14Segment(ctx, x, y, w, h, char) {
+                const pattern = HP41_CHARS[char] || HP41_CHARS[' '];
+                const onColor = '#1a2a12';
+                const sw = 2;
+                const hw = w / 2, hh = h / 2;
+                const cx = x + hw, cy = y + hh;
+                const gap = 1;
+
+                // Only draw segments that are ON
+                const drawSeg = (isOn, drawFn) => { if (isOn) { ctx.fillStyle = onColor; drawFn(); } };
+
+                drawSeg(pattern[0], () => ctx.fillRect(x + gap + 2, y, w - gap*2 - 4, sw));           // a: top
+                drawSeg(pattern[1], () => ctx.fillRect(x + w - sw - 1, y + gap + 1, sw, hh - gap*2 - 1)); // b: upper right
+                drawSeg(pattern[2], () => ctx.fillRect(x + w - sw - 1, cy + gap, sw, hh - gap*2 - 1));    // c: lower right
+                drawSeg(pattern[3], () => ctx.fillRect(x + gap + 2, y + h - sw, w - gap*2 - 4, sw));  // d: bottom
+                drawSeg(pattern[4], () => ctx.fillRect(x + 1, cy + gap, sw, hh - gap*2 - 1));         // e: lower left
+                drawSeg(pattern[5], () => ctx.fillRect(x + 1, y + gap + 1, sw, hh - gap*2 - 1));      // f: upper left
+                drawSeg(pattern[6], () => ctx.fillRect(x + gap + 2, cy - sw/2, hw - gap*2 - 2, sw));  // g1: mid left
+                drawSeg(pattern[7], () => ctx.fillRect(cx + gap, cy - sw/2, hw - gap*2 - 2, sw));     // g2: mid right
+                drawSeg(pattern[8], () => drawDiag(ctx, x + gap + 3, y + gap + 2, cx - gap - 1, cy - gap - 1, sw));  // h
+                drawSeg(pattern[9], () => ctx.fillRect(cx - sw/2, y + gap + 2, sw, hh - gap*2 - 2));  // i: upper mid
+                drawSeg(pattern[10], () => drawDiag(ctx, x + w - gap - 3, y + gap + 2, cx + gap + 1, cy - gap - 1, sw)); // j
+                drawSeg(pattern[11], () => drawDiag(ctx, x + gap + 3, y + h - gap - 2, cx - gap - 1, cy + gap + 1, sw)); // k
+                drawSeg(pattern[12], () => ctx.fillRect(cx - sw/2, cy + gap, sw, hh - gap*2 - 2));    // l: lower mid
+                drawSeg(pattern[13], () => drawDiag(ctx, x + w - gap - 3, y + h - gap - 2, cx + gap + 1, cy + gap + 1, sw)); // m
+            }
+
+            function drawDiag(ctx, x1, y1, x2, y2, thickness) {
+                ctx.save();
+                ctx.lineWidth = thickness;
+                ctx.lineCap = 'round';
+                ctx.strokeStyle = ctx.fillStyle;
+                ctx.beginPath();
+                ctx.moveTo(x1, y1);
+                ctx.lineTo(x2, y2);
+                ctx.stroke();
+                ctx.restore();
+            }
+
+
+            function logCalcHistory(msg) {
+                const history = document.getElementById('calcHistory');
+                const line = document.createElement('div');
+                line.style.borderBottom = '1px solid #222';
+                line.style.padding = '3px 0';
+                line.innerHTML = `<span style="color:#666">${new Date().toLocaleTimeString()}</span> <span style="color:#00ff88">${msg}</span>`;
+                history.appendChild(line);
+                history.scrollTop = history.scrollHeight;
+            }
+
+            // ============================================
+            // Plotter functionality
             // ============================================
 
             document.getElementById('plotExamples').onchange = (e) => {
@@ -1505,6 +4412,89 @@ dispatchEvent(new CustomEvent("TrunkApplicationStarted", {detail: {wasm}}));
                 document.getElementById('plotOutput').textContent = '';
                 document.getElementById('plotStats').textContent = '';
             };
+
+            // Plotter debug mode
+            let plotDebugMode = false;
+            let plotDebugExpressions = [];
+            let plotDebugIndex = 0;
+
+            document.getElementById('debugPlot').onclick = () => {
+                const code = document.getElementById('plotCode').value;
+                const output = document.getElementById('plotOutput');
+
+                // Parse expressions
+                plotDebugExpressions = parseLispExpressions(code);
+                if (plotDebugExpressions.length === 0) {
+                    output.textContent = 'No expressions to debug';
+                    return;
+                }
+
+                plotDebugIndex = 0;
+                plotDebugMode = true;
+                engine.clear();
+
+                // Show step buttons, hide debug button
+                document.getElementById('debugPlot').style.display = 'none';
+                document.getElementById('debugStepPlot').style.display = 'inline-block';
+                document.getElementById('debugStopPlot').style.display = 'inline-block';
+                document.getElementById('plotFunction').style.display = 'none';
+
+                output.textContent = `Debug mode: ${plotDebugExpressions.length} expressions\nClick "Step" to execute each expression`;
+                highlightPlotExpression(0);
+            };
+
+            document.getElementById('debugStepPlot').onclick = () => {
+                if (!plotDebugMode || plotDebugIndex >= plotDebugExpressions.length) return;
+
+                const expr = plotDebugExpressions[plotDebugIndex];
+                const output = document.getElementById('plotOutput');
+
+                try {
+                    const result = engine.eval(expr.code);
+                    const entityCount = engine.entity_count();
+                    output.textContent = `[${plotDebugIndex + 1}/${plotDebugExpressions.length}] ${expr.code.substring(0, 50)}...\n=> ${result}\nEntities: ${entityCount}`;
+                } catch (e) {
+                    output.textContent = `[${plotDebugIndex + 1}/${plotDebugExpressions.length}] Error: ${e.message}`;
+                }
+
+                plotDebugIndex++;
+                if (plotDebugIndex >= plotDebugExpressions.length) {
+                    // All done - now plot if f(x) is defined
+                    output.textContent += '\n\nDebug complete! Plotting f(x)...';
+                    setTimeout(() => {
+                        stopPlotDebug();
+                        document.getElementById('plotFunction').click();
+                    }, 500);
+                } else {
+                    highlightPlotExpression(plotDebugIndex);
+                }
+            };
+
+            document.getElementById('debugStopPlot').onclick = stopPlotDebug;
+
+            function stopPlotDebug() {
+                plotDebugMode = false;
+                plotDebugExpressions = [];
+                plotDebugIndex = 0;
+
+                document.getElementById('debugPlot').style.display = 'inline-block';
+                document.getElementById('debugStepPlot').style.display = 'none';
+                document.getElementById('debugStopPlot').style.display = 'none';
+                document.getElementById('plotFunction').style.display = 'inline-block';
+
+                // Clear highlight
+                document.getElementById('plotCode').style.background = '#1a1a2e';
+            }
+
+            function highlightPlotExpression(idx) {
+                const textarea = document.getElementById('plotCode');
+                if (idx < 0 || idx >= plotDebugExpressions.length) {
+                    return;
+                }
+                const expr = plotDebugExpressions[idx];
+                textarea.focus();
+                textarea.setSelectionRange(expr.start, expr.end);
+            }
 
             // ============================================
             // SLIDE 17: Benchmark Comparison
@@ -1556,6 +4546,18 @@ dispatchEvent(new CustomEvent("TrunkApplicationStarted", {detail: {wasm}}));
             // Load XLISP module
             async function loadXlisp() {
                 try {
+                    // Check if SharedArrayBuffer is available (requires COOP/COEP headers)
+                    const coopCoepAvailable = typeof SharedArrayBuffer !== 'undefined' && crossOriginIsolated;
+                    if (!coopCoepAvailable) {
+                        console.log('XLISP: SharedArrayBuffer not available (missing COOP/COEP headers)');
+                        console.log('  crossOriginIsolated:', crossOriginIsolated);
+                        console.log('  To enable: server must send Cross-Origin-Opener-Policy: same-origin');
+                        console.log('             and Cross-Origin-Embedder-Policy: require-corp');
+                        document.getElementById('xlispStatus').textContent = 'Needs COOP/COEP';
+                        document.getElementById('xlispPanel').title = 'XLISP requires Cross-Origin-Opener-Policy and Cross-Origin-Embedder-Policy headers. Works on acadlisp.de';
+                        return;
+                    }
+
                     // Dynamically import XLISP
                     const script = document.createElement('script');
                     script.src = 'xlisp.js';
@@ -1580,13 +4582,36 @@ dispatchEvent(new CustomEvent("TrunkApplicationStarted", {detail: {wasm}}));
                             document.getElementById('xlispPanel').style.opacity = '1';
                             document.getElementById('xlispStatus').textContent = 'Ready';
                             console.log('XLISP 3.3 engine initialized');
+
+                            // Try HTTP GET for version checking
+                            try {
+                                const versionUrl = window.location.origin + '/version.txt';
+                                console.log('Checking remote version from:', versionUrl);
+                                const remoteVersion = xlispEngine.ccall('xlisp_http_get', 'string', ['string'], [versionUrl]);
+                                const httpStatus = xlispEngine._xlisp_http_status();
+                                console.log('HTTP GET result:', remoteVersion, 'status:', httpStatus);
+
+                                if (httpStatus === 200 && !remoteVersion.startsWith('ERROR:')) {
+                                    const localVersion = '0.1.0'; // TODO: get from engine_info
+                                    console.log('Version check - Local:', localVersion, 'Remote:', remoteVersion.trim());
+                                    if (remoteVersion.trim() !== localVersion) {
+                                        console.warn('Version mismatch! Update available:', remoteVersion.trim());
+                                    }
+                                }
+                            } catch (e) {
+                                console.log('Version check skipped:', e.message);
+                            }
                         } else {
                             document.getElementById('xlispStatus').textContent = 'Init failed';
                         }
                     }
                 } catch (e) {
                     console.log('XLISP not available:', e.message);
-                    document.getElementById('xlispStatus').textContent = 'Load failed';
+                    if (e.message.includes('SharedArrayBuffer') || e.message.includes('crossOriginIsolated')) {
+                        document.getElementById('xlispStatus').textContent = 'Needs COOP/COEP';
+                    } else {
+                        document.getElementById('xlispStatus').textContent = 'Load failed';
+                    }
                 }
             }
             loadXlisp();

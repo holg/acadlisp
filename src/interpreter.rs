@@ -5,6 +5,34 @@ use crate::parser::Expr;
 use std::collections::HashMap;
 use std::fs::File;
 use std::io::{BufRead, BufReader, Write};
+use std::sync::Arc;
+
+/// Context passed to foreign (extension) functions.
+///
+/// This avoids borrow conflicts with the Interpreter by only exposing
+/// the mutable fields that extensions typically need.
+pub struct ForeignContext<'a> {
+    pub output: &'a mut Vec<String>,
+    pub globals: &'a mut HashMap<String, Expr>,
+    pub drawing: &'a mut DrawingState,
+    /// Opaque user data set by the embedding application.
+    /// Downcast to your application-specific state type.
+    pub user_data: &'a mut dyn std::any::Any,
+}
+
+/// Type alias for foreign function closures.
+pub type ForeignFn = Arc<dyn Fn(&mut ForeignContext, &[Expr]) -> Expr + Send + Sync>;
+
+/// CAD type determines coordinate system and rendering behavior
+/// - RustLisp: AutoCAD-style, Y increases upward, large coordinates (0-1000+)
+/// - KiCad: Electronic symbol style, Y increases upward but centered at origin, small coords (-50 to 50)
+#[derive(Debug, Clone, Copy, PartialEq, Default)]
+#[allow(dead_code)]
+pub enum CadType {
+    #[default]
+    RustLisp,
+    KiCad,
+}
 
 // Simulated AutoCAD drawing entity
 #[derive(Debug, Clone)]
@@ -51,6 +79,40 @@ pub enum DrawEntity {
         rotation: f64,
         layer: String,
     },
+    // KiCad specific entities
+    Pin {
+        name: String,
+        number: String,
+        etype: String,
+        style: String,
+        x: f64,
+        y: f64,
+        length: f64,
+        rotation: f64,
+        layer: String,
+    },
+    Property {
+        key: String,
+        value: String,
+        x: f64,
+        y: f64,
+        rotation: f64,
+        height: f64,
+        visible: bool,
+        layer: String,
+    },
+    Pad {
+        name: String,
+        ptype: String, // smd, thru_hole, etc
+        shape: String, // rect, circle, oval, etc
+        x: f64,
+        y: f64,
+        width: f64,
+        height: f64,
+        drill: f64,
+        rotation: f64,
+        layers: String, // list of layers (e.g., "*.Cu" or "F.Cu,F.Paste")
+    },
 }
 
 // Simulated AutoCAD drawing state
@@ -62,6 +124,7 @@ pub struct DrawingState {
     pub current_color: i32,
     pub current_point: Option<(f64, f64, f64)>,
     pub system_variables: HashMap<String, Expr>,
+    pub cad_type: CadType,
 }
 
 impl DrawingState {
@@ -72,6 +135,7 @@ impl DrawingState {
             current_color: 7,
             current_point: None,
             system_variables: HashMap::new(),
+            cad_type: CadType::default(),
         };
         // Initialize some common system variables
         state
@@ -116,6 +180,10 @@ pub struct Interpreter {
     pub command_log: Vec<String>,
     // Output buffer for PRINC/PRINT
     pub output: Vec<String>,
+    // Foreign (extension) functions registered by embedding applications
+    pub foreign_fns: HashMap<String, ForeignFn>,
+    // Opaque user data for embedding applications
+    pub user_data: Box<dyn std::any::Any + Send>,
 }
 
 impl Interpreter {
@@ -129,7 +197,19 @@ impl Interpreter {
             drawing: DrawingState::new(),
             command_log: Vec::new(),
             output: Vec::new(),
+            foreign_fns: HashMap::new(),
+            user_data: Box::new(()),
         }
+    }
+
+    /// Register an external function callable from Lisp code.
+    /// The name is uppercased to match AutoLISP convention.
+    pub fn register_fn<F>(&mut self, name: &str, f: F)
+    where
+        F: Fn(&mut ForeignContext, &[Expr]) -> Expr + Send + Sync + 'static,
+    {
+        self.foreign_fns
+            .insert(name.to_uppercase(), Arc::new(f));
     }
 
     fn get_var(&self, name: &str) -> Expr {
@@ -210,6 +290,17 @@ impl Interpreter {
         // Check for user-defined function
         if let Some(func) = self.functions.get(func_name).cloned() {
             return self.call_user_function(&func, &evaled_args);
+        }
+
+        // Check for foreign (extension) functions
+        if let Some(f) = self.foreign_fns.get(func_name).cloned() {
+            let mut ctx = ForeignContext {
+                output: &mut self.output,
+                globals: &mut self.globals,
+                drawing: &mut self.drawing,
+                user_data: self.user_data.as_mut(),
+            };
+            return f(&mut ctx, &evaled_args);
         }
 
         // Built-in functions
@@ -337,6 +428,11 @@ impl Interpreter {
             "ENTMAKE" => self.builtin_entmake(&evaled_args),
             "ENTNEXT" => Expr::Nil,
             "ENTLAST" => Expr::Nil,
+
+            // KiCad extensions
+            "KICAD-PIN" => self.builtin_kicad_pin(&evaled_args),
+            "KICAD-PROP" => self.builtin_kicad_prop(&evaled_args),
+            "KICAD-PAD" => self.builtin_kicad_pad(&evaled_args),
 
             // Selection sets (simulated)
             "SSGET" => Expr::Nil,
@@ -1575,9 +1671,9 @@ impl Interpreter {
                     "CIRCLE" => self.simulate_circle_command(&args[1..]),
                     "TEXT" => self.simulate_text_command(&args[1..]),
                     "INSERT" => self.simulate_insert_command(&args[1..]),
-                    "LAYER" => {}  // Layer management
-                    "-LAYER" => {} // Non-dialog layer
-                    "ZOOM" => {}   // View manipulation
+                    "LAYER" => self.simulate_layer_command(&args[1..]),
+                    "-LAYER" => self.simulate_layer_command(&args[1..]),
+                    "ZOOM" => {} // View manipulation
                     "PAN" => {}
                     "SAVE" => {}
                     "SAVEAS" => {}
@@ -1700,6 +1796,31 @@ impl Interpreter {
         }
     }
 
+    fn simulate_layer_command(&mut self, args: &[Expr]) {
+        // Basic simulation: (command "LAYER" "S" "LayerName" "")
+        // Args usually: "S" "LayerName" ""
+        let mut i = 0;
+        while i < args.len() {
+            if let Expr::String(opt) = &args[i] {
+                match opt.to_uppercase().as_str() {
+                    "S" | "SET" => {
+                        if i + 1 < args.len() {
+                            if let Expr::String(layer) = &args[i + 1] {
+                                self.drawing.current_layer = layer.clone();
+                                self.drawing
+                                    .system_variables
+                                    .insert("CLAYER".to_string(), Expr::String(layer.clone()));
+                            }
+                            i += 1;
+                        }
+                    }
+                    _ => {}
+                }
+            }
+            i += 1;
+        }
+    }
+
     fn builtin_getvar(&self, args: &[Expr]) -> Expr {
         match args.first() {
             Some(Expr::String(name)) => self
@@ -1818,6 +1939,129 @@ impl Interpreter {
             }
         }
         Expr::Nil
+    }
+
+    // KiCad Extensions
+
+    fn builtin_kicad_pin(&mut self, args: &[Expr]) -> Expr {
+        // (kicad-pin name number type style x y length rotation)
+        if args.len() < 8 {
+            return Expr::Nil;
+        }
+
+        let name = match &args[0] {
+            Expr::String(s) => s.clone(),
+            other => format!("{}", other),
+        };
+        let number = match &args[1] {
+            Expr::String(s) => s.clone(),
+            other => format!("{}", other),
+        };
+        let etype = match &args[2] {
+            Expr::String(s) => s.clone(),
+            _ => "passive".to_string(),
+        };
+        let style = match &args[3] {
+            Expr::String(s) => s.clone(),
+            _ => "line".to_string(),
+        };
+        let x = args[4].as_real().unwrap_or(0.0);
+        let y = args[5].as_real().unwrap_or(0.0);
+        let length = args[6].as_real().unwrap_or(2.54); // Default 0.1"
+        let rotation = args[7].as_real().unwrap_or(0.0);
+
+        self.drawing.entities.push(DrawEntity::Pin {
+            name: name.clone(),
+            number,
+            etype,
+            style,
+            x,
+            y,
+            length,
+            rotation,
+            layer: self.drawing.current_layer.clone(),
+        });
+
+        Expr::String(name)
+    }
+
+    fn builtin_kicad_prop(&mut self, args: &[Expr]) -> Expr {
+        // (kicad-prop key value x y rotation height visible)
+        if args.len() < 7 {
+            return Expr::Nil;
+        }
+
+        let key = match &args[0] {
+            Expr::String(s) => s.clone(),
+            other => format!("{}", other),
+        };
+        let value = match &args[1] {
+            Expr::String(s) => s.clone(),
+            other => format!("{}", other),
+        };
+        let x = args[2].as_real().unwrap_or(0.0);
+        let y = args[3].as_real().unwrap_or(0.0);
+        let rotation = args[4].as_real().unwrap_or(0.0);
+        let height = args[5].as_real().unwrap_or(1.27); // Default 0.05"
+        let visible = args[6].is_truthy();
+
+        self.drawing.entities.push(DrawEntity::Property {
+            key: key.clone(),
+            value,
+            x,
+            y,
+            rotation,
+            height,
+            visible,
+            layer: self.drawing.current_layer.clone(),
+        });
+
+        Expr::String(key)
+    }
+
+    fn builtin_kicad_pad(&mut self, args: &[Expr]) -> Expr {
+        // (kicad-pad name type shape x y w h drill rot layers)
+        if args.len() < 10 {
+            return Expr::Nil;
+        }
+
+        let name = match &args[0] {
+            Expr::String(s) => s.clone(),
+            other => format!("{}", other),
+        };
+        let ptype = match &args[1] {
+            Expr::String(s) => s.clone(),
+            _ => "smd".to_string(),
+        };
+        let shape = match &args[2] {
+            Expr::String(s) => s.clone(),
+            _ => "rect".to_string(),
+        };
+        let x = args[3].as_real().unwrap_or(0.0);
+        let y = args[4].as_real().unwrap_or(0.0);
+        let width = args[5].as_real().unwrap_or(1.0);
+        let height = args[6].as_real().unwrap_or(1.0);
+        let drill = args[7].as_real().unwrap_or(0.0);
+        let rotation = args[8].as_real().unwrap_or(0.0);
+        let layers = match &args[9] {
+            Expr::String(s) => s.clone(),
+            _ => "F.Cu".to_string(),
+        };
+
+        self.drawing.entities.push(DrawEntity::Pad {
+            name: name.clone(),
+            ptype,
+            shape,
+            x,
+            y,
+            width,
+            height,
+            drill,
+            rotation,
+            layers,
+        });
+
+        Expr::String(name)
     }
 
     fn builtin_apply(&mut self, args: &[Expr]) -> Expr {
