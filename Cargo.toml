@@ -1,9 +1,9 @@
 [package]
 name = "acadlisp"
-version = "0.1.0"
+version = "0.2.0"
 edition = "2021"
 description = "AutoLISP interpreter and mini CAD engine - CSV/TPL/LSP workflow emulator for AutoCAD 9/10 (DOS era)"
-repository = "https://github.com/acadlisp/acadlisp"
+repository = "https://github.com/holg/acadlisp"
 homepage = "https://acadlisp.de"
 keywords = ["autolisp", "lisp", "cad", "dxf", "wasm"]
 categories = ["graphics", "mathematics", "wasm"]
