@@ -40,13 +40,24 @@ Same machine, same harness, both crates on their patched branches:
 |---|---:|---:|---:|---:|---:|
 | fib | 391 | 62 | 28 | 12 | 5.2x |
 | loop_sum | 71 | 64 | 10 | 10 | 6.3x |
-| list_ops | 3.1 | 2.9 | 9.1 | 8.9 | 0.32x |
+| list_ops | 3.1 | 2.9 | 9.1 | 0.93 | 3.5x |
 | call_overhead | 26 | 23 | 5.7 | 4.7 | 4.9x |
 | cad_grid | 4.2 | 2.7 | 1.3 | 1.4 | n/a |
 
 kisp: fib 6.3x faster (lexical scoping), closures work, tail calls inside `[block]` bodies work, parse 2 to 3x faster (byte-offset lexer), deep recursion still yields `StackOverflow` (call counter, limit 420).
-acadlisp: fib 2.3x faster (no `UserFunction` clone per call), deep recursion yields an error at 500 nested calls instead of aborting the process, `mapcar`/`apply` fixed.
-The remaining 5x on call-heavy code is kisp's per-call `Rc<Scope>` + `HashMap` frame and the `Rc<Expression>` wrapping of builtin arguments; the remaining 3x on lists is acadlisp's `Vec` copying in `cons`/`cdr`.
+acadlisp: fib 2.3x faster (no `UserFunction` clone per call), list_ops 10x faster (lists are shared cons cells now, see 2.3), deep recursion yields an error at 500 nested calls instead of aborting the process, `mapcar`/`apply` fixed.
+The remaining 5x on call-heavy code is kisp's per-call `Rc<Scope>` + `HashMap` frame and the `Rc<Expression>` wrapping of builtin arguments.
+
+### 2.3 acadlisp lists as cons cells
+
+`Expr::List(Vec<Expr>)` became `Expr::List(List)` with `List(Arc<Cons>)`, `Cons { car: Expr, cdr: Expr }`: a shared, immutable cons chain, the empty list is `Expr::Nil`, and an atom in the last `cdr` is a dotted pair, exactly the AutoLISP model.
+`cons`, `cdr`, `cddr`, `member` and reading a list variable are O(1) and share structure; `car`, `nth`, `length` walk the chain; `append` copies all but its last argument, as in every Lisp.
+Splitting list_ops showed why this mattered: the 1500-element `cons` loop alone was 8.7 of the 9.0 ms, because `get_var` cloned the `Vec` and `cons` copied it again on every iteration, quadratic in the length.
+After the change the whole program takes 0.93 ms natively and 1.1 ms in wasm (was 19 ms in wasm, where the allocator behind `Vec` copies hurt most).
+The idiomatic AutoLISP loop `(while lst ... (setq lst (cdr lst)))`, which every 1991 template uses, was quadratic before and is linear now.
+Special forms receive the unevaluated argument list as `&Expr` and walk it (`nth`, `tail`, `list_iter`) instead of slicing a `Vec`, so no copies were added on the call path; fib and loop_sum are unchanged within noise.
+Semantics changed in one visible place: `(cons "SCHUETZ" 'DRAW-SCHUETZ)` now prints as `("SCHUETZ" . DRAW-SCHUETZ)` and `(cdr (assoc ...))` returns the atom, as in AutoCAD, where the old `Vec` fake returned a one-element list; all sample and lisp/ programs produce byte-identical drawings and batch output otherwise.
+`Arc` rather than `Rc` keeps `Expr` and the engines `Send` for embedders such as Odysseus.
 One trade-off in kisp: the stack trace is built from the scope chain, which is now short, so traces list only the lexically enclosing functions, not the dynamic call stack.
 
 ### 2.2 Native vs WebAssembly, with XLISP 3.3 as the third engine
@@ -61,7 +72,7 @@ All engines on the patched branches, 20 runs, medians in ms:
 |---|---:|---:|---:|---:|---:|---:|
 | fib | 62 | 85 | 12 | 17 | 3.7 | 14 |
 | loop_sum | 64 | 95 | 10 | 14 | 4.0 | 16 |
-| list_ops | 2.9 | 4.1 | 8.9 | 19 | 0.32 | 1.4 |
+| list_ops | 2.9 | 4.1 | 0.93 | 1.1 | 0.32 | 1.4 |
 | call_overhead | 23 | 33 | 4.7 | 6.8 | 2.0 | 7.7 |
 | cad_grid | 2.7 | 3.9 | 1.4 (full render) | 2.2 (full render) | 0.26 | 1.1 |
 
@@ -69,8 +80,7 @@ What the matrix says:
 
 Native XLISP wins everything by 3x to 30x: it compiles to bytecode once and runs a tight C VM, both Rust engines re-walk the AST and allocate per call.
 The gap is much smaller in WebAssembly, where XLISP loses 3.5x to 4.5x against its native build (function pointer emulation, `longjmp` support and the Emscripten runtime cost), while the Rust engines lose only 1.3x to 1.5x. In the browser acadlisp and XLISP are within 20 percent of each other on call-heavy code.
-acadlisp's `Vec` lists hurt twice as much in wasm (list_ops 8.9 to 19 ms): the allocator behind `Vec` copies is where wasm is weakest.
-kisp keeps its list advantage in wasm (4.1 ms vs 19 ms) and is the only engine whose wasm penalty is uniform.
+Before the cons-cell change acadlisp's `Vec` lists hurt twice as much in wasm (list_ops 8.9 ms native, 19 ms wasm): the allocator behind `Vec` copies is where wasm is weakest; with shared cells it is 0.93 / 1.1 ms and acadlisp is now within 3x of XLISP on lists in the browser.
 The Odysseus and acadlisp.de render path (cad_grid, full SVG export) is 2.2 ms in wasm; still not the bottleneck of either pipeline.
 
 Reproduce the whole matrix with `kisp-compare/run_all.sh` after `wasm/build.sh` (needs `wasm32-unknown-unknown` and `wasm-bindgen-cli` 0.2.129) and `xlisp/build.sh` (needs a clone of github.com/holg/xlisp next to acadlisp or `XLISP_DIR`).
@@ -88,8 +98,8 @@ acadlisp also clones the whole `UserFunction` (params + body) on every call (`se
 loop_sum shows that kisp's tail call optimisation works (50000 iterations inside a 420-frame limit) but costs a `scope.clear()`, a `HashMap` re-insert and a `TailCall` allocation per iteration.
 acadlisp's `WHILE` with `SETQ` is a plain loop.
 
-list_ops is where kisp's design wins.
-`cons` is O(1) and lists share structure; acadlisp's `cons` allocates a new `Vec` and copies, so building a list of n with `cons` is O(n^2).
+list_ops is where kisp's design won on main.
+`cons` is O(1) and lists share structure; acadlisp's `cons` allocated a new `Vec` and copied, so building a list of n with `cons` was O(n^2) (fixed on the branch, section 2.3).
 `map`, `filter`, `fold`, `reduce`, `zip`, `enumerate`, `flatten` exist natively in kisp with lambdas; acadlisp has `mapcar` and `apply` with named functions only.
 
 call_overhead exposed a kisp bug: a tail call inside a `[...]` block is not detected, because `eval_block` opens a fresh scope with `origin: None`, and `is_tail_call` compares the origin of the *current* scope with the called function.
@@ -118,7 +128,7 @@ kisp can only express the arithmetic half (build the 900 points as a list) and n
 | source positions | every AST node has a `Cursor` (line, column, offset) | none |
 | quoting and macros | `quote`, `eval`, builtins receive unevaluated expressions so special forms are ordinary builtins | `QUOTE`, `EVAL`, `APPLY`; special forms hard-coded in `eval_list` |
 | higher order | `map filter fold reduce zip enumerate flatten` with lambdas | `mapcar` and `apply` with named functions; `LAMBDA` evaluates to nil |
-| lists | persistent singly linked `Rc<Con>` cells, `car cdr cons nth list` | `Vec<Expr>` with `car cdr cadr caddr cons list append reverse length nth last member assoc subst` |
+| lists | persistent singly linked `Rc<Con>` cells, `car cdr cons nth list` | main: `Vec<Expr>`; branch: shared `Arc<Cons>` cells with dotted pairs; `car cdr cadr caddr cons list append reverse length nth last member assoc subst` |
 | host integration | none (no foreign function API, `print` goes to stdout) | `register_fn` with `ForeignContext` (output, globals, drawing state, user data), `command`, `getvar`/`setvar`, file I/O, CSV batch, DXF/SVG/KiCad export |
 | WASM | library compiles to wasm32 once `linefeed` is optional (done in this session) | cdylib with wasm_bindgen, shipped on acadlisp.de |
 | tests | 8 integration tests | 36 unit tests in lib, 13 in the CLI, plus 3 new bridge tests |
@@ -153,9 +163,10 @@ For acadlisp, applied on branch `perf/kisp-inspired`:
 1. Call depth guard: `MAX_CALL_DEPTH = 500` (each Lisp call costs several Rust frames; 500 fits the 1 MB WASM stack), reported as an AutoLISP error.
 2. `mapcar` / `apply` quote their already evaluated arguments.
 3. `functions` holds `Arc<UserFunction>`: no clone of params and body per call, fib 28 ms to 12 ms.
-4. Two regression tests.
+4. Lists are shared cons cells with real dotted pairs (section 2.3): list_ops 9.1 ms to 0.93 ms, `cdr` loops linear instead of quadratic.
+5. Four regression tests (mapcar/apply, recursion guard, cons-cell semantics, cdr loop and structural equality).
 
-Still open for acadlisp: represent lists as shared cons cells or `Rc<Vec>` so `cons` and `cdr` stop copying, and structured errors (`Expr::Error` or `Result` with a source position) so acadlisp.de and Odysseus can show *where* an LLM-generated program went wrong instead of an empty drawing.
+Still open for acadlisp: structured errors (`Expr::Error` or `Result` with a source position) so acadlisp.de and Odysseus can show *where* an LLM-generated program went wrong instead of an empty drawing.
 
 ## 6. kisp and the web tools
 

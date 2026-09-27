@@ -1,7 +1,7 @@
 // AutoLISP Interpreter - AutoCAD 9/10 (DOS era) compatible
 // Implements the subset of functions available in late 1980s AutoCAD
 
-use crate::parser::Expr;
+use crate::parser::{Expr, List};
 use std::collections::HashMap;
 use std::fs::File;
 use std::io::{BufRead, BufReader, Write};
@@ -258,17 +258,12 @@ impl Interpreter {
             Expr::String(s) => Expr::String(s.clone()),
             Expr::Symbol(name) => self.get_var(name),
             Expr::Quote(e) => (**e).clone(),
-            Expr::List(items) if items.is_empty() => Expr::Nil,
-            Expr::List(items) => self.eval_list(items),
+            Expr::List(list) => self.eval_list(list),
         }
     }
 
-    fn eval_list(&mut self, items: &[Expr]) -> Expr {
-        if items.is_empty() {
-            return Expr::Nil;
-        }
-
-        let first = &items[0];
+    fn eval_list(&mut self, list: &List) -> Expr {
+        let first = list.car();
         let func_name = match first {
             Expr::Symbol(name) => name.as_str(),
             _ => {
@@ -277,11 +272,12 @@ impl Interpreter {
             }
         };
 
-        let args = &items[1..];
+        // Unevaluated arguments: the rest of the call form (Nil or a List)
+        let args = list.cdr();
 
         // Special forms (don't evaluate args)
         match func_name {
-            "QUOTE" => return args.first().cloned().unwrap_or(Expr::Nil),
+            "QUOTE" => return args.nth(0).cloned().unwrap_or(Expr::Nil),
             "SETQ" => return self.builtin_setq(args),
             "DEFUN" => return self.builtin_defun(args),
             "IF" => return self.builtin_if(args),
@@ -297,7 +293,7 @@ impl Interpreter {
         }
 
         // Regular functions - evaluate args first
-        let evaled_args: Vec<Expr> = args.iter().map(|a| self.eval(a)).collect();
+        let evaled_args: Vec<Expr> = args.list_iter().map(|a| self.eval(a)).collect();
 
         // Check for user-defined function
         if let Some(func) = self.functions.get(func_name).cloned() {
@@ -511,30 +507,30 @@ impl Interpreter {
 
     // Special forms
 
-    fn builtin_setq(&mut self, args: &[Expr]) -> Expr {
+    fn builtin_setq(&mut self, args: &Expr) -> Expr {
         let mut result = Expr::Nil;
-        let mut i = 0;
-        while i + 1 < args.len() {
-            if let Expr::Symbol(name) = &args[i] {
-                let val = self.eval(&args[i + 1]);
+        let mut rest = args;
+        while let (Some(sym), Some(value_expr)) = (rest.nth(0), rest.nth(1)) {
+            if let Expr::Symbol(name) = sym {
+                let val = self.eval(value_expr);
                 self.set_var(name, val.clone());
                 result = val;
             }
-            i += 2;
+            rest = rest.tail(2);
         }
         result
     }
 
-    fn builtin_defun(&mut self, args: &[Expr]) -> Expr {
-        if args.len() < 3 {
+    fn builtin_defun(&mut self, args: &Expr) -> Expr {
+        if args.list_len() < 3 {
             return Expr::Nil;
         }
-        let name = match &args[0] {
-            Expr::Symbol(s) => s.clone(),
+        let name = match args.nth(0) {
+            Some(Expr::Symbol(s)) => s.clone(),
             _ => return Expr::Nil,
         };
-        let params = match &args[1] {
-            Expr::List(items) => {
+        let params = match args.nth(1) {
+            Some(Expr::List(items)) => {
                 items
                     .iter()
                     .filter_map(|e| {
@@ -553,34 +549,31 @@ impl Interpreter {
             }
             _ => Vec::new(),
         };
-        let body = args[2..].to_vec();
+        let body: Vec<Expr> = args.tail(2).list_iter().cloned().collect();
         self.functions
             .insert(name.clone(), Arc::new(UserFunction { params, body }));
         Expr::Symbol(name)
     }
 
-    fn builtin_if(&mut self, args: &[Expr]) -> Expr {
-        if args.is_empty() {
+    fn builtin_if(&mut self, args: &Expr) -> Expr {
+        let Some(test) = args.nth(0) else {
             return Expr::Nil;
-        }
-        let cond = self.eval(&args[0]);
+        };
+        let cond = self.eval(test);
         if cond.is_truthy() {
-            args.get(1).map(|e| self.eval(e)).unwrap_or(Expr::Nil)
+            args.nth(1).map(|e| self.eval(e)).unwrap_or(Expr::Nil)
         } else {
-            args.get(2).map(|e| self.eval(e)).unwrap_or(Expr::Nil)
+            args.nth(2).map(|e| self.eval(e)).unwrap_or(Expr::Nil)
         }
     }
 
-    fn builtin_cond(&mut self, args: &[Expr]) -> Expr {
-        for clause in args {
+    fn builtin_cond(&mut self, args: &Expr) -> Expr {
+        for clause in args.list_iter() {
             if let Expr::List(items) = clause {
-                if items.is_empty() {
-                    continue;
-                }
-                let test = self.eval(&items[0]);
+                let test = self.eval(items.car());
                 if test.is_truthy() {
                     let mut result = test;
-                    for expr in &items[1..] {
+                    for expr in items.cdr().list_iter() {
                         result = self.eval(expr);
                     }
                     return result;
@@ -590,46 +583,45 @@ impl Interpreter {
         Expr::Nil
     }
 
-    fn builtin_while(&mut self, args: &[Expr]) -> Expr {
-        if args.is_empty() {
+    fn builtin_while(&mut self, args: &Expr) -> Expr {
+        let Some(test) = args.nth(0) else {
             return Expr::Nil;
-        }
-        let test = &args[0];
-        let body = &args[1..];
+        };
+        let body = args.tail(1);
         let mut result = Expr::Nil;
         while self.eval(test).is_truthy() {
-            for expr in body {
+            for expr in body.list_iter() {
                 result = self.eval(expr);
             }
         }
         result
     }
 
-    fn builtin_repeat(&mut self, args: &[Expr]) -> Expr {
-        if args.is_empty() {
+    fn builtin_repeat(&mut self, args: &Expr) -> Expr {
+        let Some(count_expr) = args.nth(0) else {
             return Expr::Nil;
-        }
-        let count = self.eval(&args[0]).as_integer().unwrap_or(0);
-        let body = &args[1..];
+        };
+        let count = self.eval(count_expr).as_integer().unwrap_or(0);
+        let body = args.tail(1);
         let mut result = Expr::Nil;
         for _ in 0..count {
-            for expr in body {
+            for expr in body.list_iter() {
                 result = self.eval(expr);
             }
         }
         result
     }
 
-    fn builtin_progn(&mut self, args: &[Expr]) -> Expr {
+    fn builtin_progn(&mut self, args: &Expr) -> Expr {
         let mut result = Expr::Nil;
-        for expr in args {
+        for expr in args.list_iter() {
             result = self.eval(expr);
         }
         result
     }
 
-    fn builtin_and(&mut self, args: &[Expr]) -> Expr {
-        for arg in args {
+    fn builtin_and(&mut self, args: &Expr) -> Expr {
+        for arg in args.list_iter() {
             let val = self.eval(arg);
             if !val.is_truthy() {
                 return Expr::Nil;
@@ -638,8 +630,8 @@ impl Interpreter {
         Expr::T
     }
 
-    fn builtin_or(&mut self, args: &[Expr]) -> Expr {
-        for arg in args {
+    fn builtin_or(&mut self, args: &Expr) -> Expr {
+        for arg in args.list_iter() {
             let val = self.eval(arg);
             if val.is_truthy() {
                 return val;
@@ -648,25 +640,25 @@ impl Interpreter {
         Expr::Nil
     }
 
-    fn builtin_foreach(&mut self, args: &[Expr]) -> Expr {
-        if args.len() < 3 {
+    fn builtin_foreach(&mut self, args: &Expr) -> Expr {
+        let (Some(var), Some(list_expr)) = (args.nth(0), args.nth(1)) else {
             return Expr::Nil;
-        }
-        let var_name = match &args[0] {
+        };
+        let var_name = match var {
             Expr::Symbol(s) => s.clone(),
             _ => return Expr::Nil,
         };
-        let list = self.eval(&args[1]);
+        let list = self.eval(list_expr);
         let items = match list {
             Expr::List(v) => v,
             _ => return Expr::Nil,
         };
-        let body = &args[2..];
+        let body = args.tail(2);
 
         let mut result = Expr::Nil;
-        for item in items {
-            self.set_var(&var_name, item);
-            for expr in body {
+        for item in items.iter() {
+            self.set_var(&var_name, item.clone());
+            for expr in body.list_iter() {
                 result = self.eval(expr);
             }
         }
@@ -1049,7 +1041,7 @@ impl Interpreter {
 
     fn builtin_atom(&self, args: &[Expr]) -> Expr {
         match args.first() {
-            Some(Expr::List(v)) if !v.is_empty() => Expr::Nil,
+            Some(Expr::List(_)) => Expr::Nil,
             _ => Expr::T,
         }
     }
@@ -1102,15 +1094,14 @@ impl Interpreter {
 
     fn builtin_car(&self, args: &[Expr]) -> Expr {
         match args.first() {
-            Some(Expr::List(v)) => v.first().cloned().unwrap_or(Expr::Nil),
+            Some(Expr::List(v)) => v.car().clone(),
             _ => Expr::Nil,
         }
     }
 
     fn builtin_cdr(&self, args: &[Expr]) -> Expr {
         match args.first() {
-            Some(Expr::List(v)) if v.len() > 1 => Expr::List(v[1..].to_vec()),
-            Some(Expr::List(_)) => Expr::Nil,
+            Some(Expr::List(v)) => v.cdr().clone(),
             _ => Expr::Nil,
         }
     }
@@ -1141,7 +1132,7 @@ impl Interpreter {
 
     fn builtin_cddr(&self, args: &[Expr]) -> Expr {
         match args.first() {
-            Some(Expr::List(v)) if v.len() > 2 => Expr::List(v[2..].to_vec()),
+            Some(Expr::List(v)) => v.cdr().tail(1).clone(),
             _ => Expr::Nil,
         }
     }
@@ -1150,41 +1141,38 @@ impl Interpreter {
         if args.len() < 2 {
             return Expr::Nil;
         }
-        let first = args[0].clone();
-        match &args[1] {
-            Expr::List(v) => {
-                let mut new_list = vec![first];
-                new_list.extend(v.iter().cloned());
-                Expr::List(new_list)
-            }
-            Expr::Nil => Expr::List(vec![first]),
-            other => {
-                // Dotted pair - represent as 2-element list
-                Expr::List(vec![first, other.clone()])
-            }
-        }
+        // O(1): one new cell sharing the tail; an atom tail makes a dotted pair (a . b)
+        Expr::List(List::cons(args[0].clone(), args[1].clone()))
     }
 
     fn builtin_list(&self, args: &[Expr]) -> Expr {
-        Expr::List(args.to_vec())
+        Expr::list(args.to_vec())
     }
 
     fn builtin_append(&self, args: &[Expr]) -> Expr {
-        let mut result = Vec::new();
-        for arg in args {
+        // copies all but the last list, which is shared (classic append)
+        let mut result = args.last().cloned().unwrap_or(Expr::Nil);
+        if !matches!(result, Expr::List(_) | Expr::Nil) {
+            result = Expr::Nil;
+        }
+        for arg in args.iter().rev().skip(1) {
             if let Expr::List(v) = arg {
-                result.extend(v.iter().cloned());
+                for item in v.to_vec().into_iter().rev() {
+                    result = Expr::List(List::cons(item, result));
+                }
             }
         }
-        Expr::List(result)
+        result
     }
 
     fn builtin_reverse(&self, args: &[Expr]) -> Expr {
         match args.first() {
             Some(Expr::List(v)) => {
-                let mut rev = v.clone();
-                rev.reverse();
-                Expr::List(rev)
+                let mut rev = Expr::Nil;
+                for item in v.iter() {
+                    rev = Expr::List(List::cons(item.clone(), rev));
+                }
+                rev
             }
             _ => Expr::Nil,
         }
@@ -1221,12 +1209,12 @@ impl Interpreter {
             return Expr::Nil;
         }
         let item = &args[0];
-        if let Expr::List(v) = &args[1] {
-            for (i, elem) in v.iter().enumerate() {
-                if elem == item {
-                    return Expr::List(v[i..].to_vec());
-                }
+        let mut cur = &args[1];
+        while let Expr::List(cell) = cur {
+            if cell.car() == item {
+                return cur.clone();
             }
+            cur = cell.cdr();
         }
         Expr::Nil
     }
@@ -1237,7 +1225,7 @@ impl Interpreter {
         }
         let key = &args[0];
         if let Expr::List(alist) = &args[1] {
-            for item in alist {
+            for item in alist.iter() {
                 if let Expr::List(pair) = item {
                     if let Some(first) = pair.first() {
                         if first == key {
@@ -1268,17 +1256,17 @@ impl Interpreter {
                         }
                     })
                     .collect();
-                Expr::List(result)
+                Expr::list(result)
             }
             other => other.clone(),
         }
     }
 
-    fn builtin_mapcar(&mut self, args: &[Expr]) -> Expr {
-        if args.len() < 2 {
+    fn builtin_mapcar(&mut self, args: &Expr) -> Expr {
+        let (Some(func_expr), Some(list_expr)) = (args.nth(0), args.nth(1)) else {
             return Expr::Nil;
-        }
-        let func_name = match &args[0] {
+        };
+        let func_name = match func_expr {
             Expr::Quote(e) => match e.as_ref() {
                 Expr::Symbol(s) => s.clone(),
                 _ => return Expr::Nil,
@@ -1286,20 +1274,20 @@ impl Interpreter {
             Expr::Symbol(s) => s.clone(),
             _ => return Expr::Nil,
         };
-        let list = self.eval(&args[1]);
+        let list = self.eval(list_expr);
         if let Expr::List(items) = list {
             let results: Vec<Expr> = items
                 .iter()
                 .map(|item| {
                     // items are values already: quote them so a list element is not re-evaluated as a call
-                    let call = Expr::List(vec![
+                    let call = Expr::list(vec![
                         Expr::Symbol(func_name.clone()),
                         Expr::Quote(Box::new(item.clone())),
                     ]);
                     self.eval(&call)
                 })
                 .collect();
-            Expr::List(results)
+            Expr::list(results)
         } else {
             Expr::Nil
         }
@@ -1927,7 +1915,7 @@ impl Interpreter {
         };
         let angle = args[1].as_real().unwrap_or(0.0);
         let dist = args[2].as_real().unwrap_or(0.0);
-        Expr::List(vec![
+        Expr::list(vec![
             Expr::Real(x + dist * angle.cos()),
             Expr::Real(y + dist * angle.sin()),
         ])
@@ -2101,13 +2089,14 @@ impl Interpreter {
             _ => return Expr::Nil,
         };
         let arg_list = match &args[1] {
-            Expr::List(v) => v.clone(),
+            Expr::List(v) => v.to_vec(),
+            Expr::Nil => Vec::new(),
             _ => return Expr::Nil,
         };
         let mut call = vec![Expr::Symbol(func_name)];
         // arg_list holds values already: quote them so lists/symbols are not re-evaluated
         call.extend(arg_list.into_iter().map(|e| Expr::Quote(Box::new(e))));
-        self.eval(&Expr::List(call))
+        self.eval(&Expr::list(call))
     }
 
     fn builtin_load(&mut self, args: &[Expr]) -> Expr {
@@ -2189,7 +2178,7 @@ mod tests {
     fn mapcar_and_apply_do_not_reevaluate_values() {
         let mut interp = Interpreter::new();
         let results = interp.run("(mapcar 'car '((1 2) (3 4)))");
-        assert_eq!(results[0], Expr::List(vec![Expr::Integer(1), Expr::Integer(3)]));
+        assert_eq!(results[0], Expr::list(vec![Expr::Integer(1), Expr::Integer(3)]));
         let results = interp.run("(apply 'length '((a b c)))");
         assert_eq!(results[0], Expr::Integer(3));
     }
@@ -2203,5 +2192,39 @@ mod tests {
             .iter()
             .any(|l| l.contains("recursion too deep")));
         assert_eq!(interp.call_depth, 0, "depth counter must unwind");
+    }
+
+    #[test]
+    fn cons_cells_are_autolisp_lists() {
+        let mut interp = Interpreter::new();
+        let r = interp.run(
+            "(cons 1 2) (cons 1 '(2 3)) (cdr '(1 2 3)) (cddr '(1 2 3)) (cdr '(1)) \
+             (append '(1 2) '(3) nil '(4 5)) (reverse '(1 2 3)) (member 2 '(1 2 3)) \
+             (last '(1 2 3)) (nth 1 '(a b c)) (length nil) (car nil) (list) '()",
+        );
+        let shown: Vec<String> = r.iter().map(|e| e.to_string()).collect();
+        assert_eq!(
+            shown,
+            vec![
+                "(1 . 2)", "(1 2 3)", "(2 3)", "(3)", "nil", "(1 2 3 4 5)", "(3 2 1)", "(2 3)",
+                "3", "B", "0", "nil", "nil", "nil"
+            ]
+        );
+    }
+
+    #[test]
+    fn idiomatic_cdr_loop_and_sharing() {
+        let mut interp = Interpreter::new();
+        let r = interp.run(
+            "(setq lst nil i 3000) \
+             (while (> i 0) (setq lst (cons i lst) i (1- i))) \
+             (setq n 0) \
+             (while lst (setq n (+ n (car lst)) lst (cdr lst))) \
+             n",
+        );
+        assert_eq!(r.last(), Some(&Expr::Integer(3000 * 3001 / 2)));
+        // structural equality on shared and unshared lists
+        let r = interp.run("(setq a '(1 2 3)) (setq b (cons 1 (cdr a))) (equal a b)");
+        assert_eq!(r.last(), Some(&Expr::T));
     }
 }

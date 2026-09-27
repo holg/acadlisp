@@ -46,11 +46,7 @@ pub fn to_expr(value: &EvalValue) -> Expr {
         EvalValue::Reference(r) => match r.as_ref() {
             ReferenceValue::List(list) => {
                 let items: Vec<Expr> = list.iterator().map(|v| to_expr(&v)).collect();
-                if items.is_empty() {
-                    Expr::Nil
-                } else {
-                    Expr::List(items)
-                }
+                Expr::list(items)
             }
             other => Expr::String(other.to_string()),
         },
@@ -84,7 +80,7 @@ mod tests {
         assert_eq!(eval_kisp_to_expr("()"), Expr::Nil);
         assert_eq!(
             eval_kisp_to_expr("(map (lambda [x] (* x x)) (list 1 2 3))"),
-            Expr::List(vec![Expr::Integer(1), Expr::Integer(4), Expr::Integer(9)])
+            Expr::list(vec![Expr::Integer(1), Expr::Integer(4), Expr::Integer(9)])
         );
     }
 

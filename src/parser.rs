@@ -2,6 +2,143 @@
 
 use crate::lexer::{Lexer, Token};
 
+use std::sync::Arc;
+
+/// One cons cell. `cdr` is `Expr::List` for the rest of a proper list, `Expr::Nil`
+/// at the end, or any other atom for a dotted pair `(a . b)`.
+#[derive(Debug, Clone)]
+pub struct Cons {
+    pub car: Expr,
+    pub cdr: Expr,
+}
+
+/// A non-empty AutoLISP list: a shared, immutable cons chain. The empty list is
+/// `Expr::Nil`, as in AutoLISP. Cloning a list or taking its `cdr` is O(1) and
+/// shares structure, `cons` allocates one cell; the whole chain is never copied.
+/// `Arc` rather than `Rc` keeps `Expr` (and every embedding engine) `Send`.
+#[derive(Debug, Clone)]
+pub struct List(Arc<Cons>);
+
+impl List {
+    /// Build one cell in front of `cdr`.
+    pub fn cons(car: Expr, cdr: Expr) -> List {
+        List(Arc::new(Cons { car, cdr }))
+    }
+
+    /// Build a proper list; `None` for an empty vector (that is `Expr::Nil`).
+    pub fn from_vec(items: Vec<Expr>) -> Option<List> {
+        let mut tail = Expr::Nil;
+        for item in items.into_iter().rev() {
+            tail = Expr::List(List::cons(item, tail));
+        }
+        match tail {
+            Expr::List(l) => Some(l),
+            _ => None,
+        }
+    }
+
+    pub fn car(&self) -> &Expr {
+        &self.0.car
+    }
+
+    pub fn cdr(&self) -> &Expr {
+        &self.0.cdr
+    }
+
+    /// Iterate the proper part of the list (stops at a dotted tail).
+    pub fn iter(&self) -> ListIter<'_> {
+        ListIter { next: Some(self) }
+    }
+
+    pub fn len(&self) -> usize {
+        self.iter().count()
+    }
+
+    pub fn is_empty(&self) -> bool {
+        false
+    }
+
+    pub fn first(&self) -> Option<&Expr> {
+        Some(&self.0.car)
+    }
+
+    pub fn get(&self, n: usize) -> Option<&Expr> {
+        self.iter().nth(n)
+    }
+
+    pub fn last(&self) -> Option<&Expr> {
+        self.iter().last()
+    }
+
+    pub fn to_vec(&self) -> Vec<Expr> {
+        self.iter().cloned().collect()
+    }
+
+    /// True if the last cdr is an atom other than nil: `(a . b)`.
+    pub fn is_dotted(&self) -> bool {
+        let mut cur = self;
+        loop {
+            match cur.cdr() {
+                Expr::List(l) => cur = l,
+                Expr::Nil => return false,
+                _ => return true,
+            }
+        }
+    }
+}
+
+impl PartialEq for List {
+    fn eq(&self, other: &List) -> bool {
+        if Arc::ptr_eq(&self.0, &other.0) {
+            return true;
+        }
+        let (mut a, mut b) = (self, other);
+        loop {
+            if a.car() != b.car() {
+                return false;
+            }
+            match (a.cdr(), b.cdr()) {
+                (Expr::List(x), Expr::List(y)) => {
+                    a = x;
+                    b = y;
+                }
+                (x, y) => return x == y,
+            }
+        }
+    }
+}
+
+impl std::ops::Index<usize> for List {
+    type Output = Expr;
+    fn index(&self, n: usize) -> &Expr {
+        self.get(n).expect("list index out of range")
+    }
+}
+
+pub struct ListIter<'a> {
+    next: Option<&'a List>,
+}
+
+impl<'a> Iterator for ListIter<'a> {
+    type Item = &'a Expr;
+    fn next(&mut self) -> Option<&'a Expr> {
+        let cell = self.next?;
+        self.next = match cell.cdr() {
+            Expr::List(l) => Some(l),
+            _ => None,
+        };
+        Some(cell.car())
+    }
+}
+
+impl<'a> IntoIterator for &'a List {
+    type Item = &'a Expr;
+    type IntoIter = ListIter<'a>;
+    fn into_iter(self) -> ListIter<'a> {
+        self.iter()
+    }
+}
+
 #[derive(Debug, Clone, PartialEq)]
 pub enum Expr {
     Nil,
@@ -10,17 +147,50 @@ pub enum Expr {
     Real(f64),
     String(String),
     Symbol(String),
-    List(Vec<Expr>),
+    List(List),
     Quote(Box<Expr>),
 }
 
 impl Expr {
-    pub fn is_nil(&self) -> bool {
-        match self {
-            Expr::Nil => true,
-            Expr::List(v) => v.is_empty(),
-            _ => false,
+    /// A proper list from a vector; an empty vector is `Nil`.
+    pub fn list(items: Vec<Expr>) -> Expr {
+        match List::from_vec(items) {
+            Some(l) => Expr::List(l),
+            None => Expr::Nil,
         }
+    }
+
+    pub fn is_nil(&self) -> bool {
+        matches!(self, Expr::Nil)
+    }
+
+    /// Iterate this expression as a list (empty for nil and atoms).
+    pub fn list_iter(&self) -> ListIter<'_> {
+        match self {
+            Expr::List(l) => l.iter(),
+            _ => ListIter { next: None },
+        }
+    }
+
+    pub fn list_len(&self) -> usize {
+        self.list_iter().count()
+    }
+
+    /// n-th element when this is a list.
+    pub fn nth(&self, n: usize) -> Option<&Expr> {
+        self.list_iter().nth(n)
+    }
+
+    /// n-th cdr as an expression (`self` for 0, `Nil` past the end or for atoms).
+    pub fn tail(&self, n: usize) -> &Expr {
+        let mut cur = self;
+        for _ in 0..n {
+            cur = match cur {
+                Expr::List(l) => l.cdr(),
+                _ => return &Expr::Nil,
+            };
+        }
+        cur
     }
 
     pub fn is_truthy(&self) -> bool {
@@ -60,7 +230,7 @@ impl Expr {
     }
 
     #[allow(dead_code)]
-    pub fn as_list(&self) -> Option<&Vec<Expr>> {
+    pub fn as_list(&self) -> Option<&List> {
         match self {
             Expr::List(v) => Some(v),
             _ => None,
@@ -77,13 +247,22 @@ impl std::fmt::Display for Expr {
             Expr::Real(r) => write!(f, "{}", r),
             Expr::String(s) => write!(f, "\"{}\"", s),
             Expr::Symbol(s) => write!(f, "{}", s),
-            Expr::List(items) => {
+            Expr::List(list) => {
                 write!(f, "(")?;
-                for (i, item) in items.iter().enumerate() {
-                    if i > 0 {
-                        write!(f, " ")?;
+                let mut cur = list;
+                loop {
+                    write!(f, "{}", cur.car())?;
+                    match cur.cdr() {
+                        Expr::List(next) => {
+                            write!(f, " ")?;
+                            cur = next;
+                        }
+                        Expr::Nil => break,
+                        atom => {
+                            write!(f, " . {}", atom)?;
+                            break;
+                        }
                     }
-                    write!(f, "{}", item)?;
                 }
                 write!(f, ")")
             }
@@ -137,7 +316,7 @@ impl Parser {
                         }
                     }
                 }
-                Some(Expr::List(items))
+                Some(Expr::list(items))
             }
             Token::RParen => None, // Unexpected, ignore
             Token::Quote => {
