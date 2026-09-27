@@ -156,6 +156,36 @@ Natively acadlisp is now at XLISP's level: ahead on loops and calls, within 15 p
 All 73 tests pass, including five new ones for the compiler (dynamic scoping through compiled code, locals after `/`, control forms, redefinition after first call, integer wrapping), and all sample programs and the CSV batch produce byte-identical output.
 What is left on fib is the frame push/pop, the `Arc` clone of the callee and the `Expr` clones of argument values; a bytecode VM with a value stack would take those, at the price of a second execution engine, and is not worth it for the acadlisp.de workload.
 
+### 2.7 Memory
+
+Native: `kisp-compare mem` runs each program once under a counting global allocator and reports the peak live heap, the total bytes allocated and the number of allocations.
+XLISP is measured as maximum resident set of the native driver (its heap is a set of pre-allocated node segments managed by its own GC, so it does not go through malloc per value).
+wasm: growth of the module's linear memory after each program (Node).
+
+| program | engine | peak live KB main / branch | allocated KB main / branch | allocations main / branch |
+|---|---|---:|---:|---:|
+| fib | kisp | 79 / 36 | 587,311 / 121,275 | 17.7 M / 3.0 M |
+| fib | acadlisp | 38 / 34 | 63,926 / 38 | 1.52 M / 396 |
+| loop_sum | kisp | 26 / 37 | 163,206 / 116,425 | 3.95 M / 3.35 M |
+| loop_sum | acadlisp | 24 / 49 | 8,011 / 21 | 250,053 / 88 |
+| list_ops | kisp | 325 / 338 | 7,728 / 6,253 | 169,856 / 151,775 |
+| list_ops | acadlisp | 281 / 503 | 106,881 / 946 | 33,104 / 12,173 |
+| call_overhead | kisp | 106 / 120 | 63,089 / 43,574 | 1.40 M / 1.10 M |
+| call_overhead | acadlisp | 103 / 124 | 8,287 / 12 | 200,061 / 95 |
+| cad_grid | kisp | 474 / 479 | 9,879 / 5,401 | 214,958 / 136,161 |
+| cad_grid | acadlisp | 815 / 838 | 2,672 / 2,062 | 36,945 / 26,988 |
+
+XLISP native: 2.2 MB resident for every program (2.7 MB for loop_sum and cad_grid), the empty program included; the heap is sized up front.
+wasm linear memory: the Rust module starts at 1.15 MB and grows to 1.6 MB (2.0 MB after cad_grid's SVG string) for both engines and both branches; the XLISP module is a fixed 16 MB (`INITIAL_MEMORY`) and never grows.
+
+Reading it:
+
+Peak live memory is small everywhere, tens to hundreds of KB for these programs, and dominated by data (the 1500-element list, the 900 points, the entity list and the SVG text), not by the interpreters.
+The interesting column is allocations: acadlisp on the branch runs fib's 57,000 calls with 396 allocations in total (all at parse and definition time), loop_sum's 50,000 iterations with 88, where main needed 1.5 million and 250,000. That is the recycled frames, the SmallVec arguments and the id-indexed tables; a call in steady state touches the allocator not at all, which is also why the wasm penalty stayed small (the wasm allocator is the slow part of that runtime).
+kisp allocates on every call by design (`Rc<Scope>` plus its `HashMap`, the `Rc<ReferenceValue>` wrapping of builtin arguments, a `TailCall` per iteration): 3 million allocations for fib after the patch, 17.7 million before; that is the remaining 5x against acadlisp on call-heavy code.
+The one place the branch costs memory is list_ops: peak live 503 KB against 281 KB on main, because a cons cell (`Arc` header plus two 32-byte `Expr`s, 80 bytes) is larger than a `Vec` slot (32 bytes). That is the price of O(1) `cons`/`cdr` and structure sharing, and it buys the 100x fewer bytes allocated in the same row (946 KB against 106 MB).
+The `loop_sum` peak of acadlisp on the branch (49 KB vs 24 KB) is the pre-sized symbol and function tables, a one-time cost per interpreter.
+
 Parse times are 1 to 20 microseconds for both and irrelevant.
 acadlisp parses two to three times faster because its lexer works on byte offsets, while kisp's lexer calls `chars().nth(i)` for every character, which is O(n) per character and therefore O(n^2) per file; this only matters for large sources.
 

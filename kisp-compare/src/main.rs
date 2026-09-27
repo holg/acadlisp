@@ -9,7 +9,41 @@
 //!
 //! Usage:  cargo run --release -- [runs] [filter]
 
+use std::alloc::{GlobalAlloc, Layout, System};
+use std::sync::atomic::{AtomicUsize, Ordering::Relaxed};
 use std::time::{Duration, Instant};
+
+/// Counting allocator for the `mem` subcommand: live bytes, peak live bytes,
+/// total bytes and number of allocations since the last reset.
+struct Counting;
+static LIVE: AtomicUsize = AtomicUsize::new(0);
+static PEAK: AtomicUsize = AtomicUsize::new(0);
+static TOTAL: AtomicUsize = AtomicUsize::new(0);
+static COUNT: AtomicUsize = AtomicUsize::new(0);
+
+unsafe impl GlobalAlloc for Counting {
+    unsafe fn alloc(&self, l: Layout) -> *mut u8 {
+        let live = LIVE.fetch_add(l.size(), Relaxed) + l.size();
+        PEAK.fetch_max(live, Relaxed);
+        TOTAL.fetch_add(l.size(), Relaxed);
+        COUNT.fetch_add(1, Relaxed);
+        System.alloc(l)
+    }
+    unsafe fn dealloc(&self, p: *mut u8, l: Layout) {
+        LIVE.fetch_sub(l.size(), Relaxed);
+        System.dealloc(p, l)
+    }
+}
+
+#[global_allocator]
+static A: Counting = Counting;
+
+fn mem_reset() {
+    PEAK.store(LIVE.load(Relaxed), Relaxed);
+    TOTAL.store(0, Relaxed);
+    COUNT.store(0, Relaxed);
+}
+
 
 const PROGRAMS: &[(&str, &str)] = &[
     ("fib", "fib(22), naive recursion"),
@@ -101,6 +135,22 @@ fn main() {
     // `kisp-compare run <file.kisp|file.lsp>` evaluates one file and prints the result
     // (handy for semantic probes, the kisp REPL needs a terminal).
     if let Some(first) = args.next() {
+        if first == "mem" {
+            // one evaluation per program and engine, allocation statistics
+            println!("| program | engine | peak live KB | allocated KB | allocations |\n|---|---|---:|---:|---:|");
+            for (name, _) in PROGRAMS {
+                let ksrc = read(name, "kisp");
+                let asrc = read(name, "lsp");
+                mem_reset();
+                std::hint::black_box(kisp_eval(&ksrc));
+                let k = (PEAK.load(Relaxed) / 1024, TOTAL.load(Relaxed) / 1024, COUNT.load(Relaxed));
+                mem_reset();
+                std::hint::black_box(acad_eval(&asrc));
+                let a = (PEAK.load(Relaxed) / 1024, TOTAL.load(Relaxed) / 1024, COUNT.load(Relaxed));
+                println!("| {name} | kisp | {} | {} | {} |\n| {name} | acadlisp | {} | {} | {} |", k.0, k.1, k.2, a.0, a.1, a.2);
+            }
+            return;
+        }
         if first == "run" {
             for path in args {
                 let src = std::fs::read_to_string(&path).expect("read file");
