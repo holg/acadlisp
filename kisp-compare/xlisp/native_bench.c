@@ -21,6 +21,18 @@ int main(int argc, char **argv) {
     char *wrapped = malloc(n + 16); sprintf(wrapped, "(begin %s )", src); src = wrapped;
     if (!xlisp_init()) { fprintf(stderr, "init failed\n"); return 1; }
     const char *res = "";
+    if (runs == 0) {
+        /* memory report: one evaluation, then the heap statistics */
+        extern xlFIXTYPE xlNAllocs, xlTotal, xlGCCalls, xlNNodes, xlNFree;
+        xlNAllocs = 0; xlFIXTYPE gc0 = xlGCCalls, total0 = xlTotal;
+        res = xlisp_eval(src);
+        xlFIXTYPE allocs = xlNAllocs, gcs = xlGCCalls - gc0, grown = xlTotal - total0;
+        xlGC();
+        printf("{\"node_allocs\":%ld,\"node_bytes\":%ld,\"live_nodes_after_gc\":%ld,\"live_kb_after_gc\":%ld,\"heap_kb\":%ld,\"heap_grown_kb\":%ld,\"gc_calls\":%ld,\"result\":\"%s\"}\n",
+            (long)allocs, (long)(allocs * (xlFIXTYPE)sizeof(xlNode)), (long)(xlNNodes - xlNFree),
+            (long)((xlNNodes - xlNFree) * (xlFIXTYPE)sizeof(xlNode) / 1024), (long)(xlTotal / 1024), (long)(grown / 1024), (long)gcs, res);
+        return 0;
+    }
     for (int i = 0; i < 3; i++) res = xlisp_eval(src);
     double *t = malloc(sizeof(double) * runs), sum = 0;
     for (int i = 0; i < runs; i++) { double a = now_ms(); res = xlisp_eval(src); t[i] = now_ms() - a; sum += t[i]; }

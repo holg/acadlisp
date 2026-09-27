@@ -12,6 +12,8 @@ XLISP_DIR="${XLISP_DIR:-../../../xlisp}"
 if [ ! -d "$XLISP_DIR" ]; then
   echo "clone https://github.com/holg/xlisp to $XLISP_DIR or set XLISP_DIR" >&2; exit 1
 fi
+# add a node-allocation counter (xlNAllocs) next to every free-list pop, for the memory report
+( cd "$XLISP_DIR" && grep -q xlNAllocs src/xldmem.c || sed -i.orig -e 's/^xlFIXTYPE xlNFree;/xlFIXTYPE xlNFree; xlFIXTYPE xlNAllocs;/' -e 's/^\( *\)--xlNFree;/\1--xlNFree; ++xlNAllocs;/' src/xldmem.c )
 ( cd "$XLISP_DIR" && make clean >/dev/null 2>&1 || true; make CFLAGS="-O2 -DUNIX -Iinclude" library )
 sed -e 's/#include <emscripten.h>//' -e 's/EMSCRIPTEN_KEEPALIVE//' "$XLISP_DIR/wasm_wrapper.c" > native_wrapper.c
 cc -O2 -DUNIX -I"$XLISP_DIR" -I"$XLISP_DIR/include" native_bench.c -L"$XLISP_DIR/lib" -lxlisp -lm -o xlisp-bench

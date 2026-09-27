@@ -175,7 +175,19 @@ wasm: growth of the module's linear memory after each program (Node).
 | cad_grid | kisp | 474 / 479 | 9,879 / 5,401 | 214,958 / 136,161 |
 | cad_grid | acadlisp | 815 / 838 | 2,672 / 2,062 | 36,945 / 26,988 |
 
-XLISP native: 2.2 MB resident for every program (2.7 MB for loop_sum and cad_grid), the empty program included; the heap is sized up front.
+XLISP, same programs, from its own heap counters (`xlisp-bench <file> 0`, a node-allocation counter is patched into `xldmem.c` by `xlisp/build.sh`):
+
+| program | node allocations | node bytes | live after GC | heap footprint | GC runs |
+|---|---:|---:|---:|---:|---:|
+| empty program | 21 | 0.5 KB | 44 KB | 2,543 KB | 0 |
+| fib | 84 | 2 KB | 44 KB | 2,543 KB | 0 |
+| loop_sum | 18,894 | 453 KB | 44 KB | 3,012 KB | 1 |
+| list_ops | 3,231 | 78 KB | 80 KB | 2,543 KB | 0 |
+| call_overhead | 97 | 2.3 KB | 44 KB | 2,543 KB | 0 |
+| cad_grid | 4,757 | 114 KB | 45 KB | 2,543 KB | 0 |
+
+XLISP allocates almost nothing: small integers are immediate values, frames live on the VM's value stack, so fib(22) costs 84 nodes (all at compile time) and loop_sum's 18,894 are the sums that outgrow the immediate integer range and get boxed.
+The price is the footprint: 2.5 MB of node and vector segments allocated up front whatever the program does (resident set 2.2 to 2.7 MB), against 34 to 840 KB peak live for acadlisp; in the browser 16 MB fixed against 1.2 to 2 MB.
 wasm linear memory: the Rust module starts at 1.15 MB and grows to 1.6 MB (2.0 MB after cad_grid's SVG string) for both engines and both branches; the XLISP module is a fixed 16 MB (`INITIAL_MEMORY`) and never grows.
 
 Reading it:
