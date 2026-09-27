@@ -85,6 +85,25 @@ The Odysseus and acadlisp.de render path (cad_grid, full SVG export) is 2.2 ms i
 
 Reproduce the whole matrix with `kisp-compare/run_all.sh` after `wasm/build.sh` (needs `wasm32-unknown-unknown` and `wasm-bindgen-cli` 0.2.129) and `xlisp/build.sh` (needs a clone of github.com/holg/xlisp next to acadlisp or `XLISP_DIR`).
 
+### 2.4 The full matrix: both mains, both branches, native and wasm, XLISP
+
+Final run after all patches (kisp `perf/lexical-scope` at 4dc5a73, acadlisp `perf/kisp-inspired` at 5b97959) against the untouched mains (kisp 01dd868, acadlisp aa555bb v0.2.0).
+Ten builds interleaved three times, 20 timed runs each, best median per cell, ms; wasm in Node v22.
+kisp main needed only the `linefeed`-optional `Cargo.toml` to build for wasm32, which does not change its runtime.
+
+| program | kisp main nat | kisp main wasm | kisp branch nat | kisp branch wasm | acadlisp main nat | acadlisp main wasm | acadlisp branch nat | acadlisp branch wasm | xlisp nat | xlisp wasm |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+| fib | 400 | 602 | 64 | 89 | 28.5 | 43 | 12.1 | 18.5 | 3.75 | 13.9 |
+| loop_sum | 73 | 113 | 65 | 98 | 10.4 | 14.8 | 10.5 | 15.1 | 4.03 | 16.3 |
+| list_ops | 3.18 | 4.44 | 2.91 | 4.22 | 9.20 | 19.9 | 0.83 | 1.09 | 0.33 | 1.42 |
+| call_overhead | 27.5 | 40 | 22.5 | 34 | 5.71 | 7.88 | 4.86 | 7.05 | 2.02 | 7.52 |
+| cad_grid | 4.29 | 6.30 | 2.78 | 3.94 | 1.36 | 2.16 | 1.45 | 2.17 | 0.26 | 1.07 |
+
+wasm penalty (wasm / native, same build): kisp 1.4x to 1.5x, acadlisp 1.3x to 1.5x, XLISP 3.7x to 4.3x.
+
+In the browser, which is where acadlisp.de runs, the patched acadlisp is now faster than XLISP on lists (1.09 vs 1.42 ms) and loops (15.1 vs 16.3 ms), within 25 percent on fib, and behind only on call overhead (7.05 vs 7.52 ms is a tie) and the pure numeric cad_grid core.
+Natively XLISP keeps a 3x to 8x lead: a bytecode VM in C does not pay the tree-walk, and only a compiler would close that.
+
 Parse times are 1 to 20 microseconds for both and irrelevant.
 acadlisp parses two to three times faster because its lexer works on byte offsets, while kisp's lexer calls `chars().nth(i)` for every character, which is O(n) per character and therefore O(n^2) per file; this only matters for large sources.
 
