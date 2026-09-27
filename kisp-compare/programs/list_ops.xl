@@ -1,0 +1,7 @@
+; build a 1500 element list with cons, square with map, sum with a fold
+(define (build n acc)
+  (if (>= 0 n) acc (build (- n 1) (cons n acc))))
+(define (fold f init lst)
+  (if (null? lst) init (fold f (f init (car lst)) (cdr lst))))
+(define lst (build 1500 '()))
+(display (fold (lambda (a b) (+ a b)) 0 (map (lambda (x) (* x x)) lst)))

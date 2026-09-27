@@ -49,6 +49,32 @@ acadlisp: fib 2.3x faster (no `UserFunction` clone per call), deep recursion yie
 The remaining 5x on call-heavy code is kisp's per-call `Rc<Scope>` + `HashMap` frame and the `Rc<Expression>` wrapping of builtin arguments; the remaining 3x on lists is acadlisp's `Vec` copying in `cons`/`cdr`.
 One trade-off in kisp: the stack trace is built from the scope chain, which is now short, so traces list only the lexically enclosing functions, not the dynamic call stack.
 
+### 2.2 Native vs WebAssembly, with XLISP 3.3 as the third engine
+
+acadlisp.de already ships XLISP 3.3 (David Betz, github.com/holg/xlisp fork, Emscripten `-O2`) for its benchmark slide, so it is the natural yardstick: a 1980s C bytecode compiler and VM against two Rust tree-walking interpreters.
+The XLISP programs are in `programs/*.xl` (Scheme dialect: `define`, named `let`, `map`, own `fold`).
+WASM numbers come from Node v22 (V8) on the same VM: kisp and acadlisp through `kisp-compare/wasm` (wasm-bindgen, `opt-level = 3`, no wasm-opt), XLISP through the `xlisp.js`/`xlisp.wasm` shipped in the acadlisp repo.
+Native XLISP goes through the same `xlisp_init`/`xlisp_eval` wrapper as the wasm build, compiled with `-O2` (the upstream Makefile uses no optimisation at all).
+All engines on the patched branches, 20 runs, medians in ms:
+
+| program | kisp native | kisp wasm | acadlisp native | acadlisp wasm | xlisp native | xlisp wasm |
+|---|---:|---:|---:|---:|---:|---:|
+| fib | 62 | 85 | 12 | 17 | 3.7 | 14 |
+| loop_sum | 64 | 95 | 10 | 14 | 4.0 | 16 |
+| list_ops | 2.9 | 4.1 | 8.9 | 19 | 0.32 | 1.4 |
+| call_overhead | 23 | 33 | 4.7 | 6.8 | 2.0 | 7.7 |
+| cad_grid | 2.7 | 3.9 | 1.4 (full render) | 2.2 (full render) | 0.26 | 1.1 |
+
+What the matrix says:
+
+Native XLISP wins everything by 3x to 30x: it compiles to bytecode once and runs a tight C VM, both Rust engines re-walk the AST and allocate per call.
+The gap is much smaller in WebAssembly, where XLISP loses 3.5x to 4.5x against its native build (function pointer emulation, `longjmp` support and the Emscripten runtime cost), while the Rust engines lose only 1.3x to 1.5x. In the browser acadlisp and XLISP are within 20 percent of each other on call-heavy code.
+acadlisp's `Vec` lists hurt twice as much in wasm (list_ops 8.9 to 19 ms): the allocator behind `Vec` copies is where wasm is weakest.
+kisp keeps its list advantage in wasm (4.1 ms vs 19 ms) and is the only engine whose wasm penalty is uniform.
+The Odysseus and acadlisp.de render path (cad_grid, full SVG export) is 2.2 ms in wasm; still not the bottleneck of either pipeline.
+
+Reproduce the whole matrix with `kisp-compare/run_all.sh` after `wasm/build.sh` (needs `wasm32-unknown-unknown` and `wasm-bindgen-cli` 0.2.129) and `xlisp/build.sh` (needs a clone of github.com/holg/xlisp next to acadlisp or `XLISP_DIR`).
+
 Parse times are 1 to 20 microseconds for both and irrelevant.
 acadlisp parses two to three times faster because its lexer works on byte offsets, while kisp's lexer calls `chars().nth(i)` for every character, which is O(n) per character and therefore O(n^2) per file; this only matters for large sources.
 
@@ -161,4 +187,4 @@ The first experiment (lexical scoping only, without the call counter and block f
 Files touched in this session:
 
 * kisp branch `perf/lexical-scope`: `Cargo.toml`, `src/ast.rs`, `src/parser.rs`, `src/lexer.rs`, `src/interpreter.rs`, `src/scope.rs`, `src/stdlib/types.rs`, `src/bin/repl.rs`, `tests/`.
-* acadlisp branch `perf/kisp-inspired`: `Cargo.toml`, `Cargo.lock`, `src/lib.rs`, `src/kisp_bridge.rs`, `src/interpreter.rs`, `index.html`, `kisp-compare/`, this document.
+* acadlisp branch `perf/kisp-inspired`: `Cargo.toml`, `Cargo.lock`, `src/lib.rs`, `src/kisp_bridge.rs`, `src/interpreter.rs`, `index.html`, `kisp-compare/` (native harness, `wasm/` Node runner, `xlisp/` C driver, `run_all.sh`), this document.

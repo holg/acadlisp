@@ -1,0 +1,21 @@
+[package]
+name = "kisp-compare-wasm"
+version = "0.1.0"
+edition = "2021"
+publish = false
+description = "wasm32 build of both interpreters for the Node benchmark runner (bench.mjs)"
+
+[workspace]
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+kisp = { path = "../../../kisp", default-features = false }
+acadlisp = { path = "../.." }
+wasm-bindgen = "0.2.129"
+
+[profile.release]
+opt-level = 3
+lto = true
+codegen-units = 1

@@ -1,0 +1,12 @@
+; numeric core of the grid workload: 900 points (x y angle) as a list, reduced
+(define (row i j acc)
+  (if (>= j 30)
+      acc
+      (row i (+ j 1) (cons (list (* i 20) (* j 20) (* i 0.1)) acc))))
+(define (grid i acc)
+  (if (>= i 30)
+      acc
+      (grid (+ i 1) (row i 0 acc))))
+(define (fold f init lst)
+  (if (null? lst) init (fold f (f init (car lst)) (cdr lst))))
+(display (fold (lambda (a p) (+ a (car p))) 0 (grid 0 '())))

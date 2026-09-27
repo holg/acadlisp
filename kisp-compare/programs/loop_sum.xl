@@ -1,0 +1,7 @@
+; sum 1..50000 with a named let (proper tail call)
+(define (sum-to n)
+  (let iter ((n n) (acc 0))
+    (if (>= 0 n)
+        acc
+        (iter (- n 1) (+ acc n)))))
+(display (sum-to 50000))

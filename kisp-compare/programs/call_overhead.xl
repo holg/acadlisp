@@ -1,0 +1,7 @@
+; 20000 calls of a trivial function inside a tail-recursive loop
+(define (id x) x)
+(define (loop n)
+  (if (>= 0 n)
+      0
+      (loop (- (id n) 1))))
+(display (loop 20000))
