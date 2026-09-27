@@ -1,6 +1,7 @@
 // AutoLISP Parser - S-expression parser for AutoCAD 9/10 dialect
 
 use crate::lexer::{Lexer, Token};
+use crate::symbol::Sym;
 
 use std::sync::Arc;
 
@@ -146,7 +147,7 @@ pub enum Expr {
     Integer(i32),
     Real(f64),
     String(String),
-    Symbol(String),
+    Symbol(Sym),
     List(List),
     Quote(Box<Expr>),
 }
@@ -222,9 +223,9 @@ impl Expr {
     }
 
     #[allow(dead_code)]
-    pub fn as_symbol(&self) -> Option<&str> {
+    pub fn as_symbol(&self) -> Option<Sym> {
         match self {
-            Expr::Symbol(s) => Some(s),
+            Expr::Symbol(s) => Some(*s),
             _ => None,
         }
     }
@@ -342,7 +343,7 @@ impl Parser {
                 let expr = self.parse_expr()?;
                 Some(Expr::Quote(Box::new(expr)))
             }
-            Token::Symbol(s) => Some(Expr::Symbol(s)),
+            Token::Symbol(s) => Some(Expr::Symbol(Sym::intern(&s))),
             Token::String(s) => Some(Expr::String(s)),
             Token::Integer(i) => Some(Expr::Integer(i)),
             Token::Real(r) => Some(Expr::Real(r)),
@@ -372,7 +373,7 @@ mod tests {
         let expr = parser.parse_expr().unwrap();
         if let Expr::List(items) = expr {
             assert_eq!(items.len(), 3);
-            assert_eq!(items[0], Expr::Symbol("+".to_string()));
+            assert_eq!(items[0], Expr::Symbol(Sym::intern("+")));
             assert_eq!(items[1], Expr::Integer(1));
             assert_eq!(items[2], Expr::Integer(2));
         } else {
@@ -386,7 +387,7 @@ mod tests {
         let expr = parser.parse_expr().unwrap();
         if let Expr::List(items) = expr {
             assert_eq!(items.len(), 4);
-            assert_eq!(items[0], Expr::Symbol("DEFUN".to_string()));
+            assert_eq!(items[0], Expr::Symbol(Sym::intern("DEFUN")));
         } else {
             panic!("Expected list");
         }

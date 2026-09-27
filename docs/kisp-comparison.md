@@ -104,6 +104,34 @@ wasm penalty (wasm / native, same build): kisp 1.4x to 1.5x, acadlisp 1.3x to 1.
 In the browser, which is where acadlisp.de runs, the patched acadlisp is now faster than XLISP on lists (1.09 vs 1.42 ms) and loops (15.1 vs 16.3 ms), within 25 percent on fib, and behind only on call overhead (7.05 vs 7.52 ms is a tie) and the pure numeric cad_grid core.
 Natively XLISP keeps a 3x to 8x lead: a bytecode VM in C does not pay the tree-walk, and only a compiler would close that.
 
+### 2.5 acadlisp: interned symbols, builtin table, vector frames
+
+The third acadlisp step attacks the dispatch and the variable lookups described in section 1 of the kisp comparison and in the profile of loop_sum: string matching on every call and hashing on every variable access.
+
+`Expr::Symbol(String)` became `Expr::Symbol(Sym)`, a `u32` interned once at parse time (`src/symbol.rs`).
+The first ids are the builtins in the order of one `builtins!` table, so `sym.builtin()` turns a call head into a `Builtin` enum with a bounds check, and the 114-arm string `match` is now an enum `match`, a jump table.
+Globals live in a vector indexed by symbol id (`Globals`), a lookup is one index; local frames are recycled `Vec<(Sym, Expr)>` scanned linearly (AutoLISP frames hold a handful of variables), so a call allocates nothing in steady state; evaluated arguments go through a `SmallVec<[Expr; 8]>`.
+`setq` now assigns the innermost existing binding and otherwise the global, which is AutoLISP's rule; the old code sent any name that already existed globally to the global even inside a function that had a parameter of that name, and treated `*name*` specially. A user `defun` may shadow a builtin, as in AutoCAD.
+`mapcar` moved to the special forms, where it belongs (its list argument was evaluated twice before).
+`ForeignContext::globals` is now the `Globals` type with `get`/`set` by `Sym` and `get_named`/`set_named` by string.
+
+Native, ms (medians, 3 runs): fib 12.1 to 6.4, loop_sum 10.5 to 3.5, list_ops 0.83 to 0.47, call_overhead 4.86 to 1.96, cad_grid 1.45 to 1.22.
+wasm: fib 18.5 to 10.5, loop_sum 15.1 to 6.6, list_ops 1.09 to 0.68, call_overhead 7.05 to 3.5, cad_grid 2.17 to 1.9.
+
+Against XLISP after this step:
+
+| program | acadlisp native | xlisp native | acadlisp wasm | xlisp wasm |
+|---|---:|---:|---:|---:|
+| fib | 6.4 | 3.9 | 10.5 | 14.7 |
+| loop_sum | 3.5 | 4.1 | 6.6 | 16.9 |
+| list_ops | 0.47 | 0.32 | 0.68 | 1.46 |
+| call_overhead | 1.96 | 2.03 | 3.5 | 7.8 |
+| cad_grid | 1.22 (full SVG render) | 0.28 (numeric core) | 1.9 | 1.1 |
+
+Natively acadlisp is now within 1.7x of XLISP on fib and lists and ahead on loops and calls; in the browser it is ahead everywhere except the cad_grid row, which is not comparable (acadlisp draws and exports 132 KB of SVG, XLISP only computes the points).
+All sample and lisp/ programs and the CSV batch still produce byte-identical output.
+The remaining native gap on fib is the tree walk itself (an `Expr` clone per variable read, a `match` per node); closing it means compiling each `defun` body once into a closure tree or bytecode, which is the next step.
+
 Parse times are 1 to 20 microseconds for both and irrelevant.
 acadlisp parses two to three times faster because its lexer works on byte offsets, while kisp's lexer calls `chars().nth(i)` for every character, which is O(n) per character and therefore O(n^2) per file; this only matters for large sources.
 
@@ -183,7 +211,8 @@ For acadlisp, applied on branch `perf/kisp-inspired`:
 2. `mapcar` / `apply` quote their already evaluated arguments.
 3. `functions` holds `Arc<UserFunction>`: no clone of params and body per call, fib 28 ms to 12 ms.
 4. Lists are shared cons cells with real dotted pairs (section 2.3): list_ops 9.1 ms to 0.93 ms, `cdr` loops linear instead of quadratic.
-5. Four regression tests (mapcar/apply, recursion guard, cons-cell semantics, cdr loop and structural equality).
+5. Interned symbols, builtin enum dispatch, id-indexed globals, recycled vector frames, SmallVec arguments (section 2.5): fib 12 ms to 6.4 ms, loop_sum 10.5 ms to 3.5 ms, call overhead 4.9 ms to 2.0 ms.
+6. Seven regression tests (mapcar/apply, recursion guard, cons-cell semantics, cdr loop and structural equality, innermost-binding setq, builtin shadowing, symbol table).
 
 Still open for acadlisp: structured errors (`Expr::Error` or `Result` with a source position) so acadlisp.de and Odysseus can show *where* an LLM-generated program went wrong instead of an empty drawing.
 

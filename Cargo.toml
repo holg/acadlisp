@@ -24,6 +24,7 @@ kisp = ["dep:kisp"]
 
 [dependencies]
 kisp = { path = "../kisp", default-features = false, optional = true }
+smallvec = "1"
 wasm-bindgen = "0.2.114"
 flate2 = "1.0"
 

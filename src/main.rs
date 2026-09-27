@@ -21,6 +21,7 @@
 mod interpreter;
 mod lexer;
 mod parser;
+mod symbol;
 
 use interpreter::{DrawEntity, Interpreter};
 use std::env;

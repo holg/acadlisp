@@ -22,9 +22,11 @@ pub mod kisp_bridge;
 mod kicad_tests;
 pub mod lexer;
 pub mod parser;
+pub mod symbol;
 
 pub use interpreter::{CadType, DrawEntity, DrawingState, ForeignContext, ForeignFn, Interpreter};
-pub use parser::Expr;
+pub use parser::{Expr, List};
+pub use symbol::{Builtin, Sym};
 
 // Only use fs, Path, and HashMap for non-WASM builds
 #[cfg(not(target_arch = "wasm32"))]
@@ -2682,11 +2684,11 @@ impl SchaltplanEngine {
 
         // Call the template's main function if it exists
         let main_func = format!("{}-GENERATE", spec.template.to_uppercase());
-        if self.interpreter.functions.contains_key(&main_func) {
+        if self.interpreter.functions.contains_key(&Sym::intern_upper(&main_func)) {
             self.interpreter.run(&format!("({})", main_func));
         } else {
             // Try generic GENERATE function
-            if self.interpreter.functions.contains_key("GENERATE") {
+            if self.interpreter.functions.contains_key(&Sym::intern("GENERATE")) {
                 self.interpreter.run("(GENERATE)");
             }
         }
