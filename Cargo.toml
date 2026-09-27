@@ -17,7 +17,13 @@ crate-type = ["cdylib", "rlib"]
 name = "acadlisp-cli"
 path = "src/main.rs"
 
+[features]
+default = []
+# Embed kisp (Kyrill's Lisp) and expose it as (KISP "...") plus WasmEngine::eval_kisp
+kisp = ["dep:kisp"]
+
 [dependencies]
+kisp = { path = "../kisp", default-features = false, optional = true }
 wasm-bindgen = "0.2.114"
 flate2 = "1.0"
 

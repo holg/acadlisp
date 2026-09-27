@@ -70,11 +70,13 @@
     }
     </script>
 
-    <link data-trunk rel="rust" data-wasm-opt="z" data-target-name="acadlisp" data-initializer="initializer.js"/>
+    <!-- data-cargo-features="kisp" embeds Kyrill's Lisp (../kisp) and enables (KISP "...") + engine.eval_kisp() -->
+    <link data-trunk rel="rust" data-wasm-opt="z" data-target-name="acadlisp" data-initializer="initializer.js" data-cargo-features="kisp"/>
     <link data-trunk rel="copy-file" href="noscript.html"/>
     <link data-trunk rel="copy-file" href="xlisp.js"/>
     <link data-trunk rel="copy-file" href="xlisp.wasm"/>
     <link data-trunk rel="copy-file" href="version.txt"/>
+    <link data-trunk rel="copy-file" href="docs/reference.md"/>
 
     <!-- Noscript fallback for crawlers and non-JS browsers -->
     <noscript>
@@ -817,6 +819,7 @@
                     <select id="examples" style="background:#222; color:#00ff88; border:1px solid #333; padding:5px;">
                         <option value="">-- Load Example --</option>
                         <option value="hello">Hello World</option>
+                        <option value="section">Section Drawing</option>
                         <option value="math">Math & Recursion</option>
                         <option value="box">Draw a Box</option>
                         <option value="spiral">Spiral</option>
@@ -865,7 +868,9 @@
             </div>
             <!-- Right: Help -->
             <div style="width:280px; background:#111; border:1px solid #333; padding:15px; overflow-y:auto;">
-                <h2 style="color:#00aaff; font-size:14px; margin-bottom:15px;">Quick Reference</h2>
+                <h2 style="color:#00aaff; font-size:14px; margin-bottom:15px;">Quick Reference
+                    <a href="reference.md" target="_blank" style="color:#00ff88; font-size:11px; font-weight:normal; margin-left:8px;" title="Full command reference">📖 full docs</a>
+                </h2>
                 <div style="font-size:11px; line-height:1.8;">
                     <p style="color:#00aaff;">Drawing Commands:</p>
                     <code style="color:#666;">(command "LINE" '(x1 y1) '(x2 y2) "")</code><br>
@@ -2609,10 +2614,19 @@ RTN</textarea>
                     const startTime = performance.now();
 
                     engine.clear();
-                    const result = engine.eval(code);
-                    playSvg = engine.get_entities_svg();
-                    const output = engine.get_output();
-                    const count = engine.entity_count();
+                    // A program starting with ";kisp" runs through the embedded kisp
+                    // interpreter (Kyrill's Lisp) instead of AutoLISP, when the wasm was
+                    // built with the `kisp` cargo feature. AutoLISP code can also call
+                    // (kisp "<source>") directly.
+                    const isKisp = /^\s*;+\s*kisp\b/i.test(code);
+                    if (isKisp && typeof engine.eval_kisp !== 'function') {
+                        document.getElementById('lispOutput').textContent = 'Error: this build has no kisp support (build with --features kisp)';
+                        return;
+                    }
+                    const result = isKisp ? engine.eval_kisp(code) : engine.eval(code);
+                    playSvg = isKisp ? '' : engine.get_entities_svg();
+                    const output = isKisp ? ('kisp => ' + result) : engine.get_output();
+                    const count = isKisp ? 0 : engine.entity_count();
 
                     const elapsed = (performance.now() - startTime).toFixed(2);
 

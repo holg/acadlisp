@@ -164,16 +164,27 @@ pub struct UserFunction {
     pub body: Vec<Expr>,
 }
 
+/// Maximum nesting of user-defined function calls (see `Interpreter::call_depth`).
+/// Each Lisp-level call costs several Rust frames (eval -> eval_list ->
+/// call_user_function -> builtin_if -> eval ...); 500 stays inside the 1 MB
+/// default WASM stack and the 2 MB Rust test-thread stack with margin.
+pub const MAX_CALL_DEPTH: usize = 500;
+
 pub struct Interpreter {
     // Global symbol table
     pub globals: HashMap<String, Expr>,
     // User-defined functions
-    pub functions: HashMap<String, UserFunction>,
+    // Arc: a call only bumps a refcount instead of cloning params + body
+    pub functions: HashMap<String, Arc<UserFunction>>,
     // Local scope stack
     pub locals: Vec<HashMap<String, Expr>>,
     // Open file handles (AutoCAD 9/10 style - integer descriptors)
     pub file_handles: HashMap<i32, FileHandle>,
     next_handle: i32,
+    // Current user-function call depth; guarded by MAX_CALL_DEPTH so runaway
+    // recursion yields an AutoLISP error instead of overflowing the Rust stack
+    // (a hard abort natively, and a crash of the whole page in WASM).
+    call_depth: usize,
     // Simulated drawing state
     pub drawing: DrawingState,
     // Command queue for batch output
@@ -194,6 +205,7 @@ impl Interpreter {
             locals: Vec::new(),
             file_handles: HashMap::new(),
             next_handle: 1,
+            call_depth: 0,
             drawing: DrawingState::new(),
             command_log: Vec::new(),
             output: Vec::new(),
@@ -470,6 +482,13 @@ impl Interpreter {
     }
 
     fn call_user_function(&mut self, func: &UserFunction, args: &[Expr]) -> Expr {
+        if self.call_depth >= MAX_CALL_DEPTH {
+            self.output.push(format!(
+                "Error: recursion too deep (limit {MAX_CALL_DEPTH} nested calls)"
+            ));
+            return Expr::Nil;
+        }
+        self.call_depth += 1;
         // Create new local scope
         let mut scope = HashMap::new();
         for (i, param) in func.params.iter().enumerate() {
@@ -486,6 +505,7 @@ impl Interpreter {
 
         // Pop scope
         self.locals.pop();
+        self.call_depth -= 1;
         result
     }
 
@@ -535,7 +555,7 @@ impl Interpreter {
         };
         let body = args[2..].to_vec();
         self.functions
-            .insert(name.clone(), UserFunction { params, body });
+            .insert(name.clone(), Arc::new(UserFunction { params, body }));
         Expr::Symbol(name)
     }
 
@@ -1271,7 +1291,11 @@ impl Interpreter {
             let results: Vec<Expr> = items
                 .iter()
                 .map(|item| {
-                    let call = Expr::List(vec![Expr::Symbol(func_name.clone()), item.clone()]);
+                    // items are values already: quote them so a list element is not re-evaluated as a call
+                    let call = Expr::List(vec![
+                        Expr::Symbol(func_name.clone()),
+                        Expr::Quote(Box::new(item.clone())),
+                    ]);
                     self.eval(&call)
                 })
                 .collect();
@@ -2081,7 +2105,8 @@ impl Interpreter {
             _ => return Expr::Nil,
         };
         let mut call = vec![Expr::Symbol(func_name)];
-        call.extend(arg_list);
+        // arg_list holds values already: quote them so lists/symbols are not re-evaluated
+        call.extend(arg_list.into_iter().map(|e| Expr::Quote(Box::new(e))));
         self.eval(&Expr::List(call))
     }
 
@@ -2158,5 +2183,25 @@ mod tests {
         let mut interp = Interpreter::new();
         let results = interp.run("(car '(1 2 3))");
         assert_eq!(results[0], Expr::Integer(1));
+    }
+
+    #[test]
+    fn mapcar_and_apply_do_not_reevaluate_values() {
+        let mut interp = Interpreter::new();
+        let results = interp.run("(mapcar 'car '((1 2) (3 4)))");
+        assert_eq!(results[0], Expr::List(vec![Expr::Integer(1), Expr::Integer(3)]));
+        let results = interp.run("(apply 'length '((a b c)))");
+        assert_eq!(results[0], Expr::Integer(3));
+    }
+
+    #[test]
+    fn deep_recursion_is_reported_not_fatal() {
+        let mut interp = Interpreter::new();
+        interp.run("(defun r (n) (if (= n 0) 0 (+ 1 (r (- n 1))))) (r 100000)");
+        assert!(interp
+            .output
+            .iter()
+            .any(|l| l.contains("recursion too deep")));
+        assert_eq!(interp.call_depth, 0, "depth counter must unwind");
     }
 }

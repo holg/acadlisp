@@ -1,0 +1,17 @@
+[package]
+name = "kisp-compare"
+version = "0.1.0"
+edition = "2021"
+publish = false
+description = "Side-by-side benchmark harness: kisp (Kyrill's Lisp) vs acadlisp"
+
+[workspace]
+
+[dependencies]
+kisp = { path = "../../kisp" }
+acadlisp = { path = ".." }
+
+[profile.release]
+opt-level = 3
+lto = true
+codegen-units = 1

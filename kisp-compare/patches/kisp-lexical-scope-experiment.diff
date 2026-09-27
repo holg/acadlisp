@@ -1,0 +1,71 @@
+diff --git a/src/ast.rs b/src/ast.rs
+index f5d283d..18cc4ee 100644
+--- a/src/ast.rs
++++ b/src/ast.rs
+@@ -26,8 +26,8 @@ pub enum SExpression{
+     Symbol(String),
+     Number(Numeric),
+     //DotExpression(Box<SExpression>,Box<SExpression>),
+-    List(Vec<PosExpression>),
+-    Block(Vec<PosExpression>),
++    List(std::rc::Rc<Vec<PosExpression>>),
++    Block(std::rc::Rc<Vec<PosExpression>>),
+ }
+ 
+ #[derive(Debug, Clone)]
+diff --git a/src/interpreter.rs b/src/interpreter.rs
+index 74cfca0..607623c 100644
+--- a/src/interpreter.rs
++++ b/src/interpreter.rs
+@@ -64,8 +64,8 @@ fn is_tail_call(ctx: &EvalContext, origin: &Option<Rc<ReferenceValue>>, inside:
+ }
+ 
+ 
+-pub fn wrap_tail_call(ctx: EvalContext, scope: &ScopeRef, passed_in: Vec<EvalValue>, arg_names: &Vec<String>, expression: &PosExpression, origin: Option<Rc<ReferenceValue>>) -> EvalResult {
+-    let tc_detected = is_tail_call(&ctx, &scope.origin,&origin);
++pub fn wrap_tail_call(ctx: EvalContext, caller: &ScopeRef, scope: &ScopeRef, passed_in: Vec<EvalValue>, arg_names: &Vec<String>, expression: &PosExpression, origin: Option<Rc<ReferenceValue>>) -> EvalResult {
++    let tc_detected = is_tail_call(&ctx, &caller.origin,&origin);
+     if tc_detected{
+         let tc: TailCall = TailCall{ function: origin.unwrap().clone(), args: passed_in };
+         Ok((EvalValue::Reference(ReferenceValue::TailCallValue(tc).to_rc()), ctx))
+@@ -115,8 +115,8 @@ pub(crate) fn eval_call_with_values(ctx: EvalContext, scope: &ScopeRef, callable
+             BuiltInFunctionArgs::from(args),
+         ),
+         Callable::Function(func) =>
+-            wrap_tail_call(ctx, scope, args, &func.arguments, &func.body, origin),
+-        Callable::Lambda(lam) => eval_with_args(EvalContext::none(), scope, args, &lam.arguments, &lam.body, None),
++            wrap_tail_call(ctx, scope, &func.in_scope, args, &func.arguments, &func.body, origin),
++        Callable::Lambda(lam) => eval_with_args(EvalContext::none(), &lam.in_scope, args, &lam.arguments, &lam.body, None),
+     }
+ }
+ 
+diff --git a/src/parser.rs b/src/parser.rs
+index 4348d3d..1fe918a 100644
+--- a/src/parser.rs
++++ b/src/parser.rs
+@@ -25,7 +25,7 @@ fn parse_iter(stream: &mut TokenStream, acc: Vec<PosExpression>) -> Result<Vec<P
+ pub fn parse(stream: &mut TokenStream) -> Result<PosExpression, ParserError> {
+     let stack = parse_iter(stream, Vec::new())?;
+     match stream.peek().unwrap() {
+-        Token{value: TokenValue::EOF, ..} => Ok(PosExpression{exp: SExpression::Block(stack), cursor: Cursor::new()}),
++        Token{value: TokenValue::EOF, ..} => Ok(PosExpression{exp: SExpression::Block(std::rc::Rc::new(stack)), cursor: Cursor::new()}),
+         Token{value: _, cursor} => Err(ParserError::NoMatchingParser(cursor.clone())),
+     }
+ }
+@@ -70,14 +70,14 @@ fn parse_list_iter(stream: &mut TokenStream, acc: Vec<ast::PosExpression>) -> Re
+ fn parse_list(stream: &mut TokenStream) -> ParserResult{
+     match parse_listy(stream, TokenValue::ParenthesisOpen, TokenValue::ParenthesisClose)? {
+         None => Ok(None),
+-        Some((acc, cursor)) => Ok(Some(PosExpression{exp: ast::SExpression::List(acc), cursor})),
++        Some((acc, cursor)) => Ok(Some(PosExpression{exp: ast::SExpression::List(std::rc::Rc::new(acc)), cursor})),
+     }
+ }
+ 
+ fn parse_block(stream: &mut TokenStream) -> ParserResult{
+     match parse_listy(stream, TokenValue::BracketOpen, TokenValue::BracketClose)? {
+         None => Ok(None),
+-        Some((acc, cursor)) => Ok(Some(PosExpression{cursor, exp: ast::SExpression::Block(acc)})),
++        Some((acc, cursor)) => Ok(Some(PosExpression{cursor, exp: ast::SExpression::Block(std::rc::Rc::new(acc))})),
+     }
+ }
+ 

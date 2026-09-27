@@ -1,0 +1,8 @@
+; 20000 calls of a trivial function inside a tail-recursive loop
+; NOTE: the call must be an argument of the tail call, a [block] body breaks kisp's TCO detection
+(fn id [x] x)
+(fn loop [n]
+  (if (>= 0 n)
+      0
+      (loop (- (id n) 1))))
+(loop 20000)

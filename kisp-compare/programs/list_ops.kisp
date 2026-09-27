@@ -1,0 +1,7 @@
+; build a 1500 element list with cons, square it with map, sum with fold
+(fn build [n acc]
+  (if (>= 0 n)
+      acc
+      (build (- n 1) (cons n acc))))
+(let lst (build 1500 (list)))
+(fold 0 (lambda [a b] (+ a b)) (map (lambda [x] (* x x)) lst))

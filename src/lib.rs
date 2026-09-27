@@ -16,6 +16,8 @@ use wasm_bindgen::prelude::*;
 pub mod hp41;
 pub mod interpreter;
 pub mod kicad;
+#[cfg(feature = "kisp")]
+pub mod kisp_bridge;
 #[cfg(test)]
 mod kicad_tests;
 pub mod lexer;
@@ -47,8 +49,22 @@ impl WasmEngine {
     /// Create a new engine instance
     #[wasm_bindgen(constructor)]
     pub fn new() -> WasmEngine {
-        WasmEngine {
-            interpreter: Interpreter::new(),
+        #[allow(unused_mut)]
+        let mut interpreter = Interpreter::new();
+        #[cfg(feature = "kisp")]
+        kisp_bridge::register(&mut interpreter);
+        WasmEngine { interpreter }
+    }
+
+    /// Evaluate kisp (Kyrill's Lisp) source in a fresh kisp environment and
+    /// return the printed result, or a string starting with "Error: ".
+    /// Only available when the crate is built with the `kisp` feature.
+    #[cfg(feature = "kisp")]
+    #[wasm_bindgen]
+    pub fn eval_kisp(&mut self, code: &str) -> String {
+        match kisp_bridge::eval_kisp(code) {
+            Ok(v) => v.to_string(),
+            Err(e) => format!("Error: {e}"),
         }
     }
 
@@ -180,13 +196,13 @@ impl WasmEngine {
     /// Get engine info
     #[wasm_bindgen]
     pub fn engine_info(&self) -> String {
-        r#"{"name":"acadlisp","engine":"rust","version":"0.1.0","features":["autolisp","csv","dxf","svg"]}"#.to_string()
+        r#"{"name":"acadlisp","engine":"rust","version":"0.1.0","features":["autolisp","csv","dxf","svg"{}]}"#.to_string().replace("{}", if cfg!(feature = "kisp") { ",\"kisp\"" } else { "" })
     }
 
     /// Get list of available examples
     #[wasm_bindgen]
     pub fn get_example_names(&self) -> String {
-        r#"["hello","math","box","spiral","schaltplan","fractal","kicad_sym","kicad_fp","kicad_cake","kicad_newyear","birthday","newyear2026"]"#.to_string()
+        r#"["hello","section","math","box","spiral","schaltplan","fractal","kicad_sym","kicad_fp","kicad_cake","kicad_newyear","birthday","newyear2026"]"#.to_string()
     }
 
     /// Get example code by name
@@ -194,6 +210,7 @@ impl WasmEngine {
     pub fn get_example(&self, name: &str) -> String {
         match name {
             "hello" => EXAMPLE_HELLO.to_string(),
+            "section" => EXAMPLE_SECTION.to_string(),
             "math" => EXAMPLE_MATH.to_string(),
             "box" => EXAMPLE_BOX.to_string(),
             "spiral" => EXAMPLE_SPIRAL.to_string(),
@@ -1097,6 +1114,40 @@ const EXAMPLE_HELLO: &str = r#"; https://acadlisp.de/?example=hello
 (command "LINE" '(200 50) '(200 95) "")
 (command "LINE" '(200 95) '(10 95) "")
 (command "LINE" '(10 95) '(10 50) "")"#;
+
+const EXAMPLE_SECTION: &str = r#"; https://acadlisp.de/?example=section
+; Section Drawing - showcase of the CAD primitives
+; (see docs/reference.md for the full command reference)
+
+; Use a named layer so entities are grouped
+(command "LAYER" "S" "OUTLINE" "")
+
+; --- LINE: a chain of points makes a polyline-like path ---
+; Closed pentagon outline
+(command "LINE"
+  '(40 20) '(120 20) '(150 80)
+  '(80 130) '(10 80) '(40 20) "")
+
+; --- CIRCLE: center + radius ---
+(command "LAYER" "S" "HOLES" "")
+(command "CIRCLE" '(80 75) 8)
+(command "CIRCLE" '(40 40) 5)
+(command "CIRCLE" '(120 40) 5)
+
+; --- TEXT: position, height, optional rotation, string ---
+(command "LAYER" "S" "LABELS" "")
+(command "TEXT" '(15 140) 8 0 "SECTION A-A")
+(command "TEXT" '(120 110) 4 30 "rotated")
+
+; --- Parametric: draw a row of ticks with polar/math ---
+(defun tick (x)
+  (command "LINE" (list x 5) (list x 15) ""))
+(setq x 20)
+(while (<= x 140)
+  (tick x)
+  (setq x (+ x 20)))
+
+(princ "\nSection drawing complete - 4 layers used.")"#;
 
 const EXAMPLE_MATH: &str = r#"; https://acadlisp.de/?example=math
 ; Math and Recursion

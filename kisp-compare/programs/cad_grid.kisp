@@ -1,0 +1,12 @@
+; kisp has no strings, no drawing primitives and no CAD state, so only the
+; numeric core of the grid workload can be expressed: build the 900 points
+; (x y angle) as a list and reduce over it.
+(fn row [i j acc]
+  (if (>= j 30)
+      acc
+      (row i (+ j 1) (cons (list (* i 20) (* j 20) (* i 0.1)) acc))))
+(fn grid [i acc]
+  (if (>= i 30)
+      acc
+      (grid (+ i 1) (row i 0 acc))))
+(fold 0 (lambda [a p] (+ a (car p))) (grid 0 (list)))

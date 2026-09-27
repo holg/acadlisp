@@ -1,0 +1,6 @@
+; sum 1..50000 - kisp has no loop, idiomatic form is tail recursion (TCO)
+(fn iter [n acc]
+  (if (>= 0 n)
+      acc
+      (iter (- n 1) (+ acc n))))
+(iter 50000 0)
