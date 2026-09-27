@@ -302,11 +302,26 @@ impl Parser {
         match token {
             Token::LParen => {
                 let mut items = Vec::new();
+                let mut tail = Expr::Nil;
                 loop {
                     match self.peek() {
                         None => break,
                         Some(Token::RParen) => {
                             self.advance();
+                            break;
+                        }
+                        // dotted pair syntax: (a b . c)
+                        Some(Token::Symbol(s)) if s == "." && !items.is_empty() => {
+                            self.advance();
+                            if let Some(expr) = self.parse_expr() {
+                                tail = expr;
+                            }
+                            // consume up to and including the closing paren
+                            while let Some(tok) = self.advance() {
+                                if *tok == Token::RParen {
+                                    break;
+                                }
+                            }
                             break;
                         }
                         _ => {
@@ -316,7 +331,11 @@ impl Parser {
                         }
                     }
                 }
-                Some(Expr::list(items))
+                let mut list = tail;
+                for item in items.into_iter().rev() {
+                    list = Expr::List(List::cons(item, list));
+                }
+                Some(list)
             }
             Token::RParen => None, // Unexpected, ignore
             Token::Quote => {
@@ -371,6 +390,16 @@ mod tests {
         } else {
             panic!("Expected list");
         }
+    }
+
+    #[test]
+    fn test_parse_dotted_pair() {
+        let mut parser = Parser::from_input("(1 . 2) (a b . c) (x . nil)");
+        let e = parser.parse_all();
+        assert_eq!(e[0].to_string(), "(1 . 2)");
+        assert_eq!(e[0].as_list().unwrap().cdr(), &Expr::Integer(2));
+        assert_eq!(e[1].to_string(), "(A B . C)");
+        assert_eq!(e[2].to_string(), "(X)");
     }
 
     #[test]
