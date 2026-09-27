@@ -132,6 +132,30 @@ Natively acadlisp is now within 1.7x of XLISP on fib and lists and ahead on loop
 All sample and lisp/ programs and the CSV batch still produce byte-identical output.
 The remaining native gap on fib is the tree walk itself (an `Expr` clone per variable read, a `match` per node); closing it means compiling each `defun` body once into a closure tree or bytecode, which is the next step.
 
+### 2.6 acadlisp branch `perf/compiled-defun`: compiled function bodies
+
+Branched from `perf/kisp-inspired` (24c55af), since this is no longer kisp-inspired: it is what XLISP and Visual LISP do.
+Every `defun` body is compiled once, on its first call, from the `Expr` tree into a resolved tree (`src/compile.rs`, `Node`): parameters and declared locals become frame-slot indices read and written without a symbol scan, constants and quoted forms are ready values, builtin calls hold the `Builtin` enum and their compiled arguments, calls to user or foreign functions hold the symbol and are resolved through an id-indexed `FunctionTable` at call time (so a later `defun` is picked up), and `setq if cond while repeat progn and or foreach` are nodes with compiled children.
+Free variables stay dynamic lookups by symbol, as AutoLISP requires; `defun`, `lambda`, `mapcar` and anything unusual fall back to the generic evaluator on the original expression, so semantics never change.
+Top-level forms go through the same compiler with an empty frame (`Interpreter::eval_top`), which resolves constants and dispatch but has no slots.
+`call_builtin` gained an integer fast path for two-argument `+ - * < > <= >= = /=`, wrapping like AutoLISP's 32-bit integers (the old `-` went through f64 and a saturating cast).
+Compilation is lazy so loading a large template library costs the same as before; only functions that run get compiled.
+
+Native, ms (medians of 3 x 20): fib 6.4 to 4.4, loop_sum 3.5 to 3.35, list_ops 0.47 to 0.44, call_overhead 1.96 to 1.44, cad_grid 1.22 to 1.17.
+wasm: fib 10.5 to 7.6, loop_sum 6.6 to 6.3, list_ops 0.68 to 0.62, call_overhead 3.5 to 2.8, cad_grid 1.9 to 1.87.
+
+| program | acadlisp native | xlisp native | acadlisp wasm | xlisp wasm |
+|---|---:|---:|---:|---:|
+| fib | 4.4 | 3.9 | 7.6 | 14.0 |
+| loop_sum | 3.35 | 4.1 | 6.3 | 16.6 |
+| list_ops | 0.44 | 0.33 | 0.62 | 1.45 |
+| call_overhead | 1.44 | 2.0 | 2.8 | 7.7 |
+| cad_grid | 1.17 (full SVG render) | 0.27 (numeric core) | 1.87 | 1.09 |
+
+Natively acadlisp is now at XLISP's level: ahead on loops and calls, within 15 percent on fib, within 35 percent on lists; in the browser it is 1.8x to 2.7x ahead of XLISP on every comparable program.
+All 73 tests pass, including five new ones for the compiler (dynamic scoping through compiled code, locals after `/`, control forms, redefinition after first call, integer wrapping), and all sample programs and the CSV batch produce byte-identical output.
+What is left on fib is the frame push/pop, the `Arc` clone of the callee and the `Expr` clones of argument values; a bytecode VM with a value stack would take those, at the price of a second execution engine, and is not worth it for the acadlisp.de workload.
+
 Parse times are 1 to 20 microseconds for both and irrelevant.
 acadlisp parses two to three times faster because its lexer works on byte offsets, while kisp's lexer calls `chars().nth(i)` for every character, which is O(n) per character and therefore O(n^2) per file; this only matters for large sources.
 

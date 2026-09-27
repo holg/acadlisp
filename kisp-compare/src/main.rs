@@ -63,7 +63,7 @@ fn acad_eval(src: &str) -> String {
     let mut it = acadlisp::Interpreter::new();
     let mut last = acadlisp::Expr::Nil;
     for e in &exprs {
-        last = it.eval(e);
+        last = it.eval_top(e);
     }
     last.to_string()
 }

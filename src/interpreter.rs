@@ -2,7 +2,9 @@
 // Implements the subset of functions available in late 1980s AutoCAD
 
 use crate::parser::{Expr, List};
-use crate::symbol::{Builtin, Sym};
+use crate::compile::{compile_body, Node};
+use crate::symbol::{Builtin, Sym, BUILTIN_COUNT};
+use std::sync::OnceLock;
 use std::collections::HashMap;
 use std::fs::File;
 use std::io::{BufRead, BufReader, Write};
@@ -160,10 +162,22 @@ pub struct FileHandle {
 }
 
 // User-defined function
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct UserFunction {
     pub params: Vec<Sym>,
     pub body: Vec<Expr>,
+    /// The body compiled to a resolved tree on first call (see `compile.rs`).
+    pub compiled: OnceLock<Vec<Node>>,
+}
+
+impl UserFunction {
+    pub fn new(params: Vec<Sym>, body: Vec<Expr>) -> UserFunction {
+        UserFunction { params, body, compiled: OnceLock::new() }
+    }
+
+    pub fn code(&self) -> &[Node] {
+        self.compiled.get_or_init(|| compile_body(&self.params, &self.body))
+    }
 }
 
 /// Maximum nesting of user-defined function calls (see `Interpreter::call_depth`).
@@ -209,6 +223,39 @@ impl Globals {
     }
 }
 
+/// User-defined functions indexed by symbol id, like `Globals`.
+#[derive(Debug, Default)]
+pub struct FunctionTable {
+    slots: Vec<Option<Arc<UserFunction>>>,
+}
+
+impl FunctionTable {
+    #[inline]
+    pub fn get(&self, sym: Sym) -> Option<&Arc<UserFunction>> {
+        self.slots.get(sym.id() as usize).and_then(|s| s.as_ref())
+    }
+
+    pub fn insert(&mut self, sym: Sym, f: Arc<UserFunction>) {
+        let i = sym.id() as usize;
+        if i >= self.slots.len() {
+            self.slots.resize(i + 1, None);
+        }
+        self.slots[i] = Some(f);
+    }
+
+    pub fn contains_key(&self, sym: &Sym) -> bool {
+        self.get(*sym).is_some()
+    }
+
+    pub fn contains_named(&self, name: &str) -> bool {
+        self.contains_key(&Sym::intern_upper(name))
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.slots.iter().all(|s| s.is_none())
+    }
+}
+
 /// One dynamic-scope frame: the parameters and locals of a running user
 /// function. AutoLISP frames hold a handful of variables, so a linear scan over
 /// interned ids beats a hash map and the vector is recycled between calls.
@@ -222,13 +269,16 @@ pub const MAX_CALL_DEPTH: usize = 500;
 pub struct Interpreter {
     // Global symbol table
     pub globals: Globals,
-    // User-defined functions
+    // User-defined functions, indexed by symbol id (one index per call);
     // Arc: a call only bumps a refcount instead of cloning params + body
-    pub functions: HashMap<Sym, Arc<UserFunction>>,
+    pub functions: FunctionTable,
     // Local scope stack (innermost last)
     pub locals: Vec<Frame>,
     // Recycled frame vectors, so a call in steady state allocates nothing
     frame_pool: Vec<Frame>,
+    // Builtin names redefined by a user defun or a foreign function: checked
+    // with one array index instead of a hash lookup on every builtin call
+    shadowed: Vec<bool>,
     // Open file handles (AutoCAD 9/10 style - integer descriptors)
     pub file_handles: HashMap<i32, FileHandle>,
     next_handle: i32,
@@ -252,9 +302,10 @@ impl Interpreter {
     pub fn new() -> Self {
         Interpreter {
             globals: Globals::default(),
-            functions: HashMap::new(),
+            functions: FunctionTable::default(),
             locals: Vec::new(),
             frame_pool: Vec::new(),
+            shadowed: vec![false; BUILTIN_COUNT as usize],
             file_handles: HashMap::new(),
             next_handle: 1,
             call_depth: 0,
@@ -272,12 +323,15 @@ impl Interpreter {
     where
         F: Fn(&mut ForeignContext, &[Expr]) -> Expr + Send + Sync + 'static,
     {
-        self.foreign_fns
-            .insert(Sym::intern_upper(name), Arc::new(f));
+        let sym = Sym::intern_upper(name);
+        if let Some(b) = sym.builtin() {
+            self.shadowed[b as usize] = true;
+        }
+        self.foreign_fns.insert(sym, Arc::new(f));
     }
 
     #[inline]
-    fn get_var(&self, sym: Sym) -> Expr {
+    pub(crate) fn get_var(&self, sym: Sym) -> Expr {
         // Dynamic scoping: innermost frame first, then globals
         for frame in self.locals.iter().rev() {
             for (s, val) in frame.iter().rev() {
@@ -295,7 +349,7 @@ impl Interpreter {
     }
 
     #[inline]
-    fn set_var(&mut self, sym: Sym, value: Expr) {
+    pub(crate) fn set_var(&mut self, sym: Sym, value: Expr) {
         // AutoLISP: setq assigns the innermost binding that exists (a parameter
         // or declared local of a running function); otherwise the global
         for frame in self.locals.iter_mut().rev() {
@@ -364,137 +418,153 @@ impl Interpreter {
         // Regular functions - evaluate args first (stack-allocated for up to 8)
         let evaled_args: SmallVec<[Expr; 8]> = args.list_iter().map(|a| self.eval(a)).collect();
 
-        let Some(builtin) = builtin else {
-            // Check for user-defined function
-            if let Some(func) = self.functions.get(&head).cloned() {
-                return self.call_user_function(&func, &evaled_args);
-            }
-            // Check for foreign (extension) functions
-            if let Some(f) = self.foreign_fns.get(&head).cloned() {
-                let mut ctx = ForeignContext {
-                    output: &mut self.output,
-                    globals: &mut self.globals,
-                    drawing: &mut self.drawing,
-                    user_data: self.user_data.as_mut(),
-                };
-                return f(&mut ctx, &evaled_args);
-            }
-            self.output
-                .push(format!("Error: unknown function {}", head));
-            return Expr::Nil;
-        };
-        // A user or foreign function may shadow a builtin name
-        if !self.functions.is_empty() {
-            if let Some(func) = self.functions.get(&head).cloned() {
-                return self.call_user_function(&func, &evaled_args);
-            }
+        match builtin {
+            // a user or foreign function may shadow a builtin name
+            Some(b) if !self.shadowed[b as usize] => self.call_builtin(b, &evaled_args),
+            _ => self.call_named(head, &evaled_args),
         }
-        if !self.foreign_fns.is_empty() {
-            if let Some(f) = self.foreign_fns.get(&head).cloned() {
+    }
+
+    #[inline]
+    pub(crate) fn is_shadowed(&self, b: Builtin) -> bool {
+        self.shadowed[b as usize]
+    }
+
+    /// Call a user-defined or foreign function by symbol, with evaluated arguments.
+    pub(crate) fn call_named(&mut self, head: Sym, evaled_args: &[Expr]) -> Expr {
+        if let Some(func) = self.functions.get(head).cloned() {
+            return self.call_user_function(&func, evaled_args);
+        }
+        if let Some(f) = self.foreign_fns.get(&head).cloned() {
             let mut ctx = ForeignContext {
                 output: &mut self.output,
                 globals: &mut self.globals,
                 drawing: &mut self.drawing,
                 user_data: self.user_data.as_mut(),
             };
-                return f(&mut ctx, &evaled_args);
+            return f(&mut ctx, evaled_args);
+        }
+        if let Some(b) = head.builtin() {
+            // shadowed once, but the shadowing definition is gone again
+            return self.call_builtin(b, evaled_args);
+        }
+        self.output
+            .push(format!("Error: unknown function {}", head));
+        Expr::Nil
+    }
+
+    /// Call a builtin with evaluated arguments (special forms return nil here).
+    pub(crate) fn call_builtin(&mut self, builtin: Builtin, evaled_args: &[Expr]) -> Expr {
+        // Fast path: two-integer arithmetic and comparison, the bulk of loop
+        // and recursion bodies (wrapping, like AutoLISP's 32-bit integers)
+        if let [Expr::Integer(a), Expr::Integer(b)] = evaled_args {
+            let (a, b) = (*a, *b);
+            match builtin {
+                Builtin::Add => return Expr::Integer(a.wrapping_add(b)),
+                Builtin::Sub => return Expr::Integer(a.wrapping_sub(b)),
+                Builtin::Mul => return Expr::Integer(a.wrapping_mul(b)),
+                Builtin::Lt => return if a < b { Expr::T } else { Expr::Nil },
+                Builtin::Gt => return if a > b { Expr::T } else { Expr::Nil },
+                Builtin::Le => return if a <= b { Expr::T } else { Expr::Nil },
+                Builtin::Ge => return if a >= b { Expr::T } else { Expr::Nil },
+                Builtin::NumEq => return if a == b { Expr::T } else { Expr::Nil },
+                Builtin::Neq => return if a != b { Expr::T } else { Expr::Nil },
+                _ => {}
             }
         }
-
-        // Built-in functions
         match builtin {
             // Arithmetic
-            Builtin::Add => self.builtin_add(&evaled_args),
-            Builtin::Sub => self.builtin_sub(&evaled_args),
-            Builtin::Mul => self.builtin_mul(&evaled_args),
-            Builtin::Div => self.builtin_div(&evaled_args),
-            Builtin::OnePlus => self.builtin_1plus(&evaled_args),
-            Builtin::OneMinus => self.builtin_1minus(&evaled_args),
-            Builtin::Abs => self.builtin_abs(&evaled_args),
-            Builtin::Max => self.builtin_max(&evaled_args),
-            Builtin::Min => self.builtin_min(&evaled_args),
-            Builtin::Rem => self.builtin_rem(&evaled_args),
-            Builtin::Gcd => self.builtin_gcd(&evaled_args),
-            Builtin::Sin => self.builtin_sin(&evaled_args),
-            Builtin::Cos => self.builtin_cos(&evaled_args),
-            Builtin::Atan => self.builtin_atan(&evaled_args),
-            Builtin::Sqrt => self.builtin_sqrt(&evaled_args),
-            Builtin::Expt => self.builtin_expt(&evaled_args),
-            Builtin::Exp => self.builtin_exp(&evaled_args),
-            Builtin::Log => self.builtin_log(&evaled_args),
-            Builtin::Fix => self.builtin_fix(&evaled_args),
-            Builtin::Float => self.builtin_float(&evaled_args),
+            Builtin::Add => self.builtin_add(evaled_args),
+            Builtin::Sub => self.builtin_sub(evaled_args),
+            Builtin::Mul => self.builtin_mul(evaled_args),
+            Builtin::Div => self.builtin_div(evaled_args),
+            Builtin::OnePlus => self.builtin_1plus(evaled_args),
+            Builtin::OneMinus => self.builtin_1minus(evaled_args),
+            Builtin::Abs => self.builtin_abs(evaled_args),
+            Builtin::Max => self.builtin_max(evaled_args),
+            Builtin::Min => self.builtin_min(evaled_args),
+            Builtin::Rem => self.builtin_rem(evaled_args),
+            Builtin::Gcd => self.builtin_gcd(evaled_args),
+            Builtin::Sin => self.builtin_sin(evaled_args),
+            Builtin::Cos => self.builtin_cos(evaled_args),
+            Builtin::Atan => self.builtin_atan(evaled_args),
+            Builtin::Sqrt => self.builtin_sqrt(evaled_args),
+            Builtin::Expt => self.builtin_expt(evaled_args),
+            Builtin::Exp => self.builtin_exp(evaled_args),
+            Builtin::Log => self.builtin_log(evaled_args),
+            Builtin::Fix => self.builtin_fix(evaled_args),
+            Builtin::Float => self.builtin_float(evaled_args),
 
             // Comparison
-            Builtin::NumEq => self.builtin_eq(&evaled_args),
-            Builtin::Neq => self.builtin_neq(&evaled_args),
-            Builtin::Lt => self.builtin_lt(&evaled_args),
-            Builtin::Gt => self.builtin_gt(&evaled_args),
-            Builtin::Le => self.builtin_le(&evaled_args),
-            Builtin::Ge => self.builtin_ge(&evaled_args),
-            Builtin::Eq => self.builtin_eq_sym(&evaled_args),
-            Builtin::Equal => self.builtin_equal(&evaled_args),
+            Builtin::NumEq => self.builtin_eq(evaled_args),
+            Builtin::Neq => self.builtin_neq(evaled_args),
+            Builtin::Lt => self.builtin_lt(evaled_args),
+            Builtin::Gt => self.builtin_gt(evaled_args),
+            Builtin::Le => self.builtin_le(evaled_args),
+            Builtin::Ge => self.builtin_ge(evaled_args),
+            Builtin::Eq => self.builtin_eq_sym(evaled_args),
+            Builtin::Equal => self.builtin_equal(evaled_args),
 
             // Logical
-            Builtin::Not => self.builtin_not(&evaled_args),
-            Builtin::Null => self.builtin_null(&evaled_args),
+            Builtin::Not => self.builtin_not(evaled_args),
+            Builtin::Null => self.builtin_null(evaled_args),
 
             // Type predicates
-            Builtin::Atom => self.builtin_atom(&evaled_args),
-            Builtin::Listp => self.builtin_listp(&evaled_args),
-            Builtin::Numberp => self.builtin_numberp(&evaled_args),
-            Builtin::Minusp => self.builtin_minusp(&evaled_args),
-            Builtin::Zerop => self.builtin_zerop(&evaled_args),
-            Builtin::Type => self.builtin_type(&evaled_args),
+            Builtin::Atom => self.builtin_atom(evaled_args),
+            Builtin::Listp => self.builtin_listp(evaled_args),
+            Builtin::Numberp => self.builtin_numberp(evaled_args),
+            Builtin::Minusp => self.builtin_minusp(evaled_args),
+            Builtin::Zerop => self.builtin_zerop(evaled_args),
+            Builtin::Type => self.builtin_type(evaled_args),
 
             // List operations
-            Builtin::Car => self.builtin_car(&evaled_args),
-            Builtin::Cdr => self.builtin_cdr(&evaled_args),
-            Builtin::Cadr => self.builtin_cadr(&evaled_args),
-            Builtin::Caddr => self.builtin_caddr(&evaled_args),
-            Builtin::Caar => self.builtin_caar(&evaled_args),
-            Builtin::Cadar => self.builtin_cadar(&evaled_args),
-            Builtin::Cddr => self.builtin_cddr(&evaled_args),
-            Builtin::Cons => self.builtin_cons(&evaled_args),
-            Builtin::List => self.builtin_list(&evaled_args),
-            Builtin::Append => self.builtin_append(&evaled_args),
-            Builtin::Reverse => self.builtin_reverse(&evaled_args),
-            Builtin::Length => self.builtin_length(&evaled_args),
-            Builtin::Nth => self.builtin_nth(&evaled_args),
-            Builtin::Last => self.builtin_last(&evaled_args),
-            Builtin::Member => self.builtin_member(&evaled_args),
-            Builtin::Assoc => self.builtin_assoc(&evaled_args),
-            Builtin::Subst => self.builtin_subst(&evaled_args),
+            Builtin::Car => self.builtin_car(evaled_args),
+            Builtin::Cdr => self.builtin_cdr(evaled_args),
+            Builtin::Cadr => self.builtin_cadr(evaled_args),
+            Builtin::Caddr => self.builtin_caddr(evaled_args),
+            Builtin::Caar => self.builtin_caar(evaled_args),
+            Builtin::Cadar => self.builtin_cadar(evaled_args),
+            Builtin::Cddr => self.builtin_cddr(evaled_args),
+            Builtin::Cons => self.builtin_cons(evaled_args),
+            Builtin::List => self.builtin_list(evaled_args),
+            Builtin::Append => self.builtin_append(evaled_args),
+            Builtin::Reverse => self.builtin_reverse(evaled_args),
+            Builtin::Length => self.builtin_length(evaled_args),
+            Builtin::Nth => self.builtin_nth(evaled_args),
+            Builtin::Last => self.builtin_last(evaled_args),
+            Builtin::Member => self.builtin_member(evaled_args),
+            Builtin::Assoc => self.builtin_assoc(evaled_args),
+            Builtin::Subst => self.builtin_subst(evaled_args),
 
             // String operations
-            Builtin::Strcat => self.builtin_strcat(&evaled_args),
-            Builtin::Strlen => self.builtin_strlen(&evaled_args),
-            Builtin::Substr => self.builtin_substr(&evaled_args),
-            Builtin::Strcase => self.builtin_strcase(&evaled_args),
-            Builtin::Ascii => self.builtin_ascii(&evaled_args),
-            Builtin::Chr => self.builtin_chr(&evaled_args),
-            Builtin::Atoi => self.builtin_atoi(&evaled_args),
-            Builtin::Atof => self.builtin_atof(&evaled_args),
-            Builtin::Itoa => self.builtin_itoa(&evaled_args),
-            Builtin::Rtos => self.builtin_rtos(&evaled_args),
-            Builtin::Angtos => self.builtin_angtos(&evaled_args),
-            Builtin::Read => self.builtin_read_str(&evaled_args),
+            Builtin::Strcat => self.builtin_strcat(evaled_args),
+            Builtin::Strlen => self.builtin_strlen(evaled_args),
+            Builtin::Substr => self.builtin_substr(evaled_args),
+            Builtin::Strcase => self.builtin_strcase(evaled_args),
+            Builtin::Ascii => self.builtin_ascii(evaled_args),
+            Builtin::Chr => self.builtin_chr(evaled_args),
+            Builtin::Atoi => self.builtin_atoi(evaled_args),
+            Builtin::Atof => self.builtin_atof(evaled_args),
+            Builtin::Itoa => self.builtin_itoa(evaled_args),
+            Builtin::Rtos => self.builtin_rtos(evaled_args),
+            Builtin::Angtos => self.builtin_angtos(evaled_args),
+            Builtin::Read => self.builtin_read_str(evaled_args),
 
             // I/O
-            Builtin::Princ => self.builtin_princ(&evaled_args),
-            Builtin::Print => self.builtin_print(&evaled_args),
-            Builtin::Prin1 => self.builtin_prin1(&evaled_args),
-            Builtin::Prompt => self.builtin_prompt(&evaled_args),
-            Builtin::Terpri => self.builtin_terpri(&evaled_args),
+            Builtin::Princ => self.builtin_princ(evaled_args),
+            Builtin::Print => self.builtin_print(evaled_args),
+            Builtin::Prin1 => self.builtin_prin1(evaled_args),
+            Builtin::Prompt => self.builtin_prompt(evaled_args),
+            Builtin::Terpri => self.builtin_terpri(evaled_args),
 
             // File I/O (DOS style)
-            Builtin::Open => self.builtin_open(&evaled_args),
-            Builtin::Close => self.builtin_close(&evaled_args),
-            Builtin::ReadLine => self.builtin_read_line(&evaled_args),
-            Builtin::ReadChar => self.builtin_read_char(&evaled_args),
-            Builtin::WriteLine => self.builtin_write_line(&evaled_args),
-            Builtin::WriteChar => self.builtin_write_char(&evaled_args),
-            Builtin::Findfile => self.builtin_findfile(&evaled_args),
+            Builtin::Open => self.builtin_open(evaled_args),
+            Builtin::Close => self.builtin_close(evaled_args),
+            Builtin::ReadLine => self.builtin_read_line(evaled_args),
+            Builtin::ReadChar => self.builtin_read_char(evaled_args),
+            Builtin::WriteLine => self.builtin_write_line(evaled_args),
+            Builtin::WriteChar => self.builtin_write_char(evaled_args),
+            Builtin::Findfile => self.builtin_findfile(evaled_args),
 
             // User input (simulated - returns nil in batch mode)
             Builtin::Getint => Expr::Nil,
@@ -508,28 +578,28 @@ impl Interpreter {
             Builtin::Initget => Expr::Nil,
 
             // AutoCAD specific
-            Builtin::Command => self.builtin_command(&evaled_args),
-            Builtin::Getvar => self.builtin_getvar(&evaled_args),
-            Builtin::Setvar => self.builtin_setvar(&evaled_args),
+            Builtin::Command => self.builtin_command(evaled_args),
+            Builtin::Getvar => self.builtin_getvar(evaled_args),
+            Builtin::Setvar => self.builtin_setvar(evaled_args),
 
             // Geometry (points as lists)
-            Builtin::Distance => self.builtin_distance(&evaled_args),
-            Builtin::Angle => self.builtin_angle(&evaled_args),
-            Builtin::Polar => self.builtin_polar(&evaled_args),
-            Builtin::Inters => self.builtin_inters(&evaled_args),
+            Builtin::Distance => self.builtin_distance(evaled_args),
+            Builtin::Angle => self.builtin_angle(evaled_args),
+            Builtin::Polar => self.builtin_polar(evaled_args),
+            Builtin::Inters => self.builtin_inters(evaled_args),
 
             // Entity access (simulated)
             Builtin::Entsel => Expr::Nil,
             Builtin::Entget => Expr::Nil,
             Builtin::Entmod => Expr::Nil,
-            Builtin::Entmake => self.builtin_entmake(&evaled_args),
+            Builtin::Entmake => self.builtin_entmake(evaled_args),
             Builtin::Entnext => Expr::Nil,
             Builtin::Entlast => Expr::Nil,
 
             // KiCad extensions
-            Builtin::KicadPin => self.builtin_kicad_pin(&evaled_args),
-            Builtin::KicadProp => self.builtin_kicad_prop(&evaled_args),
-            Builtin::KicadPad => self.builtin_kicad_pad(&evaled_args),
+            Builtin::KicadPin => self.builtin_kicad_pin(evaled_args),
+            Builtin::KicadProp => self.builtin_kicad_prop(evaled_args),
+            Builtin::KicadPad => self.builtin_kicad_pad(evaled_args),
 
             // Selection sets (simulated)
             Builtin::Ssget => Expr::Nil,
@@ -546,9 +616,9 @@ impl Interpreter {
                     Expr::Nil
                 }
             }
-            Builtin::Apply => self.builtin_apply(&evaled_args),
-            Builtin::Load => self.builtin_load(&evaled_args),
-            Builtin::Alert => self.builtin_alert(&evaled_args),
+            Builtin::Apply => self.builtin_apply(evaled_args),
+            Builtin::Load => self.builtin_load(evaled_args),
+            Builtin::Alert => self.builtin_alert(evaled_args),
             Builtin::Quit => {
                 self.output.push("*** QUIT ***".to_string());
                 Expr::Nil
@@ -575,7 +645,7 @@ impl Interpreter {
         }
     }
 
-    fn call_user_function(&mut self, func: &UserFunction, args: &[Expr]) -> Expr {
+    pub(crate) fn call_user_function(&mut self, func: &UserFunction, args: &[Expr]) -> Expr {
         if self.call_depth >= MAX_CALL_DEPTH {
             self.output.push(format!(
                 "Error: recursion too deep (limit {MAX_CALL_DEPTH} nested calls)"
@@ -591,10 +661,10 @@ impl Interpreter {
         }
         self.locals.push(frame);
 
-        // Evaluate body
+        // Run the body compiled on first call
         let mut result = Expr::Nil;
-        for expr in &func.body {
-            result = self.eval(expr);
+        for node in func.code() {
+            result = node.run(self);
         }
 
         // Pop scope and recycle the vector
@@ -622,7 +692,7 @@ impl Interpreter {
         result
     }
 
-    fn builtin_defun(&mut self, args: &Expr) -> Expr {
+    pub(crate) fn builtin_defun(&mut self, args: &Expr) -> Expr {
         if args.list_len() < 3 {
             return Expr::Nil;
         }
@@ -652,8 +722,11 @@ impl Interpreter {
             _ => Vec::new(),
         };
         let body: Vec<Expr> = args.tail(2).list_iter().cloned().collect();
+        if let Some(b) = name.builtin() {
+            self.shadowed[b as usize] = true;
+        }
         self.functions
-            .insert(name, Arc::new(UserFunction { params, body }));
+            .insert(name, Arc::new(UserFunction::new(params, body)));
         Expr::Symbol(name)
     }
 
@@ -1364,7 +1437,7 @@ impl Interpreter {
         }
     }
 
-    fn builtin_mapcar(&mut self, args: &Expr) -> Expr {
+    pub(crate) fn builtin_mapcar(&mut self, args: &Expr) -> Expr {
         let (Some(func_expr), Some(list_expr)) = (args.nth(0), args.nth(1)) else {
             return Expr::Nil;
         };
@@ -2232,7 +2305,15 @@ impl Interpreter {
     pub fn run(&mut self, code: &str) -> Vec<Expr> {
         let mut parser = crate::parser::Parser::from_input(code);
         let exprs = parser.parse_all();
-        exprs.iter().map(|e| self.eval(e)).collect()
+        exprs.iter().map(|e| self.eval_top(e)).collect()
+    }
+
+    /// Evaluate a top-level form through the compiler (no frame, so no slots,
+    /// but constants, control forms and builtin dispatch are resolved once;
+    /// a `while` loop at top level runs its compiled body).
+    pub fn eval_top(&mut self, expr: &Expr) -> Expr {
+        let code = compile_body(&[], std::slice::from_ref(expr));
+        code[0].run(self)
     }
 }
 

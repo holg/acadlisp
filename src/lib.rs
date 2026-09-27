@@ -13,6 +13,7 @@
 
 use wasm_bindgen::prelude::*;
 
+pub mod compile;
 pub mod hp41;
 pub mod interpreter;
 pub mod kicad;

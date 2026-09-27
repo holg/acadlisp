@@ -18,6 +18,7 @@
 // 3. Generate simulated DWG output (as JSON or SVG)
 // 4. Test without needing DOSBox + AutoCAD
 
+mod compile;
 mod interpreter;
 mod lexer;
 mod parser;
