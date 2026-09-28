@@ -198,6 +198,30 @@ kisp allocates on every call by design (`Rc<Scope>` plus its `HashMap`, the `Rc<
 The one place the branch costs memory is list_ops: peak live 503 KB against 281 KB on main, because a cons cell (`Arc` header plus two 32-byte `Expr`s, 80 bytes) is larger than a `Vec` slot (32 bytes). That is the price of O(1) `cons`/`cdr` and structure sharing, and it buys the 100x fewer bytes allocated in the same row (946 KB against 106 MB).
 The `loop_sum` peak of acadlisp on the branch (49 KB vs 24 KB) is the pre-sized symbol and function tables, a one-time cost per interpreter.
 
+### 2.8 kisp, second round: the same treatment
+
+Three more commits on `kisp/perf/lexical-scope` (bdb691b, 3760487), the same ideas as acadlisp's sections 2.5 and 2.6 where kisp's design allows them:
+
+Interned symbols (`src/symbol.rs`, thread-local interner): the global scope is a table indexed by symbol id, function frames are small vectors scanned by id.
+Builtins receive their arguments as a borrowed slice of the call form (`BuiltInFunctionArgs::Expressions(&[PosExpression])`) instead of an `Rc<ReferenceValue::Expression>` clone per argument plus a `Vec` per call; the arithmetic reduction evaluates, maps and reduces in one pass without intermediate vectors.
+The big one, found with an allocation trace: `UnknownSymbol` and `MissingArgument` errors were built eagerly on every *successful* lookup and reduction (`map_or(Err(e.trace(scope)), ...)` constructs the `Err` first), and `trace()` formats the whole stack of function names into fresh `String`s. Four allocations per symbol reference, on the hot path of every program. `map_or_else` builds the error only on failure.
+Finished frames go back to a thread-local pool unless a closure captured them (`Rc` strong count above one), so sequential calls reuse the `Rc` and the entries vector.
+
+kisp native, ms, medians: Kyrill's main / after lexical scoping / after this round:
+
+| program | main | lexical scoping | this round | allocations per run now |
+|---|---:|---:|---:|---:|
+| fib | 400 | 64 | 9.4 | 57,563 (was 17.7 M) |
+| loop_sum | 73 | 65 | 9.4 | 150,103 (was 3.95 M) |
+| list_ops | 3.18 | 2.91 | 0.62 | 12,172 (was 170 k) |
+| call_overhead | 27.5 | 22.5 | 4.2 | 80,109 (was 1.4 M) |
+| cad_grid | 4.29 | 2.78 | 0.55 | 11,115 (was 215 k) |
+
+wasm: fib 13.3, loop_sum 13.3, list_ops 0.77, call_overhead 5.7, cad_grid 0.72 (XLISP wasm: 14.0 / 16.6 / 1.45 / 7.7 / 1.09).
+kisp is now 43x faster than Kyrill's main on fib and, in the browser, ahead of XLISP on every program.
+Against the compiled acadlisp it is 2x behind on fib and loops (a call still costs a `Vec` for the arguments plus the frame when the pool is empty, and every builtin call goes through the generic `evaluated()` path), equal on lists and the numeric core.
+All 15 kisp tests pass, closures and the tail-call cases included.
+
 Parse times are 1 to 20 microseconds for both and irrelevant.
 acadlisp parses two to three times faster because its lexer works on byte offsets, while kisp's lexer calls `chars().nth(i)` for every character, which is O(n) per character and therefore O(n^2) per file; this only matters for large sources.
 
